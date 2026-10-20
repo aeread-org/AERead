@@ -31,9 +31,9 @@ Procurement flash\newline 24 worlds per model
 & October kernel; \code{pay_or_test_openrouter.py}, digest \code{f5ec607c}. Runs 13 October; the driver bytes match its committed version. Pinned OpenRouter clients.
 & 24 completed receipts per model; 72 and 76 provider calls. On 16 October, all 48 receipts passed state and score audit and the pinned sealed-action derivation reproduced every decision loss. Table E.14's means and intervals are unchanged.\\
 \addlinespace[4pt]
-Data-center agreement\newline development and confirmatory
-& Development: September executor \code{3cd3278c}; \code{agreement_cli.py}. Confirmatory: \code{agreement_confirmatory_cli.py}, frozen plans, CLI versions and limits.
-& Development: 2,417 valid of 2,456, inline replay. Confirmatory plus pilot: 1,175 valid of 1,176; another 120 scripted dry runs. All 1,295 scored receipts replay offline; one excluded receipt has a separate digest/seal check. Earnings and IR violations are receipt leaves.\\
+Data-center agreement\newline development and confirmatories
+& Development: September executor \code{3cd3278c}; \code{agreement_cli.py}. Confirmatory v1: \code{agreement_confirmatory_cli.py}, frozen plans, CLI versions and limits. Confirmatory v2 (Table 5.4): \code{agreement_confirmatory_v2_cli.py} on v1's pieces, with isolation probes from \code{cli_isolation.py}.
+& Development: 2,417 valid of 2,456, inline replay. Confirmatory v1 plus pilot: 1,175 valid of 1,176; another 120 scripted dry runs. All 1,295 scored receipts replay offline; one excluded receipt has a separate digest/seal check. Confirmatory v2: 640 valid of 640, every receipt replayed offline from its sealed events. Earnings and IR violations are receipt leaves.\\
 \addlinespace[4pt]
 Refund V2.1\newline four models, 120 cells each in the reported panel
 & September kernel; \code{v2_runner}; Arena client. Contributed registration calls the shared executor and finalizer.

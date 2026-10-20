@@ -53,10 +53,10 @@ def summarize(units):
 
 
 def main():
-    result = dict(analysis_id='paper_shortfall_panels_v10_20261020',
+    result = dict(analysis_id='paper_shortfall_panels_v11_20261020',
                   status='post-run descriptive accounting',
                   interval_method='95% Student t interval across worlds; Refund across six fixed cases, descriptive only',
-                  housing={}, procurement={}, datacenter={}, refund={})
+                  housing={}, procurement={}, datacenter={}, datacenter_v1={}, refund={})
     housing = read(ROOT/'housing_v14_taxonomy.json')
     cells = read(EVIDENCE/'housing_reply_conditioned/tables/cells.jsonl', True)
     index = {(c['campaign_id'], c['world_seed'], c['arm']): c for c in cells}
@@ -161,12 +161,57 @@ def main():
         left, right = [dc_pairings[p]['units'] for p in pairs]
         assert set(left) == set(right)
         units = {w:{k:(left[w][k]+right[w][k])/2 for k in left[w]} for w in left}
-        result['datacenter'][name] = dict(summary=summarize(units), units=units,
+        result['datacenter_v1'][name] = dict(summary=summarize(units), units=units,
             focal_roles='equal mean of integrator and client in each world',
             counterpart='firm population', negotiations=120, worlds=60,
             client_below_walkaway=dc_pairings[pairs[1]]['client_below_walkaway'],
             integrator_below_walkaway=dc_pairings[pairs[0]]['integrator_below_walkaway'])
-    result['datacenter_pairings'] = dc_pairings
+    result['datacenter_v1_pairings'] = dc_pairings
+
+    # Data center v2 (Table 5.4, Figure 5.2c): 80 admitted worlds, 72 with a deal. The integrator arm against the firm
+    # client has two plays a world, averaged within the world before the roles are; the client arm has one.
+    v2 = EVIDENCE/'campaign_refresh/datacenter_v2'
+    v2_report = read(v2/'analysis/reports/analysis.json')
+    v2_pairings = {}
+    for campaign, report_key, plays in [('integrator_firm','IF',2), ('client_firm','CF',1), ('head_to_head','HH',1)]:
+        bundle = v2/f'bundles/datacenter_agreement_v2_{campaign}'
+        manifest = read(bundle/'publication_manifest.json')
+        for rel in ('README.md', 'reports/summary.json', 'tables/cells.jsonl'):
+            assert hashlib.sha256((bundle/rel).read_bytes()).hexdigest() == manifest['artifacts'][rel], rel
+        rows = read(bundle/'tables/cells.jsonl', True)
+        assert len({r['cell_key'] for r in rows}) == len(rows)
+        for pairing in sorted({r['pairing'] for r in rows}):
+            group = [r for r in rows if r['pairing'] == pairing]
+            assert len(group) == 80*plays and all(r['valid'] and r['status']=='ok' for r in group)
+            by_world = defaultdict(list)
+            for r in group:
+                close(r['joint_value_lost'], r['allocation_loss']+r['no_deal_loss']+r['delay_loss'])
+                by_world[r['world']].append(dict(
+                    inferior_clauses=r['allocation_loss'] if r['available_surplus'] > 1e-6 else 0,
+                    harmful_agreement=r['allocation_loss'] if r['available_surplus'] <= 1e-6 else 0,
+                    missed_deal=r['no_deal_loss'], redline_fees=r['delay_loss'],
+                    total=r['joint_value_lost']))
+            assert len(by_world) == 80 and all(len(v) == plays for v in by_world.values())
+            units = {w: {k: st.fmean(p[k] for p in ps) for k in ps[0]} for w, ps in by_world.items()}
+            published = v2_report['secondary'][report_key][pairing]
+            for leaf in ('allocation_loss','no_deal_loss','delay_loss','joint_value_lost'):
+                close(st.fmean(r[leaf] for r in group), published[leaf], .0051)
+            v2_pairings[pairing] = dict(summary=summarize(units), units=units, plays_per_world=plays,
+                client_below_walkaway=sum(r['client_ir_violation'] for r in group),
+                integrator_below_walkaway=sum(r['integrator_ir_violation'] for r in group),
+                deal_worlds=len({r['world'] for r in group if r['available_surplus'] > 1e-6}), missing=0)
+    for name, prefix in [('Opus 5.5','claude'),('Sol 6.1','codex')]:
+        pairs = [f'{prefix}_integrator__negotiator_drawn_public_v1_client',
+                 f'negotiator_drawn_public_v1_integrator__{prefix}_client']
+        left, right = [v2_pairings[p]['units'] for p in pairs]
+        assert set(left) == set(right)
+        units = {w:{k:(left[w][k]+right[w][k])/2 for k in left[w]} for w in left}
+        result['datacenter'][name] = dict(summary=summarize(units), units=units,
+            focal_roles='equal mean of integrator and client in each world (the integrator first averaged over its two plays)',
+            counterpart='firm population', negotiations=240, worlds=80, campaign='v2',
+            client_below_walkaway=v2_pairings[pairs[1]]['client_below_walkaway'],
+            integrator_below_walkaway=v2_pairings[pairs[0]]['integrator_below_walkaway'])
+    result['datacenter_pairings'] = v2_pairings
 
     refund = read(ROOT/'refund_v21_taxonomy.json')
     for path in sorted((ROOT/'refund_sources').glob('*.json')):
@@ -198,7 +243,7 @@ def main():
             per_case_cell_totals={k:[r['total'] for r in rs] for k,rs in by_case.items()})
     result['inputs_sha256'] = INPUTS
     result['checks'] = dict(all_component_sums=True, all_primary_source_totals_reproduced=True,
-        all_housing_cell_corrections_matched=True, dc_publication_artifact_hashes=True,
+        all_housing_cell_corrections_matched=True, dc_publication_artifact_hashes=True, dc_v2_table_hashes_and_published_leaves=True,
         dc_all_worlds_denominator_verified=True, procurement_all_worlds_matched=True)
     (ROOT/'panels.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
     for case in ('housing','procurement','datacenter','refund'):

@@ -1,14 +1,5191 @@
 {
-  "analysis_id": "paper_shortfall_panels_v10_20261020",
+  "analysis_id": "paper_shortfall_panels_v11_20261020",
   "checks": {
     "all_component_sums": true,
     "all_housing_cell_corrections_matched": true,
     "all_primary_source_totals_reproduced": true,
     "dc_all_worlds_denominator_verified": true,
     "dc_publication_artifact_hashes": true,
+    "dc_v2_table_hashes_and_published_leaves": true,
     "procurement_all_worlds_matched": true
   },
   "datacenter": {
+    "Opus 5.5": {
+      "campaign": "v2",
+      "client_below_walkaway": 0,
+      "counterpart": "firm population",
+      "focal_roles": "equal mean of integrator and client in each world (the integrator first averaged over its two plays)",
+      "integrator_below_walkaway": 2,
+      "negotiations": 240,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            5.7913984063399795,
+            13.415082218660022
+          ],
+          "max": 62.92,
+          "mean": 9.6032403125,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 13.415624999999999,
+          "zero_count": 50
+        },
+        "missed_deal": {
+          "ci95": [
+            17.99783412169831,
+            39.35263087830169
+          ],
+          "max": 206.112,
+          "mean": 28.6752325,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 59.0172,
+          "zero_count": 53
+        },
+        "redline_fees": {
+          "ci95": [
+            39.197558379055096,
+            51.427441620944904
+          ],
+          "max": 100.0,
+          "mean": 45.3125,
+          "median": 37.5,
+          "min": 6.25,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 25.0,
+          "q3": 75.0,
+          "zero_count": 0
+        },
+        "total": {
+          "ci95": [
+            68.78578844549264,
+            98.39615717950736
+          ],
+          "max": 281.112,
+          "mean": 83.5909728125,
+          "median": 57.208749999999995,
+          "min": 12.5,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 27.775,
+          "q3": 137.34325,
+          "zero_count": 0
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.35,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 51.35
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 121.53,
+          "redline_fees": 81.25,
+          "total": 202.78000000000003
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 46.92,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 59.42
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 47.59,
+          "missed_deal": 0.0,
+          "redline_fees": 68.75,
+          "total": 116.34
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 28.195,
+          "redline_fees": 75.0,
+          "total": 103.195
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.274,
+          "redline_fees": 75.0,
+          "total": 122.274
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 36.0625,
+          "missed_deal": 0.0,
+          "redline_fees": 6.25,
+          "total": 42.3125
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 104.457,
+          "redline_fees": 75.0,
+          "total": 179.457
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 23.895,
+          "redline_fees": 37.5,
+          "total": 61.394999999999996
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 83.3725,
+          "redline_fees": 75.0,
+          "total": 158.3725
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 13.1625,
+          "missed_deal": 68.795,
+          "redline_fees": 43.75,
+          "total": 125.70750000000001
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.6,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 13.1
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 57.9726,
+          "redline_fees": 87.5,
+          "total": 145.4726
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 62.92,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 137.92
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 7.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 57.0
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.1285,
+          "missed_deal": 106.9675,
+          "redline_fees": 75.0,
+          "total": 184.096
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.08,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 38.58
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 40.00875,
+          "missed_deal": 0.0,
+          "redline_fees": 31.25,
+          "total": 71.25874999999999
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 16.05,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 41.05
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.4175,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 57.4175
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 37.5
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.926,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 14.426
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 75.0,
+          "total": 75.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 95.9175,
+          "redline_fees": 62.5,
+          "total": 158.4175
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 44.504,
+          "missed_deal": 0.0,
+          "redline_fees": 68.75,
+          "total": 113.254
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 182.0875,
+          "redline_fees": 62.5,
+          "total": 244.5875
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 37.5
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 4.05,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 29.049999999999997
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 23.625,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 48.625
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 101.09625,
+          "redline_fees": 93.75,
+          "total": 194.84625
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 24.5945,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 37.0945
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 23.16,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 85.66
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 25.81866,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 38.31866
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 41.372345,
+          "missed_deal": 84.3775,
+          "redline_fees": 68.75,
+          "total": 194.499845
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.27872,
+          "missed_deal": 108.0245,
+          "redline_fees": 62.5,
+          "total": 171.80321999999998
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 28.8775,
+          "redline_fees": 87.5,
+          "total": 116.3775
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 62.151,
+          "redline_fees": 75.0,
+          "total": 137.151
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 122.532,
+          "redline_fees": 87.5,
+          "total": 210.032
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.15625,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 44.65625
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 37.5
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 84.149625,
+          "redline_fees": 93.75,
+          "total": 177.89962500000001
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.86,
+          "redline_fees": 50.0,
+          "total": 177.86
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 39.9365,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 64.9365
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 53.8205,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 91.3205
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 50.0,
+          "total": 115.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 62.5
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 45.2095,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 120.2095
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 84.16125,
+          "redline_fees": 75.0,
+          "total": 159.16125
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 58.9425,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 71.4425
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 14.175,
+          "missed_deal": 0.0,
+          "redline_fees": 18.75,
+          "total": 32.925
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 16.2,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 28.7
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 10.2,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 22.7
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 37.5
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 12.5
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 95.655,
+          "redline_fees": 93.75,
+          "total": 189.40499999999997
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 206.112,
+          "redline_fees": 75.0,
+          "total": 281.112
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 86.73,
+          "redline_fees": 75.0,
+          "total": 161.73
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 66.136875,
+          "redline_fees": 81.25,
+          "total": 147.386875
+        }
+      },
+      "worlds": 80
+    },
+    "Sol 6.1": {
+      "campaign": "v2",
+      "client_below_walkaway": 0,
+      "counterpart": "firm population",
+      "focal_roles": "equal mean of integrator and client in each world (the integrator first averaged over its two plays)",
+      "integrator_below_walkaway": 0,
+      "negotiations": 240,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            3.632822456085597,
+            10.492439293914405
+          ],
+          "max": 58.9425,
+          "mean": 7.062630875000001,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 2.3838749999999997,
+          "zero_count": 54
+        },
+        "missed_deal": {
+          "ci95": [
+            32.41883997148777,
+            67.07896752851222
+          ],
+          "max": 450.88124999999997,
+          "mean": 49.74890375,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 96.32906249999999,
+          "zero_count": 45
+        },
+        "redline_fees": {
+          "ci95": [
+            78.11797322714474,
+            88.60077677285526
+          ],
+          "max": 100.0,
+          "mean": 83.359375,
+          "median": 93.75,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 81.25,
+          "q3": 93.75,
+          "zero_count": 4
+        },
+        "total": {
+          "ci95": [
+            120.59924101311441,
+            159.74257823688555
+          ],
+          "max": 555.625,
+          "mean": 140.17090962499998,
+          "median": 117.3475,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 87.5,
+          "q3": 189.8484375,
+          "zero_count": 4
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 41.04625,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 141.04625
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 121.53,
+          "redline_fees": 93.75,
+          "total": 215.28000000000003
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 46.92,
+          "missed_deal": 0.0,
+          "redline_fees": 81.25,
+          "total": 128.17
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 48.115,
+          "missed_deal": 168.4675,
+          "redline_fees": 87.5,
+          "total": 304.0825
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.39,
+          "redline_fees": 75.0,
+          "total": 131.39
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 70.911,
+          "redline_fees": 93.75,
+          "total": 164.661
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 14.9625,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 108.7125
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 81.25,
+          "total": 81.25
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 93.75
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.79,
+          "redline_fees": 100.0,
+          "total": 147.79
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 125.05875,
+          "redline_fees": 93.75,
+          "total": 218.80875
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 103.1925,
+          "redline_fees": 93.75,
+          "total": 196.9425
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.6,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 94.35
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 115.9452,
+          "redline_fees": 100.0,
+          "total": 215.9452
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 57.775000000000006,
+          "missed_deal": 94.74,
+          "redline_fees": 100.0,
+          "total": 252.515
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 68.75,
+          "total": 68.75
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.1285,
+          "missed_deal": 106.9675,
+          "redline_fees": 87.5,
+          "total": 196.596
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.08,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 63.58
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 40.00875,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 140.00875000000002
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 16.05,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 109.8
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.4175,
+          "missed_deal": 126.111875,
+          "redline_fees": 93.75,
+          "total": 252.27937500000002
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 93.75
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.926,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 95.676
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 93.75
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 75.0,
+          "total": 75.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 143.87625,
+          "redline_fees": 93.75,
+          "total": 237.62624999999997
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 4.74375,
+          "missed_deal": 450.88124999999997,
+          "redline_fees": 100.0,
+          "total": 555.625
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.6,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.6
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 33.5051,
+          "redline_fees": 93.75,
+          "total": 127.2551
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 4.05,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 104.05
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 81.25,
+          "total": 81.25
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 101.09625,
+          "redline_fees": 93.75,
+          "total": 194.84625
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 24.5945,
+          "missed_deal": 0.0,
+          "redline_fees": 81.25,
+          "total": 105.8445
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 81.25,
+          "total": 81.25
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 289.978125,
+          "redline_fees": 93.75,
+          "total": 383.728125
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 109.67425,
+          "redline_fees": 100.0,
+          "total": 209.67425
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 81.25,
+          "total": 81.25
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 45.801,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 145.801
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.27872,
+          "missed_deal": 108.0245,
+          "redline_fees": 87.5,
+          "total": 196.80321999999998
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 57.755,
+          "redline_fees": 100.0,
+          "total": 157.755
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 124.302,
+          "redline_fees": 100.0,
+          "total": 224.302
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 190.4115,
+          "redline_fees": 87.5,
+          "total": 277.9115
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 6.2,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 106.2
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 63.539875,
+          "redline_fees": 100.0,
+          "total": 163.539875
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 93.75
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.09975,
+          "redline_fees": 87.5,
+          "total": 143.59975
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.86,
+          "redline_fees": 50.0,
+          "total": 177.86
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 3.15,
+          "missed_deal": 77.31375,
+          "redline_fees": 87.5,
+          "total": 167.96375
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 53.8205,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 147.5705
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 50.0,
+          "total": 115.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 93.75
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 234.98250000000002,
+          "redline_fees": 93.75,
+          "total": 328.7325
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 19.32,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 119.32
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 126.241875,
+          "redline_fees": 93.75,
+          "total": 219.991875
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 58.9425,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 152.6925
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 109.02450000000002,
+          "redline_fees": 93.75,
+          "total": 202.7745
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 16.2,
+          "missed_deal": 127.2325,
+          "redline_fees": 93.75,
+          "total": 237.1825
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 10.2,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 85.2
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 63.77,
+          "redline_fees": 87.5,
+          "total": 151.26999999999998
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 13.08,
+          "missed_deal": 0.0,
+          "redline_fees": 93.75,
+          "total": 106.83
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 43.365,
+          "redline_fees": 93.75,
+          "total": 137.115
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 88.1825,
+          "redline_fees": 100.0,
+          "total": 188.1825
+        }
+      },
+      "worlds": 80
+    }
+  },
+  "datacenter_pairings": {
+    "claude_integrator__codex_client": {
+      "client_below_walkaway": 0,
+      "deal_worlds": 72,
+      "integrator_below_walkaway": 0,
+      "missing": 0,
+      "plays_per_world": 1,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            5.847312760795506,
+            19.447446614204495
+          ],
+          "max": 220.64,
+          "mean": 12.6473796875,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 12.3375,
+          "zero_count": 45
+        },
+        "missed_deal": {
+          "ci95": [
+            7.15547755750821,
+            41.52280994249179
+          ],
+          "max": 431.146,
+          "mean": 24.339143749999998,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 68
+        },
+        "redline_fees": {
+          "ci95": [
+            68.50482957678102,
+            80.24517042321898
+          ],
+          "max": 100.0,
+          "mean": 74.375,
+          "median": 75.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 75.0,
+          "q3": 100.0,
+          "zero_count": 3
+        },
+        "total": {
+          "ci95": [
+            91.13413733741461,
+            131.58890953758538
+          ],
+          "max": 531.146,
+          "mean": 111.3615234375,
+          "median": 88.83918750000001,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 75.0,
+          "q3": 113.934375,
+          "zero_count": 3
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.7,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 77.7
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 162.04,
+          "redline_fees": 100.0,
+          "total": 262.04
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 51.94,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 126.94
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.1,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 77.1
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.39,
+          "redline_fees": 100.0,
+          "total": 156.39
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 18.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 93.0
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.79,
+          "redline_fees": 100.0,
+          "total": 147.79
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 9.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 84.0
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 17.2062,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 117.2062
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 44.68,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 119.68
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 9.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 109.0
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.16,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 27.16
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 39.8175,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 114.8175
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 15.9894,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 40.9894
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 4.725,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 79.725
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 220.64,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 320.64
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 102.15,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 177.15
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 25.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 100.0
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 100.0,
+          "total": 100.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 9.6,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 109.6
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.375,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.375
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.2,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 76.2
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.2204,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 101.2204
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 19.328,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 94.328
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 11.2,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 86.2
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 6.3,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 31.3
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 431.146,
+          "redline_fees": 100.0,
+          "total": 531.146
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 14.448375,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 89.448375
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 76.257,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 101.257
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 337.51,
+          "redline_fees": 100.0,
+          "total": 437.51
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 216.049,
+          "redline_fees": 100.0,
+          "total": 316.049
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 59.013,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 109.013
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 12.25,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 87.25
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 58.4987,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 158.4987
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 112.1995,
+          "redline_fees": 100.0,
+          "total": 212.1995
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 13.23,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 88.23
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 6.3,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 31.3
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 44.715,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 119.715
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 12.6,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 87.6
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 75.0,
+          "total": 124.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.2268,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.2268
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 38.64,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 113.64
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 28.88,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 128.88
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.4,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 107.4
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 317.968,
+          "redline_fees": 100.0,
+          "total": 417.968
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.54,
+          "redline_fees": 100.0,
+          "total": 227.54
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 88.1825,
+          "redline_fees": 100.0,
+          "total": 188.1825
+        }
+      }
+    },
+    "claude_integrator__negotiator_drawn_public_v1_client": {
+      "client_below_walkaway": 0,
+      "deal_worlds": 72,
+      "integrator_below_walkaway": 2,
+      "missing": 0,
+      "plays_per_world": 2,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            0.8260202133635475,
+            3.6121407866364525
+          ],
+          "max": 28.35,
+          "mean": 2.2190805,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 67
+        },
+        "missed_deal": {
+          "ci95": [
+            2.661156017928591,
+            15.455968982071408
+          ],
+          "max": 168.755,
+          "mean": 9.058562499999999,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 70
+        },
+        "redline_fees": {
+          "ci95": [
+            34.394427522838875,
+            45.605572477161125
+          ],
+          "max": 100.0,
+          "mean": 40.0,
+          "median": 43.75,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 25.0,
+          "q3": 50.0,
+          "zero_count": 10
+        },
+        "total": {
+          "ci95": [
+            42.10134046761391,
+            60.453945532386086
+          ],
+          "max": 231.255,
+          "mean": 51.277643,
+          "median": 50.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 25.0,
+          "q3": 64.2125,
+          "zero_count": 8
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 81.02,
+          "redline_fees": 62.5,
+          "total": 143.52
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 19.11,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 44.11
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 62.5
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 8.82,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 21.32
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 26.325,
+          "missed_deal": 0.0,
+          "redline_fees": 37.5,
+          "total": 63.825
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 20.58,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 70.58
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 4.257,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 54.257000000000005
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 18.75,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 81.25
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 3.852,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 28.852
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 50.0,
+          "total": 50.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.375,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 62.875
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 8.1,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 58.099999999999994
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 67.3975,
+          "redline_fees": 87.5,
+          "total": 154.89749999999998
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 168.755,
+          "redline_fees": 62.5,
+          "total": 231.255
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.55744,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 27.55744
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.09975,
+          "redline_fees": 87.5,
+          "total": 143.59975
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.86,
+          "redline_fees": 0.0,
+          "total": 127.86
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 16.605,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 41.605
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 0.0,
+          "total": 65.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 19.845,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 44.845
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 28.35,
+          "missed_deal": 0.0,
+          "redline_fees": 12.5,
+          "total": 40.85
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 63.77,
+          "redline_fees": 87.5,
+          "total": 151.26999999999998
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 44.09125,
+          "redline_fees": 62.5,
+          "total": 106.59125
+        }
+      }
+    },
+    "codex_integrator__claude_client": {
+      "client_below_walkaway": 0,
+      "deal_worlds": 72,
+      "integrator_below_walkaway": 0,
+      "missing": 0,
+      "plays_per_world": 1,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            14.775789839256408,
+            30.07165208574359
+          ],
+          "max": 184.22,
+          "mean": 22.4237209625,
+          "median": 5.9780999999999995,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 37.65031875,
+          "zero_count": 34
+        },
+        "missed_deal": {
+          "ci95": [
+            7.215967443455188,
+            45.011017556544815
+          ],
+          "max": 466.39,
+          "mean": 26.1134925,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 67
+        },
+        "redline_fees": {
+          "ci95": [
+            61.86716385751676,
+            74.38283614248324
+          ],
+          "max": 100.0,
+          "mean": 68.125,
+          "median": 75.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 50.0,
+          "q3": 100.0,
+          "zero_count": 5
+        },
+        "total": {
+          "ci95": [
+            95.2419995818054,
+            138.08242734319458
+          ],
+          "max": 566.39,
+          "mean": 116.66221346249999,
+          "median": 98.81063,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 75.0,
+          "q3": 135.94099999999997,
+          "zero_count": 4
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 67.505,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 142.505
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 5.25,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 80.25
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 75.04,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 75.04
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 50.565,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 100.565
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.39,
+          "redline_fees": 100.0,
+          "total": 156.39
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 95.585,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 145.585
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 67.214,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 142.214
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.79,
+          "redline_fees": 100.0,
+          "total": 147.79
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 38.101275,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 113.101275
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 13.5,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 88.5
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 12.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 87.0
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 5.9562,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 80.9562
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 184.22,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 234.22
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 7.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 82.0
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 9.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 84.0
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 51.5688,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 101.5688
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 83.85,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 133.85
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.575,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 76.575
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 466.39,
+          "redline_fees": 100.0,
+          "total": 566.39
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 436.946,
+          "redline_fees": 100.0,
+          "total": 536.946
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 100.0,
+          "total": 100.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 29.4,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 104.4
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 84.883,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 159.883
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.2,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 76.2
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 134.0204,
+          "redline_fees": 100.0,
+          "total": 234.0204
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 39.6,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 89.6
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 22.848,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 47.848
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 44.989,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 119.989
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 43.17,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 93.17
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 37.5,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 87.5
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 22.82126,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 97.82126
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 53.04,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 128.04
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 64.46,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 114.46
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 11.05367,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 61.05367
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 57.755,
+          "redline_fees": 100.0,
+          "total": 157.755
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 82.497,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 157.497
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 6.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 56.0
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 245.064,
+          "redline_fees": 100.0,
+          "total": 345.064
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 23.963712,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 73.963712
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 24.8,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 99.8
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 22.56,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 122.56
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 5.4,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 80.4
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 10.8,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 85.8
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 8.75,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 108.75
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 31.79752,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 131.79752
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 75.673,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 125.673
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 55.425,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 155.425
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 9.5,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 84.5
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 100.0,
+          "total": 165.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.73124,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 26.73124
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 48.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 123.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 313.31,
+          "redline_fees": 100.0,
+          "total": 413.31
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 11.745,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 61.745
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 7.2,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 82.2
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 130.76,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 180.76
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.54,
+          "redline_fees": 100.0,
+          "total": 227.54
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 14.4,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 89.4
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 88.1825,
+          "redline_fees": 75.0,
+          "total": 163.1825
+        }
+      }
+    },
+    "codex_integrator__negotiator_drawn_public_v1_client": {
+      "client_below_walkaway": 0,
+      "deal_worlds": 72,
+      "integrator_below_walkaway": 0,
+      "missing": 0,
+      "plays_per_world": 2,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            0.6871040915976923,
+            2.790181908402308
+          ],
+          "max": 19.845,
+          "mean": 1.7386430000000002,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 67
+        },
+        "missed_deal": {
+          "ci95": [
+            28.624176594914054,
+            63.20077090508594
+          ],
+          "max": 336.935,
+          "mean": 45.91247375,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 69.767,
+          "zero_count": 50
+        },
+        "redline_fees": {
+          "ci95": [
+            66.9333536333623,
+            80.8791463666377
+          ],
+          "max": 100.0,
+          "mean": 73.90625,
+          "median": 87.5,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 71.875,
+          "q3": 90.625,
+          "zero_count": 10
+        },
+        "total": {
+          "ci95": [
+            101.39782975571491,
+            141.71690374428508
+          ],
+          "max": 412.985,
+          "mean": 121.55736675,
+          "median": 89.426,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 75.0,
+          "q3": 156.66000000000003,
+          "zero_count": 8
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 12.7875,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 112.7875
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 81.02,
+          "redline_fees": 87.5,
+          "total": 168.52
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 19.11,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 81.61
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.05,
+          "missed_deal": 336.935,
+          "redline_fees": 75.0,
+          "total": 412.985
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.39,
+          "redline_fees": 50.0,
+          "total": 106.39
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.274,
+          "redline_fees": 87.5,
+          "total": 134.774
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 62.5
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.79,
+          "redline_fees": 100.0,
+          "total": 147.79
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 83.3725,
+          "redline_fees": 87.5,
+          "total": 170.8725
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 68.795,
+          "redline_fees": 87.5,
+          "total": 156.29500000000002
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 115.9452,
+          "redline_fees": 100.0,
+          "total": 215.9452
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 10.29,
+          "missed_deal": 189.48,
+          "redline_fees": 100.0,
+          "total": 299.77
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 62.5
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 4.257,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 79.257
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 18.75,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 118.75
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 252.22375,
+          "redline_fees": 87.5,
+          "total": 339.72375
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 3.852,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 91.352
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 50.0,
+          "total": 50.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 95.9175,
+          "redline_fees": 87.5,
+          "total": 183.4175
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 9.4875,
+          "missed_deal": 300.5875,
+          "redline_fees": 100.0,
+          "total": 410.075
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 67.0102,
+          "redline_fees": 87.5,
+          "total": 154.5102
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 8.1,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 108.1
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 67.3975,
+          "redline_fees": 87.5,
+          "total": 154.89749999999998
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 62.5,
+          "total": 62.5
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 193.31875,
+          "redline_fees": 87.5,
+          "total": 280.81875
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 219.3485,
+          "redline_fees": 100.0,
+          "total": 319.3485
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.55744,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 77.55744
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 57.755,
+          "redline_fees": 100.0,
+          "total": 157.755
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 124.302,
+          "redline_fees": 100.0,
+          "total": 224.302
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 12.4,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 112.4
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.07975,
+          "redline_fees": 100.0,
+          "total": 227.07975
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.86,
+          "redline_fees": 0.0,
+          "total": 127.86
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 154.6275,
+          "redline_fees": 100.0,
+          "total": 254.6275
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 16.605,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 104.105
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 0.0,
+          "total": 65.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 156.655,
+          "redline_fees": 87.5,
+          "total": 244.155
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 84.16125,
+          "redline_fees": 87.5,
+          "total": 171.66125
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 19.845,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 107.345
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 72.683,
+          "redline_fees": 87.5,
+          "total": 160.183
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 254.465,
+          "redline_fees": 87.5,
+          "total": 341.965
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 87.5,
+          "total": 87.5
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 86.73,
+          "redline_fees": 87.5,
+          "total": 174.23
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 88.1825,
+          "redline_fees": 100.0,
+          "total": 188.1825
+        }
+      }
+    },
+    "negotiator_drawn_public_v1_integrator__claude_client": {
+      "client_below_walkaway": 0,
+      "deal_worlds": 72,
+      "integrator_below_walkaway": 0,
+      "missing": 0,
+      "plays_per_world": 1,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            9.991837064630607,
+            23.982963185369393
+          ],
+          "max": 105.26,
+          "mean": 16.987400125,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 15.6,
+          "zero_count": 56
+        },
+        "missed_deal": {
+          "ci95": [
+            28.819055202602325,
+            67.76474979739767
+          ],
+          "max": 412.224,
+          "mean": 48.2919025,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 71.076875,
+          "zero_count": 54
+        },
+        "redline_fees": {
+          "ci95": [
+            40.8886629175121,
+            60.3613370824879
+          ],
+          "max": 100.0,
+          "mean": 50.625,
+          "median": 50.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 100.0,
+          "zero_count": 29
+        },
+        "total": {
+          "ci95": [
+            90.57434869676875,
+            141.2342565532312
+          ],
+          "max": 512.224,
+          "mean": 115.90430262499999,
+          "median": 73.49000000000001,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 31.000000000000004,
+          "q3": 188.741625,
+          "zero_count": 15
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.7,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 27.7
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 162.04,
+          "redline_fees": 100.0,
+          "total": 262.04
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 74.73,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 74.73
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 95.18,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 170.18
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.39,
+          "redline_fees": 100.0,
+          "total": 156.39
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 94.548,
+          "redline_fees": 100.0,
+          "total": 194.548
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 63.305,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 63.305
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 208.914,
+          "redline_fees": 100.0,
+          "total": 308.914
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.79,
+          "redline_fees": 0.0,
+          "total": 47.79
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 166.745,
+          "redline_fees": 100.0,
+          "total": 266.745
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 137.59,
+          "redline_fees": 50.0,
+          "total": 187.59
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.2,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 1.2
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 115.9452,
+          "redline_fees": 100.0,
+          "total": 215.9452
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 105.26,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 205.26
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 14.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 89.0
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 213.935,
+          "redline_fees": 100.0,
+          "total": 313.935
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.16,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 52.16
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 61.2675,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 61.2675
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.1,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 32.1
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 64.835,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 64.835
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 100.0,
+          "total": 100.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 191.835,
+          "redline_fees": 100.0,
+          "total": 291.835
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 88.633,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 163.633
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 364.175,
+          "redline_fees": 100.0,
+          "total": 464.175
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 47.25,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 72.25
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 134.795,
+          "redline_fees": 100.0,
+          "total": 234.795
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 49.189,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 49.189
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 46.32,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 121.32
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 51.63732,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 51.63732
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 82.74469,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 157.74469
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 216.049,
+          "redline_fees": 100.0,
+          "total": 316.049
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 57.755,
+          "redline_fees": 100.0,
+          "total": 157.755
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 124.302,
+          "redline_fees": 100.0,
+          "total": 224.302
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 245.064,
+          "redline_fees": 100.0,
+          "total": 345.064
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 64.3125,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 64.3125
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 112.1995,
+          "redline_fees": 100.0,
+          "total": 212.1995
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.86,
+          "redline_fees": 100.0,
+          "total": 227.86
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 79.873,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 79.873
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 91.036,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 141.036
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 100.0,
+          "total": 165.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 90.419,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 190.419
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 168.3225,
+          "redline_fees": 100.0,
+          "total": 268.3225
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 98.04,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 98.04
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 25.0,
+          "total": 25.0
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.4,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 32.4
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 20.4,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 20.4
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.54,
+          "redline_fees": 100.0,
+          "total": 227.54
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 412.224,
+          "redline_fees": 100.0,
+          "total": 512.224
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 50.0,
+          "total": 50.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 173.46,
+          "redline_fees": 100.0,
+          "total": 273.46
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 88.1825,
+          "redline_fees": 100.0,
+          "total": 188.1825
+        }
+      }
+    },
+    "negotiator_drawn_public_v1_integrator__codex_client": {
+      "client_below_walkaway": 0,
+      "deal_worlds": 72,
+      "integrator_below_walkaway": 0,
+      "missing": 0,
+      "plays_per_world": 1,
+      "summary": {
+        "harmful_agreement": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 80
+        },
+        "inferior_clauses": {
+          "ci95": [
+            6.226349297525741,
+            18.54688820247426
+          ],
+          "max": 105.26,
+          "mean": 12.38661875,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.3,
+          "zero_count": 60
+        },
+        "missed_deal": {
+          "ci95": [
+            29.824369595272792,
+            77.34629790472721
+          ],
+          "max": 601.175,
+          "mean": 53.58533375,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 71.076875,
+          "zero_count": 54
+        },
+        "redline_fees": {
+          "ci95": [
+            87.78984243928267,
+            97.83515756071733
+          ],
+          "max": 100.0,
+          "mean": 92.8125,
+          "median": 100.0,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 100.0,
+          "q3": 100.0,
+          "zero_count": 4
+        },
+        "total": {
+          "ci95": [
+            134.14832800635656,
+            183.4205769936434
+          ],
+          "max": 701.175,
+          "mean": 158.7844525,
+          "median": 122.2945,
+          "min": 0.0,
+          "n": 80,
+          "negative_count": 0,
+          "q1": 100.0,
+          "q3": 195.89499999999998,
+          "zero_count": 4
+        }
+      },
+      "units": {
+        "00ed46a4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 69.305,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 169.305
+        },
+        "020dc45e": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 162.04,
+          "redline_fees": 100.0,
+          "total": 262.04
+        },
+        "05728e57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "07c8ba04": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "082fd45f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 74.73,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 174.73
+        },
+        "09d5a5a5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 95.18,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 195.18
+        },
+        "0bacb2bc": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 56.39,
+          "redline_fees": 100.0,
+          "total": 156.39
+        },
+        "0e213148": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 94.548,
+          "redline_fees": 100.0,
+          "total": 194.548
+        },
+        "0fb33902": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 29.925,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 129.925
+        },
+        "127fbf4d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "13283073": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "1364f3f3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "15add624": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 47.79,
+          "redline_fees": 100.0,
+          "total": 147.79
+        },
+        "19925759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 166.745,
+          "redline_fees": 100.0,
+          "total": 266.745
+        },
+        "1b1a7d96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 137.59,
+          "redline_fees": 100.0,
+          "total": 237.59
+        },
+        "1f16c257": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.2,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 101.2
+        },
+        "2161db59": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 115.9452,
+          "redline_fees": 100.0,
+          "total": 215.9452
+        },
+        "26c71547": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 105.26,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 205.26
+        },
+        "28921eb0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "28e6010c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 213.935,
+          "redline_fees": 100.0,
+          "total": 313.935
+        },
+        "2d70836a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 2.16,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 77.16
+        },
+        "31ef0baa": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 61.2675,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 161.2675
+        },
+        "36e0c1d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "4077595b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.1,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 132.1
+        },
+        "438035b5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 64.835,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 164.835
+        },
+        "4709cb29": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "4f603de8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "533f6b64": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "5c319eb5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.4575,
+          "redline_fees": 100.0,
+          "total": 100.4575
+        },
+        "5ce9f222": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 191.835,
+          "redline_fees": 100.0,
+          "total": 291.835
+        },
+        "5fb9fbd9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 601.175,
+          "redline_fees": 100.0,
+          "total": 701.175
+        },
+        "64a1d091": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 1.2,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 101.2
+        },
+        "6830fdec": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "684939f4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "6b2c4e88": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "6ed00b65": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 134.795,
+          "redline_fees": 100.0,
+          "total": 234.795
+        },
+        "71d61e6f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 49.189,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 124.189
+        },
+        "7b31dd67": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "7c518ecb": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 386.6375,
+          "redline_fees": 100.0,
+          "total": 486.6375
+        },
+        "7c8653c3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "7e4460d3": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "824226ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "83ffe920": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 91.602,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 191.602
+        },
+        "84ecb7ed": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 216.049,
+          "redline_fees": 100.0,
+          "total": 316.049
+        },
+        "889b1693": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 57.755,
+          "redline_fees": 100.0,
+          "total": 157.755
+        },
+        "924dbb57": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 124.302,
+          "redline_fees": 100.0,
+          "total": 224.302
+        },
+        "9253d2d5": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "9a068464": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "a10a90d7": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 380.823,
+          "redline_fees": 100.0,
+          "total": 480.823
+        },
+        "a2ccd688": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "a37dd691": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 75.0
+        },
+        "a38d64b0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "a435360b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "a74766d0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "a7e2ef96": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 112.1995,
+          "redline_fees": 100.0,
+          "total": 212.1995
+        },
+        "ac22e3d4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.86,
+          "redline_fees": 100.0,
+          "total": 227.86
+        },
+        "b240226a": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 6.3,
+          "missed_deal": 0.0,
+          "redline_fees": 75.0,
+          "total": 81.3
+        },
+        "b746f54b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 91.036,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 191.036
+        },
+        "bbd3f264": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "be254cac": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "c3d87daf": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 65.375,
+          "redline_fees": 100.0,
+          "total": 165.375
+        },
+        "c5799bad": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 49.859,
+          "redline_fees": 100.0,
+          "total": 149.859
+        },
+        "cb8732a1": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "cc564090": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d15ab436": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d5953991": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 313.31,
+          "redline_fees": 100.0,
+          "total": 413.31
+        },
+        "d78a027b": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "d95a2ca4": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 38.64,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 138.64
+        },
+        "dfc273fd": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 168.3225,
+          "redline_fees": 100.0,
+          "total": 268.3225
+        },
+        "e0cc88ce": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 98.04,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 198.04
+        },
+        "e7094fe8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 145.366,
+          "redline_fees": 100.0,
+          "total": 245.366
+        },
+        "e960521d": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 32.4,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 132.4
+        },
+        "ebc17f8f": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 20.4,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 120.4
+        },
+        "ec8e21e8": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "ee0b7fa0": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "ee376a3c": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 127.54,
+          "redline_fees": 100.0,
+          "total": 227.54
+        },
+        "f4737ae9": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 26.16,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 126.16
+        },
+        "f79c7759": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 0.0,
+          "total": 0.0
+        },
+        "f8a7b406": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 0.0,
+          "redline_fees": 100.0,
+          "total": 100.0
+        },
+        "f991ee31": {
+          "harmful_agreement": 0.0,
+          "inferior_clauses": 0.0,
+          "missed_deal": 88.1825,
+          "redline_fees": 100.0,
+          "total": 188.1825
+        }
+      }
+    }
+  },
+  "datacenter_v1": {
     "Opus 5.5": {
       "client_below_walkaway": 23,
       "counterpart": "firm population",
@@ -1024,7 +6201,7 @@
       "worlds": 60
     }
   },
-  "datacenter_pairings": {
+  "datacenter_v1_pairings": {
     "claude_integrator__codex_client": {
       "client_below_walkaway": 3,
       "deal_worlds": 45,
@@ -12266,6 +17443,13 @@
     "campaign_refresh/datacenter/bundles/datacenter_agreement_confirm_firm_population_v1/tables/cells.jsonl": "6c794f73fb288dbc567345e68ec70e3a06b7b385e0cbde1280d4dd16e8c87fe6",
     "campaign_refresh/datacenter/bundles/datacenter_agreement_confirm_head_to_head_v1/publication_manifest.json": "383d215f4e3d2a805ee7a20b9ef8f3f30aa870e84d5b908192017489be6580ed",
     "campaign_refresh/datacenter/bundles/datacenter_agreement_confirm_head_to_head_v1/tables/cells.jsonl": "ac30b4b1fd7945eb4d9070999c5583459d29228009112d7319a01005a31df4d9",
+    "campaign_refresh/datacenter_v2/analysis/reports/analysis.json": "f7225ec06a69f8ded7e5301df0aa6b936fd6d23011431321092ab70388a39cff",
+    "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_client_firm/publication_manifest.json": "6d1e63c7eac86a7cf5fee3dfb816130cc0ecf64ec51c78553925074e999962ab",
+    "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_client_firm/tables/cells.jsonl": "67d3d25b65cfaf6897fb8644448c97bbfd99180658887b2369138db838d1d45c",
+    "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_head_to_head/publication_manifest.json": "0474aa9e00dc7e79344549fac7c820d7ea768792254142adddeedb92d1b62730",
+    "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_head_to_head/tables/cells.jsonl": "2544249d9c6e5bac076fdfa1a51986bbf3a498a97725b1b327c97cc7e917b60d",
+    "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_integrator_firm/publication_manifest.json": "be6710cefe083b6a6492e9bf1517af739e5a5d324eb6c3773295ee9e8c95a21d",
+    "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_integrator_firm/tables/cells.jsonl": "8f28866e407c57b0e47f903019556628b43c844e67025e8e1d95196e60317011",
     "housing_reply_conditioned/reports/reply_conditioned.json": "2275a8fdd6f9a159ddd47d749be5baa2ad5821cef8ba72dd2a8cb020ae7956ec",
     "housing_reply_conditioned/tables/cells.jsonl": "f9789a03df5425cc01f5a03bd50a96ba479390f5bce24dfebca19b9db39a888b",
     "procurement_v3/readout_gemini38_flash.json": "efd84081f5ba37cd8c6d9291d13c7677aceb46188d1189797957985a807a53a4",

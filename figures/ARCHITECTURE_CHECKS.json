@@ -2,11 +2,11 @@
   "figure": "Figure 4.1",
   "scope": "Conceptual architecture; applied coverage varies by campaign",
   "sources": {
-    "source/sec_opening.tex": "aebe7490201fc3288e2286018a9da6416f5667d61f136ae8cb6fae7594fcbe9b",
+    "source/sec_opening.tex": "1abf73faf610b724fc743fc9a7659ea871151653c360584a0cfa510d079159fc",
     "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
     "source/app_runtime.tex": "b0646fdd7ed29f6f16903bfcb34b6495e4297fad2bda66bf2ec67bd4024fe096",
     "source/paper_qc_design.md": "f2cf684ae52b94ddeb3f3b700e39b85baea3804b1247977b2cb98558f6d65e7a",
-    "source/tab_case_paths.tex": "7c2d1650ff469cb280abaa5038a5fb1bf69b202bc383b96cf446ff10facee58e"
+    "source/tab_case_paths.tex": "a9f90ad7951e1914c528be6c7e4e9e90f99e037585142a86a79c95f217707565"
   },
   "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",
   "png_sha256": "f1fe4263b2402093050fc6db7983ac673170ee793bb17adc167c8f747f178e94"

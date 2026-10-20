@@ -1,0 +1,23 @@
+{
+ "branch": "codex/datacenter-agreement",
+ "commit": "461c5d93",
+ "copied": "publication_manifest.json, README.md, reports/summary.json and tables/cells.jsonl of each v2 bundle (each checked against its manifest; receipts and trajectories stay in the bundle on the branch), and agreement_confirmatory_v2_analysis/reports/analysis.json",
+ "plan": "docs/families/datacenter/agreement_confirmatory_v2_plan.md",
+ "results": "docs/families/datacenter/agreement_confirmatory_v2_results.md",
+ "pack": "cases/datacenter_agreement_v1/agreement_admitted_v2 (56bbf658): 80 admitted of 5,436 scanned",
+ "sha256": {
+  "analysis/reports/analysis.json": "f7225ec06a69f8ded7e5301df0aa6b936fd6d23011431321092ab70388a39cff",
+  "bundles/datacenter_agreement_v2_client_firm/README.md": "ae319b925834cdd16812f44461ca7644defa8387da10a385b752b44f8b677d5c",
+  "bundles/datacenter_agreement_v2_client_firm/publication_manifest.json": "6d1e63c7eac86a7cf5fee3dfb816130cc0ecf64ec51c78553925074e999962ab",
+  "bundles/datacenter_agreement_v2_client_firm/reports/summary.json": "056af8e234ead544e369dcb2b3440c4dc03a03cf5430268030b9919a35a8fd74",
+  "bundles/datacenter_agreement_v2_client_firm/tables/cells.jsonl": "67d3d25b65cfaf6897fb8644448c97bbfd99180658887b2369138db838d1d45c",
+  "bundles/datacenter_agreement_v2_head_to_head/README.md": "e66ab4bdba05359dd9afb70df3cbcd498507d3abc4e2397f6d0550c237a33766",
+  "bundles/datacenter_agreement_v2_head_to_head/publication_manifest.json": "0474aa9e00dc7e79344549fac7c820d7ea768792254142adddeedb92d1b62730",
+  "bundles/datacenter_agreement_v2_head_to_head/reports/summary.json": "fe1fcad70622fa2b1445a86953d75e852fb2c3d7180b4d5bc3a3e483393d4630",
+  "bundles/datacenter_agreement_v2_head_to_head/tables/cells.jsonl": "2544249d9c6e5bac076fdfa1a51986bbf3a498a97725b1b327c97cc7e917b60d",
+  "bundles/datacenter_agreement_v2_integrator_firm/README.md": "36d6810e5af7ba847ff5f969f5e3de0a5b18c8bbc8f3c11d142bc17581760dc7",
+  "bundles/datacenter_agreement_v2_integrator_firm/publication_manifest.json": "be6710cefe083b6a6492e9bf1517af739e5a5d324eb6c3773295ee9e8c95a21d",
+  "bundles/datacenter_agreement_v2_integrator_firm/reports/summary.json": "5480a327aba4268cc0b02fe54a0835cea73de561b11486a267d8258d59c639e1",
+  "bundles/datacenter_agreement_v2_integrator_firm/tables/cells.jsonl": "8f28866e407c57b0e47f903019556628b43c844e67025e8e1d95196e60317011"
+ }
+}

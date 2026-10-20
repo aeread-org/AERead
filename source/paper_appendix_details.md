@@ -81,9 +81,12 @@ $25k to the integrator's choice of agreement, and for every integrator type the 
 changes with that charge; signing the draft as it stands, moving only the price, or either side
 demanding every protection each lose at least $75k against the best agreement; and walking away
 loses at least $150k. Redline fees are left out of every shortcut, which favours the shortcut, so
-each margin is a lower bound. Of 2,729 seeds scanned, 60 were admitted (45 deal, 15 no-deal); the
-confirmatory used them, with types drawn after admission and a separate 12-world variance pilot
-(Appendix F.2).
+each margin is a lower bound. Of 2,729 seeds scanned, 60 were admitted (45 deal, 15 no-deal); v1
+used them, with types drawn after admission and a separate 12-world variance pilot (Appendix F.2).
+v2 (Table 5.4) kept these rules and added one screen, computed before any cell: on a deal world the
+integrator's full-information ceiling against the firm population must beat the price-only rule by at
+least $25k. Its seeds are disjoint from every earlier pack; of 5,436 scanned, 80 were admitted (72 deal,
+8 no-deal).
 
 ### E.3 What was run
 
@@ -100,7 +103,7 @@ confirmatory used them, with types drawn after admission and a separate 12-world
 | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
 | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
 | Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; gate review pending |
-| Data center confirmatory | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
+| Data center confirmatory v1 | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
 | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
 | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
 
@@ -292,6 +295,41 @@ Of 2,456 negotiations, 2,417 are valid. Every failure is a CLI service error; th
 bundles keep them as missing, and 16 were played again under separate identities by an explicit, recorded
 decision.
 
+**The earlier declared comparison (v1).** Before v2, a comparison was declared on 60 admitted worlds (from 2,729
+scanned), 45 with a mutually beneficial deal. It differs from v2 in three ways: the two command-line tools were not
+equally isolated, the client's brief did not state its walk-away point, and worlds were not screened for the
+integrator's room over a price-only rule. v1 and v2 are not pooled.
+
+**Table E.16. Data center v1 (14 October): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 45 deal worlds, in percentage points of the value available in a deal ($322k a world); intervals are 95%, with Holm correction across the campaign's primaries. Eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
+
+| Primary contrast | Worlds | Estimate [95% interval] | Holm p |
+|---|---:|---|---:|
+| Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +59.1 [46.0, 72.1] | 3.2e-11 |
+| Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +8.2 [3.3, 13.2] | 0.0017 |
+| Client signs below its walk-away point: Opus / Sol | all 60 | 45% vs 5% (27 and 3 of 60) | 2.4e-7 |
+
+Sol's lead against the firm population is detectable but smaller than the plan's minimum of 15.5 points ($50k;
+the 98.3% interval is [2.1, 14.3]). Across v1's pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41
+list price). The two tools were not equally isolated: Codex's context listed eight of the operator's own skills, two
+described in benchmark and evaluation terms, and Claude Code's listed none (Table H.1). Every v1 Sol-versus-Opus
+contrast carries that difference. With the walk-away point stated in v2, neither model signed below it as client.
+
+Against the firm population, v1's joint loss was led by fees (69.9% of Sol's $103.4k a world and 40.3% of Opus's
+$70.8k, all 60 worlds, seats averaged), and Opus's next largest part (29.5%) was harmful agreements: in the 15
+worlds where no agreement beats both outside options, it signed anyway. Table E.17 gives v1's joint loss by
+pairing, and Appendix E.9 its replay at other fees.
+
+**Table E.17. Data center v1: joint loss by pairing ($ thousands per world, all 60 worlds).**
+
+| Integrator / client | Inferior clauses | Harmful agreement | Missed deal | Redline fees | Total |
+|---|---:|---:|---:|---:|---:|
+| Opus / Sol | 9.3 | 1.2 | 3.7 | 63.3 | 77.5 |
+| Sol / Opus | 22.6 | 34.8 | 25.2 | 44.2 | 126.8 |
+| Opus / firm | 2.2 | 0.0 | 12.2 | 30.0 | 44.4 |
+| Sol / firm | 1.1 | 0.0 | 29.1 | 60.8 | 91.0 |
+| Firm / Opus | 15.5 | 41.8 | 12.9 | 27.1 | 97.2 |
+| Firm / Sol | 14.3 | 4.0 | 13.8 | 83.8 | 115.8 |
+
 ### E.5 Failure classes: rules and full tables
 
 **Table E.4. The shared classes.**
@@ -367,7 +405,7 @@ firm script; neither as integrator.
 
 ### E.6 Two frontier agents across three cases
 
-**Table E.7. Development comparisons of Opus 5.5 and Sol 6.1 on the three cases both played; Data-center confirmatory results are in Table 5.4.**
+**Table E.7. Development comparisons of Opus 5.5 and Sol 6.1 on the three cases both played; Data-center confirmatory results are in Table 5.4 (v2) and Table E.16 (v1).**
 
 | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
 |---|---|---:|---:|---:|---|
@@ -381,22 +419,24 @@ firm script; neither as integrator.
 ### E.7 Current shortfall panels: scope and uncertainty
 
 Figure 5.2 is descriptive accounting after the runs, not an additional declared test. Its
-Data-center panel uses all 60 admitted worlds, including 15 with no positive available surplus;
-Table 5.4's earnings contrasts use the 45 deal worlds. Both focal roles receive equal weight
-within each world. Individual below-walk-away signings are not added to joint loss. As integrator
-against the firm population, Opus has 1/60 such signings and Sol 0/60; the client counts are
-23/60 and 1/60. Table E.6 preserves the earlier development decomposition on its 52 deal worlds.
+Data-center panel uses all 80 admitted worlds of v2, including 8 with no positive available surplus;
+Table 5.4's earnings contrasts use the 72 deal worlds. Both focal roles receive equal weight
+within each world, the integrator's two plays against the firm client first averaged. Individual
+below-walk-away signings are not added to joint loss: as integrator against the firm client, Opus
+signed below its outside option in 2 of 160 plays and Sol in none; as client neither did in 80.
+Table E.6 preserves the earlier development decomposition on its 52 deal worlds, and Table E.17
+v1's by pairing.
 
-**Table E.8. Confirmatory Data-center joint loss by pairing ($ thousands per world, all 60 worlds).**
+**Table E.8. Data-center joint loss by pairing in v2 ($ thousands per world, all 80 worlds; the integrator's two plays against the firm client averaged within each world).**
 
 | Integrator / client | Inferior clauses | Harmful agreement | Missed deal | Redline fees | Total |
 |---|---:|---:|---:|---:|---:|
-| Opus / Sol | 9.3 | 1.2 | 3.7 | 63.3 | 77.5 |
-| Sol / Opus | 22.6 | 34.8 | 25.2 | 44.2 | 126.8 |
-| Opus / firm | 2.2 | 0.0 | 12.2 | 30.0 | 44.4 |
-| Sol / firm | 1.1 | 0.0 | 29.1 | 60.8 | 91.0 |
-| Firm / Opus | 15.5 | 41.8 | 12.9 | 27.1 | 97.2 |
-| Firm / Sol | 14.3 | 4.0 | 13.8 | 83.8 | 115.8 |
+| Opus / Sol | 12.6 | 0.0 | 24.3 | 74.4 | 111.4 |
+| Sol / Opus | 22.4 | 0.0 | 26.1 | 68.1 | 116.7 |
+| Opus / firm | 2.2 | 0.0 | 9.1 | 40.0 | 51.3 |
+| Sol / firm | 1.7 | 0.0 | 45.9 | 73.9 | 121.6 |
+| Firm / Opus | 17.0 | 0.0 | 48.3 | 50.6 | 115.9 |
+| Firm / Sol | 12.4 | 0.0 | 53.6 | 92.8 | 158.8 |
 
 **Table E.9. Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).**
 
@@ -406,8 +446,8 @@ against the firm population, Opus has 1/60 such signings and Sol 0/60; the clien
 | Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
 | Procurement: Sol 6.1 | 20 | 32.5 [23.8, 41.3] | 33.3 [21.5, 48.7] | 0 / 0 |
 | Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
-| Data center: Opus 5.5 | 60 | 70.8 [55.3, 86.4] | 53.0 [36.6, 95.1] | 0 / 0 |
-| Data center: Sol 6.1 | 60 | 103.4 [84.2, 122.6] | 87.5 [61.2, 129.4] | 5 / 0 |
+| Data center: Opus 5.5 | 80 | 83.6 [68.8, 98.4] | 57.2 [27.8, 137.3] | 0 / 0 |
+| Data center: Sol 6.1 | 80 | 140.2 [120.6, 159.7] | 117.3 [87.5, 189.8] | 4 / 0 |
 | Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
 | Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
 
@@ -428,7 +468,7 @@ component-level intervals, distributions, per-world amounts and input digests in
 The figure uses the same estimates below. Components retain each case's native units and
 classification rules; the figure adds no new analysis or cross-case aggregate.
 
-**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses the confirmatory pack; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
+**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
 
 **(a) Housing**
 
@@ -462,17 +502,17 @@ All four subjects, each world the mean of its two plays. Sol uses Codex; Opus us
 
 **(c) Data center**
 
-$ thousands of joint value lost to the full-information bound; against the firm population.
+$ thousands of joint value lost to the full-information bound; v2, against the firm counterparts.
 
 | Component | Opus 5.5 | Sol 6.1 |
 |---|---:|---:|
-| Inferior contract clauses | 8.8 | 7.7 |
-| Harmful agreement | 20.9 | 2.0 |
-| Missed beneficial deal | 12.5 | 21.5 |
-| Redline fees | 28.5 | 72.3 |
-| **Total shortfall** | **70.8** | **103.4** |
+| Inferior contract clauses | 9.6 | 7.1 |
+| Harmful agreement | 0.0 | 0.0 |
+| Missed beneficial deal | 28.7 | 49.7 |
+| Redline fees | 45.3 | 83.4 |
+| **Total shortfall** | **83.6** | **140.2** |
 
-All 60 worlds; both focal roles averaged within world. Joint outcomes include both parties' actions.
+All 80 worlds; both focal roles averaged within world. Joint outcomes include both parties' actions.
 
 **(d) Refund**
 
@@ -487,21 +527,23 @@ Percentage points below full resolution under the verifier; V2.1.
 120 cells per model, averaged within each of six fixed cases and then across cases.
 
 Rows that are zero for every displayed subject are omitted; rounded components may not add to
-rounded totals. Below-walk-away signings are a separate individual outcome: against the firm
-population, Opus and Sol as clients signed below their own walk-away values in 23/60 and 1/60
-worlds, respectively (head-to-head: 27/60 and 3/60; Table 5.4).
+rounded totals. Below-walk-away signings are a separate individual outcome: in v2 neither model
+signed below its walk-away value as client, against the firm integrator or head to head (0 of 80
+each), and as integrator against the firm client Opus signed below its outside option in 2 of 160
+plays and Sol in none. v1's counts are in Table E.16.
 
-### E.9 Negotiation fees: fixed-action sensitivity
+### E.9 Negotiation fees in v1: fixed-action sensitivity
 
-We replayed all 240 valid firm-population negotiations (60 worlds, two models, two focal
+We replayed all 240 valid firm-population negotiations of v1 (Table E.16; 60 worlds, two models, two focal
 seats) at six fees per paid redline: $0, $5k, $12.5k, $25k, $50k and $100k. All original final
 states and six score leaves matched the saved states and receipts. The 1,440 fee-specific
 trajectories used the native transition and scoring functions, holding offers, clauses, notes,
 signatures and walks fixed. This is exploratory analysis after the runs, not another declared
-test or a model rerun. The free opening move remains free.
+test or a model rerun. The free opening move remains free. v2 declared a smaller replay of the same kind
+(Section 5.2).
 
-The samples answer different questions. Figure 5.2c includes all 60 worlds; the declared
-earnings contrast in Table 5.4 uses the 45 worlds with positive available joint surplus.
+The samples answer different questions. v1's joint loss covers all 60 worlds; its declared
+earnings contrast (Table E.16) uses the 45 worlds with positive available joint surplus.
 "Deal-feasible" describes those worlds, including negotiations that ended without agreement;
 it does not select only signed contracts. Means first average both focal seats within a world,
 then worlds. The independent unit is the world, not each correlated seat observation.
@@ -523,7 +565,7 @@ With behavior fixed, earnings depend linearly on the fee and are equal at approx
 per redline. This threshold describes the recorded actions, not an optimal fee or how either
 agent would respond to a changed fee.
 
-**Table E.12. Joint-loss sensitivity across all 60 worlds ($ thousands per world; fixed actions). This is the population used in Figure 5.2c, including 15 worlds without positive available joint surplus.**
+**Table E.12. Joint-loss sensitivity across all 60 worlds ($ thousands per world; fixed actions). This is v1's full population, including 15 worlds without positive available joint surplus.**
 
 | Fee per redline | Sol joint loss | Opus joint loss |
 |---|---:|---:|
@@ -648,9 +690,11 @@ identity, and Procurement's corrected schema ran under new identities.
   cell (χ² p 0.46; the same test rejects the development packs' pattern). Tests play every
   shortcut through the environment for every type pair and confirm the loss admission assigned,
   and the oracle pair loses nothing in all 60 worlds. A separate 12-world pilot and the
-  60-world confirmatory have now run; the pilot supplied the sealed sizing record. This is
-  evidence of play and variance, not a completed headroom verdict across all controls.
-  The client seat still fails the dependence-on-counterpart-type rule.
+  60-world confirmatory (v1) have run; the pilot supplied the sealed sizing record. v2's pack
+  applies the same rules to fresh seeds and adds a headroom screen against one control, the
+  price-only rule (80 worlds admitted of 5,436 scanned). This is evidence of play and variance,
+  not a completed headroom verdict across all controls. The client seat still fails the
+  dependence-on-counterpart-type rule.
 - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
   Procurement and Refund; the agreement case has no such test.
 - **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
@@ -716,13 +760,14 @@ The world is the unit of uncertainty, paired across conditions. On the agreement
 plays as independent made intervals 1.47 to 1.65 times too narrow, and more worlds beat more
 repeats: a $50k gap needs 83 to 91 negotiations an arm at one play a world against 159 to 162 at
 three. Counterparts are named and reported per type: in the agreement case the counterpart
-accounts for 25% to 33% of the spread in what a model earns. Three reported analyses were declared before
-their runs: Housing v14, the agreement signalling test and the agreement confirmatory. A harness setting was tested
+accounts for 25% to 33% of the spread in what a model earns. The reported analyses declared before
+their runs are Housing v14 and v15, the agreement signalling test, both agreement confirmatories, and Procurement's
+test and its diagnostics. A harness setting was tested
 rather than assumed: asking the CLIs for reasoning summaries changed nothing detectable in Housing
 (Opus +17 [−28, +62], Sol +3.5 [−46, +53]; five selected worlds, 120 episodes, the summary-off
 plays always run first).
 
-**Agreement confirmatory review (16 October).** Gate 5 is `partial`. A 12-world variance pilot, a sealed sizing record
+**Agreement confirmatory v1 review (16 October).** Gate 5 is `partial`. A 12-world variance pilot, a sealed sizing record
 (`aeread.design.sizing`), frozen plans, paired world-level intervals and Holm
 correction were applied. Eight departures are documented: CLI versions; an added wall-time stop;
 run-plan labels; the pack-module change for pilot generation; the permitted sizing-code copy;

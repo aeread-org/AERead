@@ -49,9 +49,9 @@ that certificate (Appendix F.2). Table E.1 lists every check.
 ### 5.1 Results
 
 Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
-and is partial at Gate 4. The first Data-center confirmatory is partial at every gate, chiefly because
-neither seat has much to infer (knowing the other side's type is worth less than 1% of the value available in a
-deal to the best informed policy); the second's gate review is pending. The Procurement pack reported here passes
+and is partial at Gate 4. The Data-center comparison reported here (v2) has no gate review yet; its predecessor (v1,
+Appendix E.4) is partial at every gate, chiefly because neither seat has much to infer (knowing the other side's type
+is worth less than 1% of the value available in a deal to the best informed policy). The Procurement pack reported here passes
 Gate 0 and is partial at Gates 1 to 5, chiefly because its environment's registration with the runtime awaits review
 and its code is not yet on the main branch; the earlier, saturated Procurement pack fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
@@ -198,39 +198,28 @@ best clauses depend on what the other side hides. Burn-in, for example, costs th
 and, in one world, the client a week's delay worth $110k, and halves the chance of a $3 million
 incident the client carries; it lowers joint cost by $41k for a client with the highest risk
 charge and raises it by $19k or $64k for the other two, and the integrator cannot tell which
-client it faces. Two comparisons were declared before their runs. The first (v1) used 60
-admitted worlds, 45 with a mutually beneficial deal. The second (v2) used 80 new admitted worlds, 72 with a
-deal. It isolated both command-line tools, stated the client's walk-away point in its brief, and admitted only
-worlds where the integrator has room over a price-only rule. Table 5.4 reports both; development results
-remain in Tables E.3 and E.7.
+client it faces. The comparison reported here (v2) was declared before its runs, on 80 admitted worlds (from 5,436
+scanned), 72 of them with a mutually beneficial deal. Both command-line tools were isolated, the client's brief
+states its walk-away point, and a world is admitted only if the integrator has at least $25k of room over a
+price-only rule. An earlier declared comparison (v1) did none of these three; it is in Appendix E.4 (Table E.16),
+and development results remain in Tables E.3 and E.7.
 
-**Table 5.4. Data-center agreement confirmatories: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement: $322k a world in v1, $309k in v2); intervals are 95%, with Holm correction across each campaign's primaries. v1 has eight documented departures and a partial Gate 5 verdict (Appendix F.5); v2's gate review is pending.**
+**Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, $309k a world); intervals are 95%, with Holm correction across the four primaries. The gate review is pending.**
 
 | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
 |---|---:|---|---:|
-| *v1, 14 October: the two tools not equally isolated* | | | |
-| Head to head: Sol minus Opus earnings, seat-averaged | 45 deal | +59.1 [46.0, 72.1] | 3.2e-11 |
-| Firm population: Sol minus Opus earnings, seat-averaged | 45 deal | +8.2 [3.3, 13.2] | 0.0017 |
-| Client signs below its walk-away point: Opus / Sol | all 60 | 45% vs 5% (27 and 3 of 60) | 2.4e-7 |
-| *v2, 19 October: both tools isolated, the walk-away point stated* | | | |
 | Head to head: Sol minus Opus earnings, seat-averaged | 72 deal | +41.7 [31.3, 52.0] | 6.1e-11 |
 | Integrator against the firm client: Sol minus Opus | 72 deal | +7.5 [1.7, 13.2] | 0.022 |
 | Sol as integrator minus the price-only rule | 72 deal | +7.3 [2.6, 12.0] | 0.008 |
 | Opus as integrator minus the price-only rule | 72 deal | −0.2 [−5.5, 5.2] | 0.95 |
 
-In v1, Sol's lead against the firm population is detectable but smaller than the plan's minimum of 15.5 points
-($50k; the 98.3% interval is [2.1, 14.3]). Head to head the opponent changes with the focal model, while the
-firm-population contrast holds the counterpart policy fixed, which supports a counterpart-specific reading of the
-larger gap. Across v1's pilot and three arms, 1,175 of 1,176 negotiations are valid ($74.41 list price). The two
-tools were not equally isolated in v1: Codex's context listed eight of the operator's own skills, two described in
-benchmark and evaluation terms, and Claude Code's listed none (Table H.1). Every v1 Sol-versus-Opus contrast
-carries that difference.
-
-v2 removes it: every freeze and run probe was clean, and all 640 negotiations are valid and replayed ($55.41 list
-price). Its head-to-head gap is 41.7 points and its firm-client gap 7.5; each is found by Holm, and neither is shown
-to reach its declared minimum (32.4 and 12.9 points, $100k and $40k). Sol beats the price-only rule as integrator, and Opus earns what the rule
-earns. With the walk-away point stated, neither model signs below it as client (0 of 80 for either, against Opus's
-27 of 60 in v1), and the client seat separates nothing (+0.8 points [−3.2, 4.9]).
+Every freeze and run probe was clean, and all 640 negotiations are valid and replayed ($55.41 list price). The
+head-to-head gap is 41.7 points and the firm-client gap 7.5; each is found by Holm, and neither is shown to reach its
+declared minimum (32.4 and 12.9 points, $100k and $40k). Head to head the opponent changes with the focal model,
+while the firm-client contrast holds the counterpart policy fixed, which supports a counterpart-specific reading of
+the larger gap. Sol beats the price-only rule as integrator, and Opus earns what the rule earns. With the walk-away
+point stated, neither model signs below it as client (0 of 80 for either), and the client seat separates nothing
+(+0.8 points [−3.2, 4.9]).
 
 The best informed policy turn by turn was computed after both runs, against the same scripted counterpart
 (Appendix C.3). On v2's deal worlds it gives the integrator 63.5% of the value available at the true client type, where Sol
@@ -251,9 +240,9 @@ the current Data-center breakdown and uncertainty. Table E.10 retains the exact 
 **Figure 5.2. Shortfall to each case's reference.** Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
 v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
-and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v1's joint loss
-against the full-information bound with firm counterparts at $25k per paid redline; individual below-walk-away signings
-are separate (Table 5.4). In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
+and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
+against the full-information bound with the firm counterparts at $25k per paid redline, across all 80 worlds of
+Table 5.4 with both seats averaged. In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
 worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
 there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 
@@ -294,19 +283,22 @@ case ends with no decision (80.8 of its 98.3 points). In most of the rest it den
 wrote the refund method as null where the policy's format requires "none" (16.7 points). It
 reached the answer key's outcome in 18% of cells and a wrong outcome in none.
 
-**Data center: fees, then harmful agreements.** Every redline after the opening move costs $25k.
-The full-information reference signs the best agreement at once, so each fee counts as loss. Fees
-are 69.9% of Sol's and 40.3% of Opus's joint loss against the firm population across all 60 worlds.
-Some of those redlines buy better clauses, and a seat that does not know the other side's costs may
-need them, so their share alone does not show wasted negotiation. Opus's next largest part (29.5%)
-is harmful agreements. In 15 of the 60 worlds no agreement beats both sides' outside options, so the
-right move is to walk away, and Opus signed anyway.
+**Data center: fees, then deals the client walked away from.** Every redline after the opening move costs $25k.
+The full-information reference signs the best agreement at once, so each fee counts as loss, whichever side paid
+it. Against the firm counterparts, across all 80 worlds with both seats averaged, fees are 59% of Sol's joint loss
+($83.4k of $140.2k a world) and 54% of Opus's ($45.3k of $83.6k). Sol redlines more: as integrator it made 371
+redlines to the firm client's 262, where Opus made 227 to 189. Some of those redlines buy better clauses, and a seat
+that does not know the other side's costs may need them, so their share alone does not show wasted negotiation.
+Nearly all the rest is deals lost in worlds that had one (35% of Sol's loss, 34% of Opus's), and every one ended
+with the client walking away. As integrator, the firm client walked away from Sol in 40 of its 144 plays of deal
+worlds and from Opus in 14. As client, each model walked away in 26 of the 72 deal worlds. No agreement was
+harmful: with the walk-away point in the brief, neither model signed in any of the 8 worlds without a deal.
 
-Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
-(Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
-Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-all 60 worlds, however, removing fees reverses the joint-loss ranking: Sol loses $31.1k versus
-Opus's $42.3k. Fee robustness therefore depends on the measure and the worlds included.
+The plan declared a replay of the recorded moves at other fees, which says what the same moves would earn, not how
+the models would play. Without fees, Sol still loses more joint value than Opus against the firm counterparts
+($63.1k against $42.5k a world, seats averaged) and earns more in both seats. At $50k a redline its earnings fall
+below Opus's (as integrator 67.9 against 69.7, as client 1.3 against 22.8, $ thousands a deal world), because it
+redlines more. Appendix E.9 gives v1's fuller replay.
 
 **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
 case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
@@ -372,7 +364,7 @@ support for a scripted seat that this family uses is still in development.
 | Housing v15 (Table 5.2) | `docs/families/housing/price_confirmatory_v15_results.md`, QC profile §23 and the bundles `evidence/housing/housing_lemons_price_v15_confirmatory`, `..._v15_analysis`, `..._v15_admission_and_pilot`, the pack `housing_lemons_price_pack_v2` and the goldens `housing_lemons_price_goldens_v15` (branch `codex/housing-v15-offline`, 833b57d4 and later) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
 | Housing v15 GLM addendum A (Section 5.1) | `docs/families/housing/price_confirmatory_v15_results.md` ("Addendum A results") and the bundle `evidence/housing/housing_lemons_price_v15_glm_addendum` (branch `codex/housing-v15-offline`; rows declared at c0a43f16, results df81e28c, verify-replay 600/600) | declared addendum, outside v15's contrasts |
 | Housing v15 profile probe (Section 5.1, Appendix F.1) | `evidence/housing/housing_lemons_price_v15_probe` (branch `codex/housing-v15-probe`, 6776937e); incident rows HL-J-14, HL-J-16, RN-T-07 | after the freeze |
-| Data center v2 (Table 5.4) | `docs/families/datacenter/agreement_confirmatory_v2_results.md` (c7bbadc9) and the bundles `datacenter_agreement_v2_{integrator_firm,client_firm,head_to_head}` on branch `codex/datacenter-agreement` | declared; gate review pending |
+| Data center v2 (Table 5.4; §5.2 and Figure 5.2c; Tables E.8–E.10) | `docs/families/datacenter/agreement_confirmatory_v2_results.md` (c7bbadc9) and the bundles `datacenter_agreement_v2_{integrator_firm,client_firm,head_to_head}` with `agreement_confirmatory_v2_analysis` (461c5d93) on branch `codex/datacenter-agreement`; each bundle's cell table, summary and manifest and the analysis copied to `analysis_evidence/campaign_refresh/datacenter_v2/` (`SOURCES.json`), where `derive_panels.py` checks each copied file against its manifest and every pairing's loss leaves against the published analysis; the fee replay in §5.2 is the plan's declared secondary in that analysis | declared; gate review pending; §5.2's loss split is derived |
 | Best informed policy turn by turn (Section 5.1, Appendix C.3) | `agreement_best_informed.py` and the evidence `agreement_best_informed_{v1,v2}` (branch `codex/datacenter-best-informed`, 583d3de7); incident rows DC-D-40, DC-D-41, DC-D-42, DC-J-10 | derived after the runs |
 | Housing v14 (Tables E.13, E.3) | `evidence/housing/housing_lemons_price_confirmatory_v14` and `..._v14_gemini_fill` (branch `codex/housing-lemons-outside-demand`, draft PR #256); the case contract's v14 section on that branch; one-pager `housing_lemons_confirmatory_v14_with_claude_codex.pdf` | confirmatory |
 | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
@@ -383,12 +375,12 @@ support for a scripted seat that this family uses is still in development.
 | Procurement flash panels, earlier pack (Table E.14) | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
 | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
-| Data center confirmatory (Tables 5.4, E.8; Figure 5.2c) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
+| Data center v1 (Tables E.16, E.17; Appendix E.9) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
 | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
 | Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
-| Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
+| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
+| Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 | Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 | Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 | TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |

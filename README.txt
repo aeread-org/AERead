@@ -257,3 +257,15 @@ current one saturated"):
   worlds ($51.25, Table 5.3), its fixed-rules bullet labels the earlier pack and adds the harder pack's exact scores,
   F's evidence note says where the v3 read-outs live, and the panel README's Procurement bullet describes v3.
   No earlier-pack failure-class figure is displayed anywhere (checked for P-T-23).
+- Data center on one version (2026-10-20, owner's "yes" to putting Housing and Data center on one version each, as
+  Procurement now is): v2 is the main-text comparison. Table 5.4 keeps v2's four primaries; v1's rows, paragraph and
+  pairing table move to Appendix E.4 (new Tables E.16, E.17). Figure 5.2c, Tables E.8-E.10 and Section 5.2's
+  mechanism paragraph are re-derived from v2's published bundles (461c5d93; cell tables, summaries, manifests and the
+  analysis copied to analysis_evidence/campaign_refresh/datacenter_v2/ and checked against the manifests and every
+  pairing's published loss leaves): Opus 83.6, Sol 140.2 $k a world over all 80 worlds, seats averaged; fees 54% and
+  59%, missed deals 34% and 35% (every one a client walk-away: the firm client walked from Sol 40 times in 144
+  deal-world plays and from Opus 14; as client each model walked in 26 of 72), harmful agreements 0 (v1: 29.5% of
+  Opus's loss). The fee paragraph now uses v2's declared fixed-action replay (without fees Sol still loses more,
+  63.1 vs 42.5); v1's exploratory replay stays in E.9, labelled v1. Intro admission count is v2's (80 of 5,436
+  scanned); E.2, E.3, E.7, E.10 note, F.2, F.5 and the case-paths table name v1 and v2 apart. derive_panels.py keeps
+  v1 under datacenter_v1 for Table E.17. Housing follows.

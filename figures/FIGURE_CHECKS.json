@@ -1,6 +1,6 @@
 {
   "source": "analysis_evidence/shortfall_panels/panels.json",
-  "source_sha256": "5985dd54a4f83fd81a192c35fa0e022027e22b9ed7079b9c8a08c8856bbff924",
+  "source_sha256": "a14778185947e428a97e10891d535db9f0bacf73d75472f2f1adaf82e5a7ba2f",
   "figure": "Figure 5.2",
   "table": "Table E.10",
   "procurement_table_keys": [
@@ -207,50 +207,50 @@
     {
       "case": "datacenter",
       "subject": "Opus 5.5",
-      "total": 70.83393583333333,
+      "total": 83.5909728125,
       "components": [
         {
           "key": "inferior_clauses",
-          "value": 8.848882333333334
+          "value": 9.6032403125
         },
         {
           "key": "harmful_agreement",
-          "value": 20.8962535
+          "value": 0.0
         },
         {
           "key": "missed_deal",
-          "value": 12.547133333333333
+          "value": 28.6752325
         },
         {
           "key": "redline_fees",
-          "value": 28.541666666666668
+          "value": 45.3125
         }
       ],
-      "axis_limit": 128
+      "axis_limit": 160
     },
     {
       "case": "datacenter",
       "subject": "Sol 6.1",
-      "total": 103.42228816666666,
+      "total": 140.17090962499998,
       "components": [
         {
           "key": "inferior_clauses",
-          "value": 7.6974089999999995
+          "value": 7.062630875000001
         },
         {
           "key": "harmful_agreement",
-          "value": 1.9752083333333335
+          "value": 0.0
         },
         {
           "key": "missed_deal",
-          "value": 21.45800416666667
+          "value": 49.74890375
         },
         {
           "key": "redline_fees",
-          "value": 72.29166666666667
+          "value": 83.359375
         }
       ],
-      "axis_limit": 128
+      "axis_limit": 160
     },
     {
       "case": "refund",
@@ -287,6 +287,6 @@
   ],
   "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero",
   "uncertainty": "Point estimates; descriptive intervals in Table E.9",
-  "svg_sha256": "d2f2b4a687e0bd87cf6af3b770bd0183d8ea14c9846f572d637c9192a0f36d8f",
-  "png_sha256": "bb6ed51ce3bcf6e0b699c60a2703e0ebe4435da2528e8ca2b25ab308cbe228a2"
+  "svg_sha256": "72a0f333709411846b843264086fffa98a3372ab5c198d2be680014ae5239f37",
+  "png_sha256": "eb1fadb06cf6ab7a17c1284f4bd009b1835b61cc4d22deb68b3a7ed91d2ddb88"
 }
