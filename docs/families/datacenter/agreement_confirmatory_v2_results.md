@@ -81,3 +81,5 @@ subject context as well as in brief, seat and pack, and are not pooled.
 integrator script's belief changes 7.8% of its moves against the models' recorded client offers, and 15% against
 scripted clients, where it costs the client 3% to 12% of the available surplus, mostly in lost deals. The client
 script's update is inert.
+
+**Related.** [What the counterpart's belief update changes](agreement_belief_ablation.md): the scripted client's update is inert; the scripted integrator's changes its offers and costs both sides (2026-10-19, offline).
