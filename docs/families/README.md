@@ -143,6 +143,8 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Pay or test v3: confirmatory and diagnostic results](procurement-allocation/pay_or_test_v3_confirmatory_results.md) (Sol closes 35% [18, 52]; Opus pays in 84 of 84 v3 plays, odds alone do not explain it)
 - [Pay or test v3: Sol on the odds twins (plan)](procurement-allocation/pay_or_test_v3_twins_sol_plan.md)
 - [Pay or test v3: Sol on the odds twins (results)](procurement-allocation/pay_or_test_v3_twins_sol_results.md) (59% [19, 100], median 83%; one walk-away)
+- [Pay or test v3: flash models on the declared worlds (plan)](procurement-allocation/pay_or_test_v3_flash_plan.md)
+- [Pay or test v3: flash models on the declared worlds (results)](procurement-allocation/pay_or_test_v3_flash_results.md) (neither touches a newcomer; Luna −14%)
 
 ## Refund
 
