@@ -20,7 +20,7 @@ EVIDENCE_ROOT = ROOT / "evidence"
 def test_root_package_contains_only_cross_family_entry_modules() -> None:
     root_modules = {path.name for path in PACKAGE_ROOT.glob("*.py")}
 
-    assert root_modules == {"__init__.py", "cli.py"}
+    assert root_modules == {"__init__.py", "cli.py", "campaign_cli.py"}
     assert {
         "exchange_v1",
         "inference",
@@ -76,6 +76,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
 
 def test_cli_verb_modules_use_the_organized_package_paths() -> None:
     kernel_verbs = {
+        "campaign": "aeread.campaign_cli",
         "export-tables": "aeread.shared_runner.analysis.research",
         "publish-trajectories": "aeread.shared_runner.run.publish_trajectories",
         "seal-manifest": "aeread.shared_runner.run.seal_manifest",

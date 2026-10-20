@@ -9,6 +9,7 @@ import runpy
 import sys
 
 VERBS: dict[str, tuple[str, str]] = {
+    "campaign": ("aeread.campaign_cli", "run a declared Housing or data-center terms campaign"),
     "run": ("aeread.exchange_v1.runner",
             "run one case (modes: offline / live_frozen / replay)"),
     "eval": ("aeread.exchange_v1.pilot",
@@ -34,7 +35,7 @@ VERBS: dict[str, tuple[str, str]] = {
 }
 
 
-_DIRECT_VERBS = frozenset({"source-commit", "verify-replay"})
+_DIRECT_VERBS = frozenset({"source-commit", "verify-replay", "campaign"})
 
 
 def main() -> int:
