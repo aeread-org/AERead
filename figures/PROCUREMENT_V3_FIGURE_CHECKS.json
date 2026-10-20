@@ -33,9 +33,9 @@
   "plan": "e67df11d",
   "results": "ff65a230"
  },
- "script_sha256": "9f3fdefc88e21e0233aee5c771e48d6041cf27fe7a0746f369dcc9e8573a3c7c",
- "svg_sha256": "c6d7ea1fbcc2629306b0a64c1385cb7a2ccd4dc6cbbf608084fc2c638276aeda",
- "png_sha256": "eae9460072edfbc0486b7c5d86243ffa3528ba2159fef80e8e1eccd6dbe44d56",
+ "script_sha256": "6b5284c44044c7c357baca5be67e78794e9ee0af42b8f1d1b621c05bc999dc5a",
+ "svg_sha256": "f2248196bf10e7afcfd7cc5453bffe3ef5acc2281180faffdb28bfc6fde3cf8f",
+ "png_sha256": "ba9ea11019607184c9b1cbbe73dbd1c4deb13aa2a63bd94273cc6bf12a0b1922",
  "rows": [
   {
    "label": "Sol 6.1 (Codex) declared test, 20 fresh worlds",
@@ -161,7 +161,36 @@
    ]
   },
   {
-   "label": "A plan that may test two newcomers (exact)",
+   "label": "Shortcut: cheapest sample first (exact)",
+   "worlds": 20,
+   "mean": 0.334,
+   "ci": null,
+   "interval": null,
+   "values": [
+    0.7387,
+    0.6681,
+    -0.4381,
+    0.4976,
+    0.7477,
+    0.4687,
+    0.7678,
+    0.7253,
+    -0.3469,
+    0.8297,
+    0.1521,
+    0.6775,
+    0.8059,
+    0.7724,
+    0.4533,
+    -0.3408,
+    -0.4516,
+    0.7759,
+    -0.4314,
+    -0.392
+   ]
+  },
+  {
+   "label": "A rule that may test two newcomers (exact)",
    "worlds": 20,
    "mean": 0.8191,
    "ci": null,

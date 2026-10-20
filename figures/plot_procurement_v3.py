@@ -59,6 +59,9 @@ def rows():
     for w in confirm.values():  # the one-step rule pays the premium in every option-value world
         assert abs(w['rule_loss_usd']['one_step_value'] - w['rule_loss_usd']['pay_premium']) < 0.01
     two_step = [1 - w['rule_loss_usd']['two_step_value'] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]
+    # The kind-blind shortcut admission screens: sample the newcomer whose sample is cheapest first (Table 5.3's column).
+    shortcut = [1 - w['rule_loss_usd']['cheapest_sample_first'] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]
+    assert abs(statistics.fmean(shortcut) - 0.334) < 1e-3
     return [
         dict(label='Sol 6.1 (Codex)\ndeclared test, 20 fresh worlds', values=sol_confirm, color=SOL,
              mean=a['gap_closed_mean'], ci=a['t_ci95'], interval='95% t interval'),
@@ -71,15 +74,17 @@ def rows():
              mean=statistics.fmean(opus_twins), ci=None, interval=None),
         dict(label='Opus 5.5 (Claude Code)\npilot, 6 worlds', values=opus_pilot, color=OPUS,
              mean=statistics.fmean(opus_pilot), ci=None, interval=None),
-        dict(label='A plan that may test\ntwo newcomers (exact)', values=two_step, color=RULE,
+        dict(label='Shortcut: cheapest\nsample first (exact)', values=shortcut, color=RULE,
+             mean=statistics.fmean(shortcut), ci=None, interval=None),
+        dict(label='A rule that may test\ntwo newcomers (exact)', values=two_step, color=RULE,
              mean=statistics.fmean(two_step), ci=None, interval=None),
     ]
 
 
 def main():
     data = rows()
-    fig, ax = plt.subplots(figsize=(7.6, 3.55), facecolor='white')
-    fig.subplots_adjust(left=.265, right=.975, top=.86, bottom=.15)
+    fig, ax = plt.subplots(figsize=(7.6, 4.0), facecolor='white')
+    fig.subplots_adjust(left=.265, right=.975, top=.875, bottom=.135)
     n = len(data)
     for i, row in enumerate(data):
         y = n - 1 - i
@@ -97,7 +102,7 @@ def main():
             if max(abs(v) for v in row['values']) < 1e-3:
                 ax.text(3, y + .3, '0% in every world', va='center', ha='left', fontsize=8.5, color=MUTED)
             else:
-                ax.text(min(vals) - 2, y, f'{m:.0f}% on average', va='center', ha='right', fontsize=8.5, color=MUTED)
+                ax.text(m, y + .3, f'{m:.0f}% on average', va='center', ha='center', fontsize=8.5, color=MUTED)
     ax.set_yticks(range(n))
     ax.set_yticklabels([r['label'] for r in reversed(data)], fontsize=8.5)
     ax.set_xlim(-6, 112)

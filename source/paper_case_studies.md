@@ -153,7 +153,8 @@ best informed policy at that point.
 one world, the mean of its plays; diamonds are means, and the bars are the declared test's 95% t interval
 and the pilot's 95% bootstrap interval. The rule that plans one newcomer's test exactly sits at 0% in every
 world, with paying the premium. Opus closes none of the gap in any world, at either pack's odds. The gray
-row is an exact rule allowed to test two newcomers.
+rows are exact rules on the 20 declared worlds: the shortcut that ignores seller kinds and samples the newcomer
+whose sample is cheapest first, and a rule allowed to test two newcomers.
 
 Sol 6.1 closed 35% of the gap on 20 fresh worlds (95% t interval 18–52%, p = 0.0003), where a rule
 that plans one newcomer's test exactly closes none. This was the one test we declared before any

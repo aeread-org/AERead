@@ -215,3 +215,5 @@ current one saturated"):
   that pay only through what they reveal, not that it reasons about shared sources; "what both subjects miss" is
   now "the headroom left lies in planning one test beyond the one in hand". Figure 5.1's shortcut row follows
   from aeread-15.
+- Figure 5.1 gains the kind-blind shortcut (cheapest sample first, exact) as a gray row on the 20 declared worlds
+  (33% per world, beside Sol's 35%), matching Table 5.3's column; caption updated. Script rerun; checks refreshed.

@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 19:11:20
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-19 19:12:38
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -366,8 +366,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/PROCUREMENT_V3_FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/PROCUREMENT_V3_FIGURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/PROCUREMENT_V3_FIGURE_CHECKS.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/figures/PROCUREMENT_V3_FIGURE_CHECKS.json	2026-10-19 17:03:35
-@@ -0,0 +1,193 @@
++++ aeread_working_draft_20261018_v15/figures/PROCUREMENT_V3_FIGURE_CHECKS.json	2026-10-19 19:12:20
+@@ -0,0 +1,222 @@
 +{
 + "figure": "Figure 5.1",
 + "table": "Table 5.3",
@@ -403,9 +403,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  "plan": "e67df11d",
 +  "results": "ff65a230"
 + },
-+ "script_sha256": "9f3fdefc88e21e0233aee5c771e48d6041cf27fe7a0746f369dcc9e8573a3c7c",
-+ "svg_sha256": "c6d7ea1fbcc2629306b0a64c1385cb7a2ccd4dc6cbbf608084fc2c638276aeda",
-+ "png_sha256": "eae9460072edfbc0486b7c5d86243ffa3528ba2159fef80e8e1eccd6dbe44d56",
++ "script_sha256": "6b5284c44044c7c357baca5be67e78794e9ee0af42b8f1d1b621c05bc999dc5a",
++ "svg_sha256": "f2248196bf10e7afcfd7cc5453bffe3ef5acc2281180faffdb28bfc6fde3cf8f",
++ "png_sha256": "ba9ea11019607184c9b1cbbe73dbd1c4deb13aa2a63bd94273cc6bf12a0b1922",
 + "rows": [
 +  {
 +   "label": "Sol 6.1 (Codex) declared test, 20 fresh worlds",
@@ -531,7 +531,36 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +   ]
 +  },
 +  {
-+   "label": "A plan that may test two newcomers (exact)",
++   "label": "Shortcut: cheapest sample first (exact)",
++   "worlds": 20,
++   "mean": 0.334,
++   "ci": null,
++   "interval": null,
++   "values": [
++    0.7387,
++    0.6681,
++    -0.4381,
++    0.4976,
++    0.7477,
++    0.4687,
++    0.7678,
++    0.7253,
++    -0.3469,
++    0.8297,
++    0.1521,
++    0.6775,
++    0.8059,
++    0.7724,
++    0.4533,
++    -0.3408,
++    -0.4516,
++    0.7759,
++    -0.4314,
++    -0.392
++   ]
++  },
++  {
++   "label": "A rule that may test two newcomers (exact)",
 +   "worlds": 20,
 +   "mean": 0.8191,
 +   "ci": null,
@@ -717,8 +746,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    main()
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/plot_procurement_v3.py aeread_working_draft_20261018_v15/figures/plot_procurement_v3.py
 --- aeread_working_draft_20261018_v14/figures/plot_procurement_v3.py	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/figures/plot_procurement_v3.py	2026-10-19 17:03:34
-@@ -0,0 +1,134 @@
++++ aeread_working_draft_20261018_v15/figures/plot_procurement_v3.py	2026-10-19 19:12:20
+@@ -0,0 +1,139 @@
 +"""Plot the Procurement v3 results as Figure 5.1: the share of the pay-to-best gap each play closes, world by world.
 +
 +Run from the draft directory: uv run --with matplotlib python figures/plot_procurement_v3.py
@@ -780,6 +809,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    for w in confirm.values():  # the one-step rule pays the premium in every option-value world
 +        assert abs(w['rule_loss_usd']['one_step_value'] - w['rule_loss_usd']['pay_premium']) < 0.01
 +    two_step = [1 - w['rule_loss_usd']['two_step_value'] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]
++    # The kind-blind shortcut admission screens: sample the newcomer whose sample is cheapest first (Table 5.3's column).
++    shortcut = [1 - w['rule_loss_usd']['cheapest_sample_first'] / w['rule_loss_usd']['pay_premium'] for w in confirm.values()]
++    assert abs(statistics.fmean(shortcut) - 0.334) < 1e-3
 +    return [
 +        dict(label='Sol 6.1 (Codex)\ndeclared test, 20 fresh worlds', values=sol_confirm, color=SOL,
 +             mean=a['gap_closed_mean'], ci=a['t_ci95'], interval='95% t interval'),
@@ -792,15 +824,17 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +             mean=statistics.fmean(opus_twins), ci=None, interval=None),
 +        dict(label='Opus 5.5 (Claude Code)\npilot, 6 worlds', values=opus_pilot, color=OPUS,
 +             mean=statistics.fmean(opus_pilot), ci=None, interval=None),
-+        dict(label='A plan that may test\ntwo newcomers (exact)', values=two_step, color=RULE,
++        dict(label='Shortcut: cheapest\nsample first (exact)', values=shortcut, color=RULE,
++             mean=statistics.fmean(shortcut), ci=None, interval=None),
++        dict(label='A rule that may test\ntwo newcomers (exact)', values=two_step, color=RULE,
 +             mean=statistics.fmean(two_step), ci=None, interval=None),
 +    ]
 +
 +
 +def main():
 +    data = rows()
-+    fig, ax = plt.subplots(figsize=(7.6, 3.55), facecolor='white')
-+    fig.subplots_adjust(left=.265, right=.975, top=.86, bottom=.15)
++    fig, ax = plt.subplots(figsize=(7.6, 4.0), facecolor='white')
++    fig.subplots_adjust(left=.265, right=.975, top=.875, bottom=.135)
 +    n = len(data)
 +    for i, row in enumerate(data):
 +        y = n - 1 - i
@@ -818,7 +852,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +            if max(abs(v) for v in row['values']) < 1e-3:
 +                ax.text(3, y + .3, '0% in every world', va='center', ha='left', fontsize=8.5, color=MUTED)
 +            else:
-+                ax.text(min(vals) - 2, y, f'{m:.0f}% on average', va='center', ha='right', fontsize=8.5, color=MUTED)
++                ax.text(m, y + .3, f'{m:.0f}% on average', va='center', ha='center', fontsize=8.5, color=MUTED)
 +    ax.set_yticks(range(n))
 +    ax.set_yticklabels([r['label'] for r in reversed(data)], fontsize=8.5)
 +    ax.set_xlim(-6, 112)
@@ -1706,7 +1740,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 19:11:13
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-19 19:12:09
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -1737,7 +1771,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,132 +30,270 @@
+@@ -29,132 +30,271 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -1925,7 +1959,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +one world, the mean of its plays; diamonds are means, and the bars are the declared test's 95% t interval
 +and the pilot's 95% bootstrap interval. The rule that plans one newcomer's test exactly sits at 0% in every
 +world, with paying the premium. Opus closes none of the gap in any world, at either pack's odds. The gray
-+row is an exact rule allowed to test two newcomers.
++rows are exact rules on the 20 declared worlds: the shortcut that ignores seller kinds and samples the newcomer
++whose sample is cheapest first, and a rule allowed to test two newcomers.
  
 -**Table 5.4. Data-center agreement confirmatory: Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Earnings are $ thousands above the seat's outside option, at true costs; intervals are 95%, with Holm correction across the three primaries. The campaign has eight documented departures and a partial Gate 5 verdict (Appendix F.5).**
 +Sol 6.1 closed 35% of the gap on 20 fresh worlds (95% t interval 18–52%, p = 0.0003), where a rule
@@ -2095,7 +2130,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Exploratory replay with actions fixed separates scoring sensitivity from behavioral adaptation
  (Appendix E.9). On the 45 deal-feasible worlds, Opus retains lower joint loss at zero fees;
  Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
-@@ -168,34 +307,85 @@
+@@ -168,34 +308,85 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
