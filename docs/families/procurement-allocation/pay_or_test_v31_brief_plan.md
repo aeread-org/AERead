@@ -108,3 +108,12 @@ message" for one question, and the driver kept no record (incident P-O-04). No a
 - Opus's whole check runs once more from the start. Sol's check had not started and runs under this amendment.
 
 The plays, their read-out and their reading rules are unchanged.
+
+## Amendment 2 (2026-10-19, after Opus's rerun refused every ask, before any answer was seen)
+
+Opus's rerun under amendment 1 recorded all 18 asks as refused, each with the same safeguards text. Two diagnostic calls
+outside the check, on `myopic_pays__3` with a trivial question (how many listings), separated the cause: answered when
+the schema asks only for the count, refused when it also asks for the model's working. The check therefore asks for the
+probability alone: the schema has one field, `probability`, and the request says "Give the probability as a number
+between 0 and 1." Questions, worlds, tolerance and reading are unchanged. Opus's check runs once more from the start;
+Sol's had not started and runs under this amendment. The refused attempts stay in the run root and are reported.

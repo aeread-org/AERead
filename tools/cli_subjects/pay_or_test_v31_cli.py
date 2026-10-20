@@ -66,8 +66,9 @@ base.model_plan = model_plan
 COMPREHENSION_WORLDS = 3
 WORKED_EXAMPLE = "myopic_pays__3"
 TOLERANCE = 0.05
-ANSWER_SCHEMA = {"type": "object", "properties": {"probability": {"type": "number"}, "working": {"type": "string"}},
-                 "required": ["probability", "working"], "additionalProperties": False}
+#: Probability only (plan amendment 2): asked also for its working, Opus 5.5's safeguards refused every ask (P-O-04).
+ANSWER_SCHEMA = {"type": "object", "properties": {"probability": {"type": "number"}},
+                 "required": ["probability"], "additionalProperties": False}
 
 
 def _worlds() -> list[tuple[str, dict]]:
@@ -136,7 +137,7 @@ async def comprehension(subject: str, out: Path, repeats: int = 2) -> dict:
     client = await base.discover(subject)
     spec = base.SUBJECTS[subject]
     answers: list[dict] = []
-    record = {"plan": "docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md, Section 5 and amendment 1",
+    record = {"plan": "docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md, Section 5 and amendments 1 and 2",
               "subject": subject, "model": spec["model"], "reasoning_effort": base.CONTROLS["reasoning_effort"],
               "brief": {"prompt_id": pay_or_test_v31_prompt.PROMPT_ID,
                         "sha256": hashlib.sha256(pay_or_test_v31_prompt.PAY_OR_TEST_V31_PROMPT.encode()).hexdigest()},
@@ -151,7 +152,7 @@ async def comprehension(subject: str, out: Path, repeats: int = 2) -> dict:
 
     for item in questions():
         text = json.dumps({"observation": _observation(item["world"]), "question": item["question"],
-                           "answer": "Give the probability as a number between 0 and 1, and your working."}, sort_keys=True)
+                           "answer": "Give the probability as a number between 0 and 1."}, sort_keys=True)
         for repeat in range(repeats):
             request = ProviderRequest(
                 provider_call_id=f"comprehension_{item['world']}_{item['id']}_{repeat}", provider=spec["provider"],
@@ -170,7 +171,7 @@ async def comprehension(subject: str, out: Path, repeats: int = 2) -> dict:
                 continue
             reply = json.loads(result.output_text)
             answers.append({**item, "repeat": repeat, "request_sha256": request.request_sha256, "refused": False,
-                            "probability": reply["probability"], "working": reply["working"],
+                            "probability": reply["probability"],
                             "correct": abs(float(reply["probability"]) - item["exact"]) <= TOLERANCE,
                             "cost_usd_list": result.cost_usd})
             write()
