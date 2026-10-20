@@ -207,6 +207,10 @@ def run() -> dict[str, Any]:
             "per_world": {k: round(v, 6) for k, v in per_world.items()},
             "share": {k: (round(v / total, 6) if total else None) for k, v in per_world.items()},
             "by_rule_count": {f"{c}: {r}": v for (c, r), v in sorted(rules.items())},
+            # Per world (the mean of its plays), the shape derive_panels.py reads for the paper's panels.
+            "worlds_detail": [{"slug": slug, "per_class": {k: round(worlds[slug][k], 9) for k in CLASSES},
+                               "decision_loss_usd": round(statistics.fmean(p["decision_loss_usd"] for p in plays[slug]), 9)}
+                              for slug in sorted(worlds)],
         }
     return out
 
