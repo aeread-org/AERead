@@ -621,7 +621,7 @@ identity, and Procurement's corrected schema ran under new identities.
   Procurement's original report read an unsealed action list through an unpinned reference.
   The 16 October reanalysis audits all 144 receipts (96 final-brief and 48 earlier-brief), reads
   parsed actions from their sealed logs, and pins the extraction, reference, report and case inputs.
-  Every per-world loss and the Table 5.3 intervals reproduce. This is a separately verified
+  Every per-world loss and the Table E.14 intervals reproduce. This is a separately verified
   derivation; decision loss has not been inserted into the original receipts. The Housing
   receipts also name the model for the five tenant seats a script played; the true seat map is in
   an unsealed log.
@@ -835,7 +835,7 @@ named here when it is not.
 The Housing analysis re-extracts its committed trajectory table from the sealed run roots and
 regenerates both measures exactly. Procurement's `pay_or_test_reanalysis` checks all 144 original
 receipts, then reconstructs decision loss from their sealed parsed actions; its public projection
-regenerates Table 5.3 without private run roots. Source and case digests, extraction commands,
+regenerates Table E.14 without private run roots. Source and case digests, extraction commands,
 tests and a patch against the analysis base are supplied with the package. Full verification of
 either projection against its original execution logs still requires the retained run roots.
 

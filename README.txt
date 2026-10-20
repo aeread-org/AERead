@@ -198,4 +198,5 @@ current one saturated"):
   admission example and the checklist row T.10 updated; six declared analyses, not five.
 - figures/plot_architecture.py rerun only to refresh source digests after the introduction edit; its SVG
   is byte-identical.
-
+- Follow-up: four references to the earlier pack that still said Table 5.3 (tab_case_paths.tex, app_runtime.tex,
+  Appendix F.2 and G) now say Table E.14; architecture source digests refreshed, SVG byte-identical.
