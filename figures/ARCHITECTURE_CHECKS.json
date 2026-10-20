@@ -2,7 +2,7 @@
   "figure": "Figure 4.1",
   "scope": "Conceptual architecture; applied coverage varies by campaign",
   "sources": {
-    "source/sec_opening.tex": "5641431fed0be35a0922aa748683cb3235cf862e6c38841ee1cf73363e3b5be8",
+    "source/sec_opening.tex": "aebe7490201fc3288e2286018a9da6416f5667d61f136ae8cb6fae7594fcbe9b",
     "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
     "source/app_runtime.tex": "1cc7240da089cd9caf28f5024a99e186e113d26939196e95b2eb4e19427fbdf7",
     "source/paper_qc_design.md": "90f0c991205d6920c0c75b275be579fd996c7ef9d16331fce0fc6dad21d7e5e6",

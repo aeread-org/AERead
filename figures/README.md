@@ -1,4 +1,4 @@
-# Figure 5.1: shortfall by case
+# Figure 5.2: shortfall by case
 
 The main-text figure visualizes the unchanged v8 accounting estimates. The
 exact-value table is now Table E.10 in Appendix E.8. Classification rules are

@@ -1,0 +1,32 @@
+{
+ "branch": "codex/procurement-pay-or-test",
+ "commit": "bd9b9ba9",
+ "files": {
+  "confirm_pack.json": {
+   "from": "cases/procurement_allocation_v1/pay_or_test_v3_confirm/pack.json",
+   "sha256": "c1f40d8117756c9b1c73e81bcef801b503fa7e69c6e2bb4198715b8ce2779e86"
+  },
+  "confirmatory_analysis.json": {
+   "from": "evidence/procurement_allocation/pay_or_test_v3_confirmatory/reports/analysis.json",
+   "sha256": "5f74998ff65bde531f69f3c09c8bfa972c0b2482c740a91629432566bcd615f8"
+  },
+  "odds_diagnostic_pack.json": {
+   "from": "cases/procurement_allocation_v1/pay_or_test_v3_odds_diagnostic/pack.json",
+   "sha256": "fe3e6af7543301aaf979566891a33f7d1dbdbccb725961f67b867f7fc3c82b84"
+  },
+  "pilot_opus55.json": {
+   "from": "evidence/procurement_allocation/pay_or_test_v3_pilot/reports/pilot_claude_opus55.json",
+   "sha256": "47aa5a76ddc25c69c8bbabd66b2e8f050427399dfaacca77072a695e839907fd"
+  },
+  "pilot_pack.json": {
+   "from": "cases/procurement_allocation_v1/pay_or_test_v3_pilot/pack.json",
+   "sha256": "bd31aed86669ca879b152fd33542a114d55fc9a9050b4f1787395e86dbc4ae82"
+  },
+  "pilot_sol61.json": {
+   "from": "evidence/procurement_allocation/pay_or_test_v3_pilot/reports/pilot_codex_sol61.json",
+   "sha256": "9990c918939ecb71ff0662ca5d1598a3fb5e19574fe5e972831cb72c552bba4d"
+  }
+ },
+ "plan": "e67df11d",
+ "results": "ff65a230"
+}

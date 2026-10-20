@@ -1,4 +1,4 @@
-"""Plot the checked Table E.10 accounting as Figure 5.1, with native units.
+"""Plot the checked Table E.10 accounting as Figure 5.2, with native units.
 
 Run from the draft directory: uv run --with matplotlib python figures/plot_shortfalls.py
 Point estimates only; descriptive intervals remain in Table E.9.
@@ -129,7 +129,7 @@ def main():
     plt.close(fig)
     report=dict(source=str(SOURCE.relative_to(ROOT.parent)),
                 source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
-                figure='Figure 5.1', table='Table E.10',
+                figure='Figure 5.2', table='Table E.10',
                 component_sums_checked=len(checks), bars=checks,
                 negative_component_policy='a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero',
                 uncertainty='Point estimates; descriptive intervals in Table E.9',

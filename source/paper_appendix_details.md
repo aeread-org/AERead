@@ -180,6 +180,27 @@ in its brief and uses this tenant as the reference of its admission screen and o
 
 #### Procurement
 
+**The earlier pack (`pay_or_test_v1`).** Section 5.1 reports the case's harder pack. The earlier pack,
+which all four subjects played, has 24 worlds in six kinds; its quotes always arrive, its recorded
+supplier always charges a premium, and its newcomers never share a source (Appendix A.2).
+
+**Table E.14. The earlier Procurement pack, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. Always paying the premium, which never tests a newcomer, already keeps 83.3% (it gives up $75.19 a world), so the last row reports the decision itself: the share of the gap between that rule and the best policy each subject closes. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+
+| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
+|---|---:|---:|---:|---:|
+| Share of the best policy's value given up | 0.2% [0.0, 0.5] | 1.2% [0.3, 2.4] | 16.7% [10.8, 22.5] | 16.5% [10.4, 22.8] |
+| Share kept (always paying the premium: 83.3%) | 99.8% | 98.8% | 83.3% | 83.5% |
+| Share of the premium-to-best gap closed | 98.6% [97.2, 99.7] | 92.8% [85.9, 98.4] | 0.0% [−34.9, 35.2] | 1.1% [−36.6, 37.9] |
+
+The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first run
+came from two rules the brief left unsaid, that a quote is final and that the average is the
+criterion. That ceiling shows less than it seems: on this pack a rule that looks one test ahead comes
+within 0.01% of the best policy's value, so near-perfect play shows that the agents avoid the listed
+mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found
+little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run
+followed (Appendix F.4); the harder pack of Section 5.1 followed instead. The flash models give up what
+always paying the premium gives up: their loss is in the worlds where a newcomer was worth testing.
+
 Fixed rules, scored exactly over the 24 worlds: comparing each untested newcomer with paying, one
 test ahead and keeping the recorded supplier reachable, gives up $0.06 a world; testing the best
 odds once $45.7; always paying $75.2; testing the cheapest once $81.4; working up the price list
@@ -283,7 +304,7 @@ loss) goes to a class by what the action did; a request to the recorded supplier
 acquired only when the episode never tests a newcomer, and as contrary to information held
 otherwise. *Data center:* the
 unit is each part of a negotiation's grade: no deal is a commitment error (labelled by the side that
-walked); allocation loss in a world with positive available surplus is worse terms, while allocation loss in a world without positive available surplus is a harmful agreement (commitment error). Redline fees are interaction cost. Figure 5.1c separates harmful agreements from missed beneficial deals. Signing below one's own walk-away value is counted separately: the individual loss is not an additive joint-loss component, although the same agreement may also destroy joint value. *Refund:* the published gap decomposition's parts map onto the classes
+walked); allocation loss in a world with positive available surplus is worse terms, while allocation loss in a world without positive available surplus is a harmful agreement (commitment error). Redline fees are interaction cost. Figure 5.2c separates harmful agreements from missed beneficial deals. Signing below one's own walk-away value is counted separately: the individual loss is not an additive joint-loss component, although the same agreement may also destroy joint value. *Refund:* the published gap decomposition's parts map onto the classes
 (deciding before a required fact to not acquired, a wrong decision to contrary to information held, re-asked or unknown
 facts and the null-method format to procedure).
 
@@ -343,7 +364,7 @@ firm script; neither as integrator.
 
 ### E.7 Current shortfall panels: scope and uncertainty
 
-Figure 5.1 is descriptive accounting after the runs, not an additional declared test. Its
+Figure 5.2 is descriptive accounting after the runs, not an additional declared test. Its
 Data-center panel uses all 60 admitted worlds, including 15 with no positive available surplus;
 Table 5.4's earnings contrasts use the 45 deal worlds. Both focal roles receive equal weight
 within each world. Individual below-walk-away signings are not added to joint loss. As integrator
@@ -361,7 +382,7 @@ against the firm population, Opus has 1/60 such signings and Sol 0/60; the clien
 | Firm / Opus | 15.5 | 41.8 | 12.9 | 27.1 | 97.2 |
 | Firm / Sol | 14.3 | 4.0 | 13.8 | 83.8 | 115.8 |
 
-**Table E.9. Distribution of total shortfall for the subjects in Figure 5.1 (each case's own units).**
+**Table E.9. Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).**
 
 | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
 |---|---:|---|---|---|
@@ -386,7 +407,7 @@ outcome distributions are retained in the derived evidence. The source package i
 component-level intervals, distributions, per-world amounts and input digests in
 `analysis_evidence/shortfall_panels/panels.json`, with a provider-free reproduction script.
 
-### E.8 Exact values for Figure 5.1
+### E.8 Exact values for Figure 5.2
 
 The figure uses the same estimates below. Components retain each case's native units and
 classification rules; the figure adds no new analysis or cross-case aggregate.
@@ -462,7 +483,7 @@ trajectories used the native transition and scoring functions, holding offers, c
 signatures and walks fixed. This is exploratory analysis after the runs, not another declared
 test or a model rerun. The free opening move remains free.
 
-The samples answer different questions. Figure 5.1c includes all 60 worlds; the declared
+The samples answer different questions. Figure 5.2c includes all 60 worlds; the declared
 earnings contrast in Table 5.4 uses the 45 worlds with positive available joint surplus.
 "Deal-feasible" describes those worlds, including negotiations that ended without agreement;
 it does not select only signed contracts. Means first average both focal seats within a world,
@@ -485,7 +506,7 @@ With behavior fixed, earnings depend linearly on the fee and are equal at approx
 per redline. This threshold describes the recorded actions, not an optimal fee or how either
 agent would respond to a changed fee.
 
-**Table E.12. Joint-loss sensitivity across all 60 worlds ($ thousands per world; fixed actions). This is the population used in Figure 5.1c, including 15 worlds without positive available joint surplus.**
+**Table E.12. Joint-loss sensitivity across all 60 worlds ($ thousands per world; fixed actions). This is the population used in Figure 5.2c, including 15 worlds without positive available joint surplus.**
 
 | Fee per redline | Sol joint loss | Opus joint loss |
 |---|---:|---:|
@@ -526,9 +547,12 @@ applied to these cases are not described here.
 The QC standard defines six gates and the rule that a changed bound input reopens them; a repository
 test rejects a registered family without a profile. Each of the four current designs
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
-and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's pay-or-test v1 pack,
-used in Table 5.3, fails Gates 1 and 3; v2 passes the scripted Gate 3 checks but remains
-`partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
+and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's harder pack,
+used in Table 5.3, passes Gate 0 and is `partial` at Gates 1 to 5: every gate that rests on live
+play is held at `partial` because its environment's registration with the runtime awaits a non-author review
+and its code is not on the main branch, and Gate 2's replay through the runtime's command line could not
+yet run there (profile section 8.2). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
+the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
 packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
 the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
 incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
@@ -767,7 +791,7 @@ tests or a judge model.
 | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, initially by tests added after development; the admitted agreement pack also had a pre-confirmatory dry run (Appendix F.2) |
 | T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
 | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
-| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-five selected defects (Table F.4); a one-step rule reaches Procurement's best policy; a wrong refund can still pass Refund's payment leaf |
+| T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and brief audits (Appendix F.4); twenty-five selected defects (Table F.4); a one-step rule reaches the best policy on Procurement's earlier pack, and the reported pack admits only worlds where it pays the premium; a wrong refund can still pass Refund's payment leaf |
 | O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
 | R.2 Open evaluation harness | met | the shared runner is in the public repository |

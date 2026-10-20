@@ -181,3 +181,21 @@ New results (2026-10-19, owner: "update the paper"; coordinated with the branch 
   closed 35% [18, 52] of the premium-to-best gap, p = 0.0003, where the one-step rule closes none. The claim is Sol's
   alone; Opus, a control, paid the premium in 84 of 84 plays on this version, including 20 twins at the reported
   pack's odds; no cause given. Table 5.3 unchanged.
+
+2026-10-19 (aeread-15), Procurement replaced in Section 5.1, at the owner's request ("change 5.1 directly as
+current one saturated"):
+- Section 5.1 Procurement now reports the harder pack (pay_or_test_v3): shared sources, unanswered quotes,
+  a source lookup, prices from the sourcing record's price gaps; admission keeps worlds where a rule that
+  plans one newcomer's test pays the premium and the best policy beats paying by 10%. Worked example from
+  confirmatory world myopic_pays__3 (scout sample + lookups decide a $200 sample).
+- New Table 5.3 (Sol 35% [18, 52] on 20 fresh worlds, declared; pilot 50% [27, 71]; Opus 0% in 84 plays;
+  exact two-newcomer rule 82% and 84%) and new Figure 5.1 (figures/plot_procurement_v3.py; inputs pinned in
+  analysis_evidence/procurement_v3/SOURCES.json; PROCUREMENT_V3_FIGURE_CHECKS.json; build.py asserts the
+  script, SVG and input digests). The shortfall figure is renumbered Figure 5.2.
+- The earlier pack's table moved to Appendix E.4 as Table E.14 with its discussion; Appendix A.2.1 and
+  Table A.6 specify the harder pack; gate lines (Section 5.1 opening, F.1) give the harder pack's verdict
+  (Gate 0 passed, Gates 1-5 partial: unreviewed kernel registration, code not on main); the introduction's
+  admission example and the checklist row T.10 updated; six declared analyses, not five.
+- figures/plot_architecture.py rerun only to refresh source digests after the introduction edit; its SVG
+  is byte-identical.
+

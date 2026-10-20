@@ -259,12 +259,32 @@ def main():
             paragraph['class'] = ['caption']; paragraph['id'] = 'table-' + match[1]
             table = paragraph.find_next_sibling('table')
             if table: table['class'] = ['table-' + match[1].replace('.','-')]
+    # Procurement's results figure: each plotted value is recomputed from pinned read-outs by the script.
+    v3_image = soup.find('img', src='figures/procurement_v3_gap_closed.svg')
+    assert v3_image is not None
+    v3_marker = v3_image.find_parent('p')
+    v3_caption = v3_marker.find_next_sibling('p')
+    assert v3_caption.get_text().startswith('Figure 5.1.')
+    v3_figure = soup.new_tag('figure', attrs={'id':'fig-procurement-v3','class':'procurement-figure'})
+    v3_figure.append(v3_image.extract())
+    v3_figcaption = soup.new_tag('figcaption')
+    for child in list(v3_caption.contents): v3_figcaption.append(child.extract())
+    v3_figure.append(v3_figcaption)
+    v3_caption.decompose()
+    v3_marker.replace_with(v3_figure)
+    v3_checks = json.loads((ROOT/'figures/PROCUREMENT_V3_FIGURE_CHECKS.json').read_text())
+    assert hashlib.sha256((ROOT/'figures/plot_procurement_v3.py').read_bytes()).hexdigest() == v3_checks['script_sha256']
+    assert hashlib.sha256((ROOT/'figures/procurement_v3_gap_closed.svg').read_bytes()).hexdigest() == v3_checks['svg_sha256']
+    assert (SOURCE/'figures/procurement_v3_gap_closed.svg').read_bytes() == (ROOT/'figures/procurement_v3_gap_closed.svg').read_bytes()
+    for name, meta in v3_checks['sources']['files'].items():
+        assert hashlib.sha256((ROOT/'analysis_evidence/procurement_v3'/name).read_bytes()).hexdigest() == meta['sha256']
+    assert [round(r['mean'], 2) for r in v3_checks['rows'][:2]] == [0.35, 0.5]
     # A source-bound figure leads the main results; exact values stay in E.10.
     source_image = soup.find('img', src='figures/shortfall_by_case.svg')
     assert source_image is not None
     marker = source_image.find_parent('p')
     caption = marker.find_next_sibling('p')
-    assert caption.get_text().startswith('Figure 5.1.')
+    assert caption.get_text().startswith('Figure 5.2.')
     figure = soup.new_tag('figure', attrs={'id':'fig-shortfall','class':'shortfall-figure'})
     image = source_image.extract()
     figure.append(image)

@@ -80,7 +80,7 @@ pooled lemon at $2,375; inspecting first costs $25 and shows the quality under e
 seat 0 offered $0, the leaky lemon landlord would have countered at $1,375, which also marks the
 lemon, and signing there pays +$225.
 
-### A.2 Procurement: pay or test (`pay_or_test_v1`)
+### A.2 Procurement: pay or test (`pay_or_test_v1`, the earlier pack)
 
 **Environment.** One buyer and one component. The suppliers are one recorded supplier E and
 three newcomers N₁–N₃. Each supplier has a type θ ∈ {G, L, P} = {(on-time 0.97, yield 0.97),
@@ -140,6 +140,34 @@ the newcomer (quote, then sample if the quote is clean) instead of paying the pr
 γ(628.24 − 418.46 + 30) − 2 − (1 − λ)·50 = $65.90 in expectation, where the $30 is the recorded
 supplier's sample the buyer no longer needs, provided a failed test still leaves time to return to
 the recorded supplier before the deadline.
+
+### A.2.1 The pack reported in Section 5.1 (`pay_or_test_v3`)
+
+Section 5.1 reports a harder pack; the pack above (Table E.14) is its predecessor. The payoff, the
+three types, the kits owed, the action budget and the order sizes are unchanged. What changes:
+
+**Table A.6. What the harder Procurement pack changes.**
+
+| Quantity | Earlier pack (above) | Harder pack |
+|---|---|---|
+| Newcomer price | p_E(1 − δ), δ from 3% to 21% | p_E(1 − δ), δ drawn from the price gaps in the authors' own sourcing record (−189% to +66%; a newcomer is dearer about half the time) |
+| Shared source | none: newcomer types independent | newcomers of one seller kind share a source with probability s ∈ {0.5, 0.65, 0.8, 0.95}; if they do, all take one type drawn from their cohort's odds |
+| Quote | always answered | a newcomer answers each request with probability 1/3, independently; an unanswered request costs its $2 and day and shows nothing; the recorded supplier always answers |
+| Sample | $30 to $80, 3 days | $20 to $240, 3 days; always arrives |
+| Source lookup | none | $1, 0 days: names the listing's registered factory; two newcomers of one kind name the same factory if and only if they share a source |
+| Inquiry, counter-offer | offered; each can only lose | removed |
+| Financing, cash budget, shipping | 12% a year; $2,500; $0.60 a unit | none; never binds and is not shown; folded into the listed price |
+| Cohort record | aᵢ ∈ {4, 8}, bᵢ ∈ {8, 14, 20, 24} of 40 | aᵢ ∈ {2, 4, 6}, bᵢ ∈ {18, 22, 26, 30} of 40 |
+| Deadline | three clocks | 14 to 22 days |
+| Admission | none | a rule that plans one newcomer's test exactly loses at least $10 to the best policy and pays the premium first; every fixed rule and a kind-blind shortcut lose at least $10; the best policy beats paying the premium by at least 10% of its value; without a shared source the one-step rule is within $5 of the best policy; information is worth at least $10 |
+
+The best informed policy is computed exactly by backward induction over what the buyer has seen
+(each supplier's test results, which listings it looked up, and whether each kind's sharing is
+settled), with an unanswered quote and a lookup as chance outcomes; its value equals the
+environment's own average over 400 plays of each pilot world within four standard errors. The 20
+worlds of the declared test are the first admitted seed of each of 20 blocks from seed 9,400,000
+(5,164 seeds scanned); their twins at the earlier pack's odds keep every listing, price, sample
+term, clock and sharing chance and redraw only the cohort records.
 
 ### A.3 Data center: negotiating into an agreement
 

@@ -2,9 +2,9 @@
 
 **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
 details are in [Appendix E](paper_appendix_details.md), formal specifications in
-[Appendices A–D](paper_appendix_case_specs.md). Five reported analyses were declared before their runs: Housing v14 and v15, the data-center
-signalling test and the two data-center agreement confirmatories. Other results are development
-probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
+[Appendices A–D](paper_appendix_case_specs.md). Six reported analyses were declared before their runs: Housing v14 and v15, Procurement's test on
+its harder pack, the data-center signalling test and the two data-center agreement confirmatories.
+Other results are development probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
 
 ---
 
@@ -39,7 +39,7 @@ counterpart, not sampled from a representative distribution.
 | Data center | AI-infrastructure contracting | which risk clauses to change, what price to name, and when to sign or walk away | the other side: a script, another model or the same model | the best agreement at both sides' true costs, which neither side knows |
 | Refund | customer refund claims | what to ask, decide and pay on a claim under a written policy | the other parties to the claim, scripted | a hand-written correct resolution |
 
-How much room each case leaves is reported as a share of that case's own reference value: Tables 5.2 to 5.4 give each subject's result and gap that way, and Figure 5.1 splits the gap by action class in the case's units. The cases use four of the kinds of check defined with the runner's measurement layer (§4): an
+How much room each case leaves is reported as a share of that case's own reference value: Tables 5.2 to 5.4 give each subject's result and gap that way, and Figure 5.2 splits the gap by action class in the case's units. The cases use four of the kinds of check defined with the runner's measurement layer (§4): an
 answer key, declared rules, the value of the best policy or a bound, and relative standing
 against another agent; none uses a rubric. Every score is computed by code, with
 no model in the loop; the kernel's replay recomputes each receipt's own score from its sealed
@@ -51,8 +51,9 @@ that certificate (Appendix F.2). Table E.1 lists every check.
 Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
 and is partial at Gate 4. The first Data-center confirmatory is partial at every gate, chiefly because
 neither seat has much to infer (knowing the other side's type is worth less than 1% of the value available in a
-deal to the best informed policy); the second's gate review is pending. The Procurement pack reported here fails Gates 1
-and 3, and Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
+deal to the best informed policy); the second's gate review is pending. The Procurement pack reported here passes
+Gate 0 and is partial at Gates 1 to 5, chiefly because its environment's registration with the runtime awaits review
+and its code is not yet on the main branch; the earlier, saturated Procurement pack fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
 subjects on these worlds and are not qualified benchmark scores.
 
@@ -105,52 +106,67 @@ admission: its provider now serves another quantization than the one v14 pinned.
 (addendum A) is running and is reported beside v15, outside its declared contrasts.
 
 **Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
-A displayed price is not a quote, and a listing's quality is known only after it is checked. Two of
-the case's assumptions depart from our own sourcing on 1688 by design: its recorded supplier always charges a premium, whereas in the record a seller with a sales
-history was dearer than one without in only about half of comparable parts; and its quotes always
-arrive, whereas most requests went unanswered. The case's prices, failure rates and delays are set by
-the authors, not calibrated to that record. A buyer owes 50 kits by a deadline and awards one
-supplier: a recorded supplier with a long clean record, or one of three cheaper newcomers. Each newcomer is
-good, late or poor, and the buyer knows only the odds, read from the record of its seller kind.
-Among up to ten actions it may request a quote ($2 and a day, which exposes a late supplier),
-request a sample ($30 to $80 and two or three days, which exposes a poor one), award, or defer. An award
-that delivers k kits on time earns 37k − 12(50 − k) less the order's cost and the information
-bought; one that delivers fewer than 40, as a late or poor supplier does, is worth −$600 less the
-information bought (Appendix A.2). The hard part is whether information is worth its price and its
-days. In one world the recorded supplier's award earns $418 and a newcomer 15% cheaper earns $628
-if good, with odds of 0.45 good, 0.20 late and 0.35 poor; quoting it, then sampling it ($50) only
-if the quote is clean, is worth $65.90 more than paying the premium, provided a failed test leaves
-time to return to the recorded supplier. Every action is charged what it gave up against the
-exact best informed policy at that point.
+A displayed price is not a quote, a listing's quality is known only after it is checked, and new
+sellers of one kind often buy from the same factory. A buyer owes 50 kits by a deadline and awards
+one supplier: a recorded supplier with a long clean record, or one of three newcomers. Each newcomer
+is good, late or poor. The buyer knows only the odds, read from the record of its seller kind, and
+that newcomers of one kind share a source with a stated probability (0.5 to 0.95), in which case they
+are all of one type. Two features follow our own sourcing on 1688: a newcomer's price relative to the
+recorded supplier's is drawn from the price gaps in that record, so a newcomer is dearer about half the
+time, and a newcomer answers a quote request only a third of the time. The case's other quantities are
+set by the authors. Among up to ten actions the buyer may request a quote ($2 and a day; an answered
+quote exposes a late supplier), request a sample ($20 to $240 and three days; it always arrives and
+exposes a poor supplier), look up a listing's registered factory ($1; two lookups in one kind show
+whether it shares a source), award, or defer. An award that delivers k kits on time earns
+37k − 12(50 − k) less the order's cost and the information bought; one that delivers fewer than 40, as
+a late or poor supplier does, is worth −$600 less the information bought (Appendix A.2).
 
-**Table 5.3. Procurement pay-or-test, 24 worlds per subject; the share of the best policy's value (it earns $451 a world) each subject gives up and keeps, with 95% intervals over worlds. Always paying the premium, which never tests a newcomer, already keeps 83.3% (it gives up $75.19 a world), so the last row reports the decision itself: the share of the gap between that rule and the best policy each subject closes. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.**
+The hard part is a test worth taking only for what it reveals about another supplier. Every world in
+the pack is one where a rule that plans a single newcomer's test exactly (what to request first, how
+often to repeat an unanswered quote, when to give up) pays the premium, while the best policy tests a
+newcomer first and beats paying the premium by at least 10%. In one world the recorded supplier asks
+$24.95. A newcomer asks $12.47, but its sample costs $200 and its odds are 0.20 good, 0.15 late and
+0.65 poor, so testing it on its own loses money. A second newcomer of the same seller kind asks $26.87,
+more than the recorded supplier, so it is never worth buying; but its sample costs $30, and the two
+share a source with probability 0.95. A sound sample there raises the first newcomer's odds of being
+good to 0.96, and a poor one lowers them to 0.01. The best policy quotes the cheap newcomer; if the
+quote comes back clean, it samples the dear one, looks both up, and only then pays for the $200 sample.
+It earns 11.8% more than paying the premium. Every action is charged what it gave up against the exact
+best informed policy at that point.
 
-| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | Gemini 3.8 Flash | GPT-6 Luna |
-|---|---:|---:|---:|---:|
-| Share of the best policy's value given up | 0.2% [0.0, 0.5] | 1.2% [0.3, 2.4] | 16.7% [10.8, 22.5] | 16.5% [10.4, 22.8] |
-| Share kept (always paying the premium: 83.3%) | 99.8% | 98.8% | 83.3% | 83.5% |
-| Share of the premium-to-best gap closed | 98.6% [97.2, 99.7] | 92.8% [85.9, 98.4] | 0.0% [−34.9, 35.2] | 1.1% [−36.6, 37.9] |
+**Table 5.3. Procurement, worlds where the best first move is a test worth only what it reveals: the share of the gap between paying the premium and the best policy each subject closes, as a mean over worlds with 95% intervals (each world the mean of its plays). A rule that plans one newcomer's test exactly pays the premium in every one of these worlds and closes none of the gap. The 20 worlds of the declared test were drawn, and the test declared, before any play.**
 
-The frontier agents (through their CLIs) are at the ceiling; most of what they lost on a first
-run came from two rules the brief left unsaid, that a quote is final and that the average is the
-criterion. That ceiling shows less than it seems: on this pack a rule that looks one test ahead
-comes within 0.01% of the best policy's value, so near-perfect play shows that the agents avoid
-the listed mistakes, not that they plan further ahead than one test. A v2 gate and pilot (50 cells, $0.22) found little newcomer testing and required 326 to 3,464 worlds against a 96-world cap, so no confirmatory run followed (Appendix F.4). The flash models give up what always paying the premium gives up: their loss is in
-the worlds where a newcomer was worth testing.
+| | Sol 6.1 (Codex) | Opus 5.5 (Claude Code) | A rule that may test two newcomers (exact) |
+|---|---:|---:|---:|
+| Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 82% |
+| Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 84% |
+| The same 20 worlds at the earlier pack's odds, one play each | not played | 0% in all 20 plays | |
+| Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $8.38 |
 
-We also tested a harder version of the case, in which the best first move is often a test worth only
-what it reveals about another supplier. Newcomers of one kind may share an unknown source, a newcomer
-answers a quote request only a third of the time, and newcomer prices follow the price gaps in our own
-sourcing on 1688. In worlds of the hardest kind, a one-step rule pays the premium and closes none of the
-gap between paying the premium and the best policy. In a 12-world development pilot, each world played
-twice, Sol 6.1 tested a newcomer in 20 of 24 plays and closed 50% (95% CI 27–71%) of that gap in the
-six worlds of this kind. We then declared one test before any play. On 20 fresh worlds of this kind,
-each played twice, Sol closed 35% of the gap (95% CI 18–52%, p = 0.0003), where the one-step rule
-closes none; the claim holds. It concerns Sol alone. Opus 5.5 played the same worlds as a control and
-paid the premium without testing a newcomer in all 84 of its plays on this version. That includes 20
-worlds whose newcomers had the odds of Table 5.3's pack, where testing first is best in every world;
-why is untested. These worlds differ from Table 5.3's, where Opus closed 92.8% of the corresponding
-gap.
+![The share of the gap between paying the premium and the best policy each play closes, world by world, for Sol 6.1 and Opus 5.5 and an exact rule that may test two newcomers.](figures/procurement_v3_gap_closed.svg)
+
+**Figure 5.1. Procurement: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
+one world, the mean of its plays; diamonds are means, and the bars are the declared test's 95% t interval
+and the pilot's 95% bootstrap interval. The rule that plans one newcomer's test exactly sits at 0% in every
+world, with paying the premium. Opus closes none of the gap in any world, at either pack's odds. The gray
+row is an exact rule allowed to test two newcomers.
+
+Sol 6.1 closed 35% of the gap on 20 fresh worlds (95% t interval 18–52%, p = 0.0003), where a rule
+that plans one newcomer's test exactly closes none. This was the one test we declared before any
+play, and the claim holds; it concerns Sol alone. Sol's play splits by world (Figure 5.1): it closes
+most of the gap in some worlds and none in others. Opus 5.5 played the same worlds as a control and
+paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
+copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
+newcomer first is best in every world; why Opus never tests is untested. A rule allowed to test two
+newcomers closes 82% of the gap, so what both subjects miss is planning one test beyond the one in
+hand. These runs used the case's environment from a development branch whose registration with the
+runtime still awaits review (Appendix F.1).
+
+An earlier pack, in which quotes always arrive and newcomers never share a source, is saturated: a
+rule that looks one test ahead comes within 0.01% of the best policy, Sol and Opus close 98.6% and
+92.8% of the pay-to-best gap, and Gemini 3.8 Flash and GPT-6 Luna close none (Appendix E.4,
+Table E.14). Figure 5.2 and the failure classes of Section 5.2 use that pack, which is the one all four
+subjects played.
 
 **Data center.** The structure follows a real AI-infrastructure engagement in which a system
 integrator bundles hardware, data-center space, staffing and software into a working system for a
@@ -213,14 +229,14 @@ inference about it.
 
 ### 5.2 Where the shortfall comes from
 
-Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
+Figure 5.2 separates each case's shortfall into observed action classes. The components sum to
 the total under a stated priority order; they describe what happened, not its cause. Each panel
 uses its own reference and units. Appendix E.5 gives the rules and full subject tables; E.7 gives
 the current Data-center breakdown and uncertainty. Table E.10 retains the exact panel values.
 
 ![Shortfall components across four cases, including all four Procurement subjects, with separate units and axes.](figures/shortfall_by_case.svg)
 
-**Figure 5.1. Shortfall to each case's reference.** Segments account for observed actions;
+**Figure 5.2. Shortfall to each case's reference.** Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
 v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
 and is not drawn. Procurement shows all four subjects; full subject tables are in Appendix E.5. Data center reports v1's joint loss
@@ -347,21 +363,21 @@ support for a scripted seat that this family uses is still in development.
 | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
 | Best informed tenant ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
-| Pay-or-test (Tables 5.3, E.4) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
+| Pay-or-test, earlier pack (Appendix E.4, Table E.14) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
 | Procurement flash panels | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |
 | Data center development (Tables E.3, E.6, E.7), adversarial counterparts, signalling test | `agreement_results_2026-10.md` and `agreement_signalling_plan_2026-10.md` on branch `codex/datacenter-agreement`; bundles `evidence/datacenter_development/datacenter_agreement_cli_*` (incl. `scripted_tactics_v1`, `elicitation_probe_v1`); one-pagers `datacenter_agreement_first_result.pdf`, `..._scripted_result.pdf`, `..._signalling_test.pdf`; incident rows DC-D-32, DC-D-33, DC-J-07 | development; the signalling test was declared |
-| Data center confirmatory (Tables 5.4, E.8; Figure 5.1c) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
+| Data center confirmatory (Tables 5.4, E.8; Figure 5.2c) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
 | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
-| Refund rows of Table 5.1 and Figure 5.1d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Failure classes (Figure 5.1, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
+| Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, Data-center confirmatory bundle grades and Refund's cell decomposition; components sum to the corresponding total | derived |
 | Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 | Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 | Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 | TERMS-Bench reimplementation (§5.3, Table 5.5) | bundles `evidence/termsbench_gpt4o_mini_pilot_v1`, `termsbench_glm51_pilot_v1`, `termsbench_glm53_flash_parasail_pilot_v2` and `..._v3`, `reports/summary.json` (overlap aggregates); `docs/families/termsbench/campaign_scoping.md` (violation counts, reasoning probe); branch `codex/termsbench-scripted-counterpart` at `8f820c5b`, draft PR #153 on kernel PR #150; paper values from TERMS-Bench Table 2 (arXiv 2605.13909v2) | development; one play per case |
 | Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 | TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
-| Procurement harder version: pilot and confirmatory (§5.1) | pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
+| Procurement harder version: pilot and confirmatory (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
 | Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

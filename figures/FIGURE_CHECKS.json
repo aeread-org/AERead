@@ -1,7 +1,7 @@
 {
   "source": "analysis_evidence/shortfall_panels/panels.json",
   "source_sha256": "6340621dcd81de69bd1eac621f4fb17f5887c9310712d4105ff7997af3b6106a",
-  "figure": "Figure 5.1",
+  "figure": "Figure 5.2",
   "table": "Table E.10",
   "component_sums_checked": 11,
   "bars": [

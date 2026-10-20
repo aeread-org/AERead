@@ -111,6 +111,9 @@ figure svg { display:block; width:100%; }
 .shortfall-figure img { display:block; width:100%; height:auto; }
 .shortfall-figure figcaption { margin:5pt 0 0; font-size:8.5pt; line-height:1.3; }
 
+.procurement-figure { margin:8pt 0 11pt; break-inside:avoid; }
+.procurement-figure img { display:block; width:100%; height:auto; }
+.procurement-figure figcaption { margin:5pt 0 0; font-size:8.5pt; line-height:1.3; }
 .architecture-figure { margin:8pt 0 11pt; break-inside:avoid; }
 .architecture-figure img { display:block; width:100%; height:auto; }
 .architecture-figure figcaption { margin:4pt 0 0; font-size:8.5pt; line-height:1.3; }
