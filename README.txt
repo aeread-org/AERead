@@ -250,4 +250,6 @@ current one saturated"):
   a note in Figure 5.2's caption and Table E.10 (b) that the declared classes file $6.33 a world of that under
   information not acquired (worse terms would be $6.85 split out); the comprehension questions described as asked
   (another newcomer's sample, with and without the target's own quote).
-
+  Then the check's notes: Section 5.2 names award checks as the rest of the three models' loss and gives Luna's
+  further $6.85; Table E.15 says Opus's earlier comprehension attempts (two) were refused; the flash sources row
+  carries the registry-row caveat the other v3 rows have.
