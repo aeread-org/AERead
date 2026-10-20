@@ -1,34 +1,29 @@
-# The counterpart's belief update: what it changes
+# Agreement case: the counterpart's belief update
 
-**Question** (owner, 2026-10-19). A counterpart that updates beliefs only matters if its beliefs change its offers.
-Does the agreement case's scripted negotiator's update change anything?
+Does the scripted counterpart's belief update matter? Only where its beliefs move its offers. In this case that is
+the integrator script, not the client script. Evidence: `evidence/datacenter_development/agreement_belief_ablation/`
+(no model call).
 
-**Method.** Each v2 deal world (72) is played twice, with the counterpart's belief updated as written (it drops every
-type of the other side that would have lost on an offer that side made) and frozen at the declared odds, against each
-opponent in turn. Earnings are in percent of the world's available surplus, updating minus frozen. The second check
-replays every recorded v2 negotiation against the script. Evidence: `evidence/datacenter_development/agreement_belief_ablation/`.
+| Counterpart | Moves where the belief had narrowed | Moves a frozen belief changes | Opponent's earnings, updating minus frozen (mean, % of available) | Deals signed, updating vs frozen |
+|---|---:|---:|---:|---|
+| Client script, vs 7 scripted styles | 0 of 1,175 | 0 | 0.0 | identical |
+| Client script, vs told-both-types ceiling | 4 of 158 | 3 | +1.1 | 3 worlds differ |
+| Integrator script, vs 7 scripted styles | 458 of 1,278 | 197 (15%) | −3.1 to −12.4 | e.g. 38 vs 50 against an even client |
+| Integrator script, vs told-both-types ceiling | 55 of 157 | 14 | −10.6 | 58 vs 64 |
+| Recorded v2 arms, client script vs model integrators | 4 of 598 | 1 | not measurable | not measurable |
+| Recorded v2 arms, integrator script vs model clients | 109 of 398 | 31 (7.8%) | not measurable | not measurable |
 
-| Counterpart | Opponents | Worlds where its moves differ | Joint value, updating minus frozen | Recorded v2 moves a frozen belief changes |
-|---|---|---:|---:|---:|
-| Scripted client (the integrator arms' counterpart) | seven scripted styles | 0 of 72, every style | 0.0% | 1 of 598 |
-| | told-both-types stand-ins and the grid best reply | 1 to 3 of 72 | under 1.1% for each side | |
-| | the integrator's own-information best reply | | +0.9% to that reply | |
-| Scripted integrator (the client arm's counterpart) | seven scripted styles | 13 to 28 of 72 | −4.3% to −23.6% | 31 of 398 |
-| | stand-ins and the grid best reply | 0 to 42 of 72 | −5.0% to −16.0%; ceiling −9.5% | |
+**The client script's belief is inert.** It drops an integrator type only when an integrator offer would have lost that
+type money, which almost never happens. Freezing it changes no move against any scripted style, and 1 of 598 moves
+against the models. The integrator's own-information reference moves by 0.9% of available surplus.
 
-**Reading.**
+**The integrator script's belief is not.** A client's offers often rule out risk-charge types, the script then asks for
+more, and more deals break down. Freezing it changes 15% of its moves against scripted clients, and 7.8% against the
+models' recorded offers. It costs the client 3% to 12% of the available surplus on average, mostly through lost deals:
+the script's own earnings fall too in five of the seven styles.
 
-- **The scripted client's update is inert.** Against every scripted style its moves are identical either way. Against
-  the stand-ins it changes a move in at most 3 of 72 worlds. On the recorded negotiations it changed 1 move in 598. This
-  matches the v2 finding that knowing the other side's type is worth under 1% of the available value: there is
-  nothing for the client's belief to act on.
-- **The scripted integrator's update changes its offers, and costs both sides.** With its belief updated, joint value
-  falls in every pairing and more deals fail. Against the even style 34 worlds end without a deal against 22 frozen;
-  against the told-both-types ceiling, 14 against 8.
-- **Why is a hypothesis, untested:** the elimination rule narrows the integrator onto client types the real client is
-  not, so it asks prices the real client will not sign.
-
-**What it means for the redesign.** A counterpart that updates beliefs matters only where its beliefs move its offers,
-and here that happens only on the integrator's side, where the update as written destroys value rather than reading the
-other side. A redesigned counterpart needs a declared likelihood model, so its posterior is a reading of the history
-rather than an elimination rule, and a check like this one before any model plays it.
+**What this means for the case.** The v2 results say knowing the other side's type is worth under 1% to a seat's best
+reply: the case measures little inference. This ablation shows the other direction is live: what a client reveals
+through its offers changes what the integrator script asks, and so what the client earns. The update is crude
+(elimination, not likelihood) and the earnings effects are against scripts. Whether models' earnings move needs a paid
+test: the CF arm's 72 deal worlds against the frozen-belief integrator script, paired by world with v2's CF results.

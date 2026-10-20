@@ -1,14 +1,14 @@
-# Does the agreement case's counterpart need its beliefs?
+# Agreement case: does the scripted counterpart need its belief update?
 
-Offline, no model called. `tools/datacenter/agreement_belief_ablation.py` plays the v2 confirmatories' scripted
-counterpart (`agreement_admitted_pack.public_style`) on every world of the admitted v2 pack twice: as it is, and with
-its belief frozen at the declared odds. Everything else is equal. Its opponents are the seven scripted styles, v1's
-told-both-types stand-ins (four fixed plans and the grid best reply) and, against the scripted client, the integrator's
-own-information best reply.
+Development evidence, no claim, no model call. `tools/datacenter/agreement_belief_ablation.py` compares the agreement
+case's scripted negotiator with the same negotiator whose belief is frozen at the declared odds. The negotiator's update
+drops every type of the other side that would have lost money on an offer that side made. The comparison covers the
+v2 confirmatory counterpart (`agreement_admitted_pack.public_style`) on the admitted v2 pack (72 deal worlds of 80),
+in both seats.
 
-- `reports/ablation.json`: per world, seat and opponent: whether the counterpart's moves differ, how many of its moves
-  the frozen belief would change, and each side's earnings both ways.
-- `reports/recorded.json`: every recorded v2 negotiation against the script, each scripted move rebuilt (all match the
-  record) and recomputed with the frozen belief.
-
-The results are in `docs/families/datacenter/agreement_belief_ablation.md`.
+- `reports/scripted.json`: every world played twice against seven scripted styles, v1's four told-both-types plans,
+  the told-both-types ceiling (`best_plan`), and, opposite the client script, the integrator's own-information
+  reference. Each seat's earnings are at true costs.
+- `reports/recorded.json`: every recorded negotiation of the v2 arms against the script (IF: 320 episodes; CF: 160).
+  Each scripted move is rebuilt from the history; all 996 match the record. Each is set beside the move a frozen
+  belief would have made.
