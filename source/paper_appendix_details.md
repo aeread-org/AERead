@@ -674,11 +674,11 @@ an earlier data-center design was traced the same way on 2026-09-14.
 ### F.4 Adversarial checks applied
 
 - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
-  the value available in the development agreement pack; always paying the premium gives up $75.2 a world in
-  Procurement; in Housing, scored after the runs, passing earns $0, signing without
+  the value available in the development agreement pack; always paying the premium gives up $51.25 a world on
+  Procurement's declared worlds (Table 5.3); in Housing, scored after the runs, passing earns $0, signing without
   inspecting −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
   beat (Table 5.2).
-- **Fixed rules** are scored exactly against Procurement's best policy; the one-step rule's $0.06
+- **Fixed rules** are scored exactly against Procurement's best policy. In the earlier pack (Table E.14) the one-step rule's $0.06
   is the finding that fails Gates 1 and 3. A v2 pack built after the runs adds one mechanism: new
   listings of one seller kind share a source with a stated chance, so a cheap test of one listing
   tells the buyer about another. Admitted on what a buyer sees, with types drawn afterwards, its 24
@@ -689,7 +689,9 @@ an earlier data-center design was traced the same way on 2026-09-14.
   Its separate 12-world gate/pilot used 50 cells ($0.2193). Gemini never tested a newcomer
   and matched the premium rule; Luna touched one in 1 of 24 pilot plays, and neither model
   reached the planned probe. Required sizes were 326, 3,464 and 2,047 worlds, beyond the
-  96-world cap, so no confirmatory run was frozen or played.
+  96-world cap, so no confirmatory run was frozen or played. On the harder pack of Section 5.1 the same
+  exact scoring puts the one-step rule at paying the premium in all 20 declared worlds, and the shortcut and
+  the rule that may test two newcomers at 33% and 82% of the gap (Table 5.3).
 - **Brief audits** found instructions that decided outcomes in Procurement
   and a schema that contradicts its verifier in Refund.
 - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
@@ -834,8 +836,9 @@ named here when it is not.
   repository.
 - **Evidence.** Sealed, digest-bound bundles under `evidence/`: the Housing v14 confirmatory and
   its declared fill, the data-center agreement bundles, and the Refund V2.1 bundles with their gap
-  decomposition. The Procurement pay-or-test panels are development runs kept as sealed run roots
-  and are not yet published as bundles.
+  decomposition. Procurement's declared runs (Table 5.3) are sealed run roots whose read-outs are committed
+  under `evidence/procurement_allocation/pay_or_test_v3_*` on the case's branch, not yet on `main` or
+  published as bundles.
 - **Quality control.** Each family's QC profile and incident log, kept with its code; the
   reference-run tests named in §6.
 - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map

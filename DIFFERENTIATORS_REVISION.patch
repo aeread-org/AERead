@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 16:35:44
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 16:38:39
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1734,7 +1734,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 16:35:37
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 16:38:24
 @@ -42,14 +42,28 @@
  (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
  each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
@@ -2117,7 +2117,33 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    derivation; decision loss has not been inserted into the original receipts. The Housing
    receipts also name the model for the five tenant seats a script played; the true seat map is in
    an unsealed log.
-@@ -694,7 +808,7 @@
+@@ -560,11 +674,11 @@
+ ### F.4 Adversarial checks applied
+ 
+ - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
+-  the value available in the development agreement pack; always paying the premium gives up $75.2 a world in
+-  Procurement; in Housing, scored after the runs, passing earns $0, signing without
++  the value available in the development agreement pack; always paying the premium gives up $51.25 a world on
++  Procurement's declared worlds (Table 5.3); in Housing, scored after the runs, passing earns $0, signing without
+   inspecting −$80 and an inspect-then-sign rule $145 a world, a rule two of the three models do not
+   beat (Table 5.2).
+-- **Fixed rules** are scored exactly against Procurement's best policy; the one-step rule's $0.06
++- **Fixed rules** are scored exactly against Procurement's best policy. In the earlier pack (Table E.14) the one-step rule's $0.06
+   is the finding that fails Gates 1 and 3. A v2 pack built after the runs adds one mechanism: new
+   listings of one seller kind share a source with a stated chance, so a cheap test of one listing
+   tells the buyer about another. Admitted on what a buyer sees, with types drawn afterwards, its 24
+@@ -575,7 +689,9 @@
+   Its separate 12-world gate/pilot used 50 cells ($0.2193). Gemini never tested a newcomer
+   and matched the premium rule; Luna touched one in 1 of 24 pilot plays, and neither model
+   reached the planned probe. Required sizes were 326, 3,464 and 2,047 worlds, beyond the
+-  96-world cap, so no confirmatory run was frozen or played.
++  96-world cap, so no confirmatory run was frozen or played. On the harder pack of Section 5.1 the same
++  exact scoring puts the one-step rule at paying the premium in all 20 declared worlds, and the shortcut and
++  the rule that may test two newcomers at 33% and 82% of the gap (Table 5.3).
+ - **Brief audits** found instructions that decided outcomes in Procurement
+   and a schema that contradicts its verifier in Refund.
+ - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
+@@ -694,7 +810,7 @@
  | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, initially by tests added after development; the admitted agreement pack also had a pre-confirmatory dry run (Appendix F.2) |
  | T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
  | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
@@ -2126,7 +2152,19 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures |
  | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
  | R.2 Open evaluation harness | met | the shared runner is in the public repository |
-@@ -738,7 +852,7 @@
+@@ -720,8 +836,9 @@
+   repository.
+ - **Evidence.** Sealed, digest-bound bundles under `evidence/`: the Housing v14 confirmatory and
+   its declared fill, the data-center agreement bundles, and the Refund V2.1 bundles with their gap
+-  decomposition. The Procurement pay-or-test panels are development runs kept as sealed run roots
+-  and are not yet published as bundles.
++  decomposition. Procurement's declared runs (Table 5.3) are sealed run roots whose read-outs are committed
++  under `evidence/procurement_allocation/pay_or_test_v3_*` on the case's branch, not yet on `main` or
++  published as bundles.
+ - **Quality control.** Each family's QC profile and incident log, kept with its code; the
+   reference-run tests named in §6.
+ - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map
+@@ -738,7 +855,7 @@
  The Housing analysis re-extracts its committed trajectory table from the sealed run roots and
  regenerates both measures exactly. Procurement's `pay_or_test_reanalysis` checks all 144 original
  receipts, then reconstructs decision loss from their sealed parsed actions; its public projection

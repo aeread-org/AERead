@@ -253,3 +253,7 @@ current one saturated"):
   Then the check's notes: Section 5.2 names award checks as the rest of the three models' loss and gives Luna's
   further $6.85; Table E.15 says Opus's earlier comprehension attempts (two) were refused; the flash sources row
   carries the registry-row caveat the other v3 rows have.
+- Earlier-pack leftovers from the one-pack restructure: Appendix F.4's trivial agent is now always-pay on the declared
+  worlds ($51.25, Table 5.3), its fixed-rules bullet labels the earlier pack and adds the harder pack's exact scores,
+  F's evidence note says where the v3 read-outs live, and the panel README's Procurement bullet describes v3.
+  No earlier-pack failure-class figure is displayed anywhere (checked for P-T-23).

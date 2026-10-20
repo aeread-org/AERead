@@ -22,8 +22,14 @@ They are not the reproduction entry point for this revision.
   campaign ID, world seed and arm. Every cell's correction matches. Average
   both arms within complete main worlds, then worlds. Gemini has 240 complete
   main worlds; GLM and Luna have 260. Missing arms exclude their whole world.
-- Procurement: all 24 world amounts for each of four subjects match the
-  packaged sealed-event headline reanalysis. No cells are missing.
+- Procurement: the 20 declared worlds of Table 5.3, two plays each, from
+  `procurement_pay_or_test_v3_taxonomy.json` (rules fixed in 51e9bfd3 before the
+  flash plays; output ea9dcfdc). Every world's total for each of four subjects
+  matches the replayed read-outs in `../procurement_v3/` within 0.001. No plays
+  are missing. The declared rules file an early award's whole loss under
+  information not acquired, including a worse quantity (P-T-23): $6.33 a world
+  of Luna's. `procurement_pay_or_test.py` and its taxonomy are the earlier
+  pack's (Table E.14) and are not read.
 - Data center: verify every artifact hash in the firm-population and
   head-to-head publication manifests; read their 360 valid negotiations.
   Joint loss is allocation plus no-deal plus delay loss. Split allocation
@@ -50,9 +56,9 @@ for Housing, Procurement and Data center. Refund's per-case repeated-cell
 outcomes are included in `per_case_cell_totals`.
 
 Provenance: taxonomy snapshots from `docs/paper-case-studies-qc`; Data-center
-confirmatory report at 12516caf, with bundled source bindings; Housing and
-Procurement use the independently verified reanalyses already packaged in
-v7. Refund source snapshots were read from the clean `refund-gap` worktree
+confirmatory report at 12516caf, with bundled source bindings; Housing uses the
+independently verified reanalysis already packaged in v7; Procurement uses the
+v3 read-outs in `../procurement_v3/` (bound in its SOURCES.json). Refund source snapshots were read from the clean `refund-gap` worktree
 at 220ab7463fad8da2455aef3fd0e0b1e69cb12998. Every used input is hashed.
 
 This check also found a denominator error in v7 Table 5.1: 126.8 / 77.5 are
