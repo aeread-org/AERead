@@ -227,3 +227,8 @@ current one saturated"):
 - Table 5.3's twins row filled (owner: "both"): Sol on the 20 odds twins, a declared diagnostic (2fb0140a, results
   87e67702): 59% [19, 100], median 83%, one walk-away; exact shortcut 62%, two-newcomer rule 90%, one-step rule 58%.
   One sentence in Section 5.1 and a sources row.
+- Twins row checked against 87e67702 (2026-10-20): the declared read-out rerun on the sealed roots reproduces
+  analysis.json byte for byte; the twin pack is unchanged since e67df11d; Opus 0% in all 20. The passage's flow was
+  repaired: the Sol twins sentence now names itself a diagnostic declared before its plays, the v3.1 sentence says
+  "A second declared diagnostic points to why Opus never tests", and world 10's play, whose trace ends in defer
+  (margin -$956), "deferred and bought nothing" instead of "walked away with no supply". Numbers unchanged.

@@ -162,10 +162,10 @@ play, and the claim holds; it concerns Sol alone. Sol's play splits by world (Fi
 most of the gap in some worlds and none in others. Opus 5.5 played the same worlds as a control and
 paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
 copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
-newcomer first is best in every world. On those copies Sol tested a newcomer in all 20 plays and closed
-59% of the gap (95% t interval 19–100%; median 83%; one play walked away with no supply), about the 58%
-that a rule planning one newcomer's test closes there; this too is a declared diagnostic, not a test. A diagnostic, which was not a declared test, points to why.
-Under a brief corrected for four wording defects found on audit, none of which says whom to test,
+newcomer first is best in every world. On those copies, in a diagnostic declared before its plays, Sol
+tested a newcomer in all 20 plays and closed 59% of the gap (95% t interval 19–100%; median 83%; one
+play deferred and bought nothing), about the 58% that a rule planning one newcomer's test closes there.
+A second declared diagnostic points to why Opus never tests; neither is a test of a claim. Under a brief corrected for four wording defects found on audit, none of which says whom to test,
 Opus again tested no newcomer in 40 plays of the declared worlds. In a check with no play, Opus was asked
 how likely a newcomer is to be sound once another newcomer of its kind has passed or failed a
 sample, with and without a clean quote of its own first, in the worked example's world and two
