@@ -200,3 +200,6 @@ current one saturated"):
   is byte-identical.
 - Follow-up: four references to the earlier pack that still said Table 5.3 (tab_case_paths.tex, app_runtime.tex,
   Appendix F.2 and G) now say Table E.14; architecture source digests refreshed, SVG byte-identical.
+- Section 5.1 Housing: GLM addendum A finished (df81e28c, 600/600, replay-verified); the "is running" sentence now
+  gives its declared rows in points of the $307.4 best-informed value (53.9% kept; does not beat inspect_then_sign at
+  98.3%, +4.5 [-4.4, +13.3]; trails Luna 8.9 and Gemini 24.8, descriptive) and a sources row.

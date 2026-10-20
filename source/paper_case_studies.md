@@ -102,8 +102,11 @@ as often as Gemini (230 against 114 blind signings in 600 cells). In the holdout
 completed and were verified by replay ($8.64). v15 differs from v14 in four ways at once (the screened pack, the
 stated pricing rule, the corrected measure as primary, and seat-0 receipts), so the levels are not comparable with
 v14's and no change between them is attributed to the models or to any one difference. GLM 5.3 Flash left at
-admission: its provider now serves another quantization than the one v14 pinned. A GLM run on a comparable provider
-(addendum A) is running and is reported beside v15, outside its declared contrasts.
+admission: its provider now serves another quantization than the one v14 pinned. A declared addendum ran it on
+another provider serving v14's quantization (600 of 600 cells, verified by replay), reported beside v15 and outside its
+declared contrasts. On the main pack GLM keeps 53.9% of the best informed tenant's value and does not beat
+`inspect_then_sign` at the declared 98.3% level (+4.5 points [−4.4, +13.3]); descriptively it trails Luna by 8.9
+points [1.6, 16.2] and Gemini by 24.8 [19.0, 30.5].
 
 **Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
 A displayed price is not a quote, a listing's quality is known only after it is checked, and new
@@ -355,6 +358,7 @@ support for a scripted seat that this family uses is still in development.
 | Table or claim | Source | Status |
 |---|---|---|
 | Housing v15 (Table 5.2) | `docs/families/housing/price_confirmatory_v15_results.md`, QC profile §23 and the bundles `evidence/housing/housing_lemons_price_v15_confirmatory`, `..._v15_analysis`, `..._v15_admission_and_pilot`, the pack `housing_lemons_price_pack_v2` and the goldens `housing_lemons_price_goldens_v15` (branch `codex/housing-v15-offline`, 833b57d4 and later) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
+| Housing v15 GLM addendum A (Section 5.1) | `docs/families/housing/price_confirmatory_v15_results.md` ("Addendum A results") and the bundle `evidence/housing/housing_lemons_price_v15_glm_addendum` (branch `codex/housing-v15-offline`; rows declared at c0a43f16, results df81e28c, verify-replay 600/600) | declared addendum, outside v15's contrasts |
 | Housing v15 profile probe (Section 5.1, Appendix F.1) | `evidence/housing/housing_lemons_price_v15_probe` (branch `codex/housing-v15-probe`, 6776937e); incident rows HL-J-14, HL-J-16, RN-T-07 | after the freeze |
 | Data center v2 (Table 5.4) | `docs/families/datacenter/agreement_confirmatory_v2_results.md` (c7bbadc9) and the bundles `datacenter_agreement_v2_{integrator_firm,client_firm,head_to_head}` on branch `codex/datacenter-agreement` | declared; gate review pending |
 | Best informed policy turn by turn (Section 5.1, Appendix C.3) | `agreement_best_informed.py` and the evidence `agreement_best_informed_{v1,v2}` (branch `codex/datacenter-best-informed`, 583d3de7); incident rows DC-D-40, DC-D-41, DC-D-42, DC-J-10 | derived after the runs |
