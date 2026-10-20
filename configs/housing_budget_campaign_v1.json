@@ -1,0 +1,190 @@
+{
+  "schema_version": "aeread.controlled_campaign/1.0",
+  "adapter_id": "housing_model_sensitivity",
+  "campaign_id": "housing_budget_campaign_v1",
+  "base_contract": {
+    "path": "configs/housing_model_sensitivity_v1.json",
+    "sha256": "1573e564918e757ff5fedd34dc91e1beb3e538c18ee74ff8e9d2b5bb7d2981e1"
+  },
+  "controls": {
+    "cost_limit_usd": 0.05,
+    "per_cell_reserve_usd": 0.02,
+    "concurrency": 1,
+    "max_consecutive_operational_failures": 3
+  },
+  "source_pins": {
+    "src/aeread/campaign_cli.py": "bc404ce264fc0bafe07b451baf8e38ade567a5c77a54da73afad627a3a6e1f06",
+    "src/aeread/cli.py": "d4c7482cdee505880acc992662aa3725f67f0ee28d5a8ee13306e326c5eafdf1",
+    "src/aeread/shared_runner/__init__.py": "d1163d3819556e99a59e362212670630f77790f7431a13aedf01d20a20fcd4e9",
+    "src/aeread/shared_runner/analysis/__init__.py": "07a3fba1da590286f9e6f1e9c2d6811590599e6f3bfe7915a5d28bcf8d393733",
+    "src/aeread/shared_runner/analysis/paired.py": "96b34af84c610c59278221fc32c76f28851a5de9e4114c306e8e77e1b1f4f949",
+    "src/aeread/shared_runner/analysis/parity.py": "2b9c77aba7d6af295119815f6f10aeb333e0819d5cad1957e510c15c3464b58a",
+    "src/aeread/shared_runner/analysis/research.py": "c978d365cf89984480c8bba4372496130e0527bf7ea92f59a8ac5a089306e9e6",
+    "src/aeread/shared_runner/measurement.py": "e8e68ee5d896ea690b95c62b2b61d0dfe1435dc4bcf22e5f33adf0da2b402c00",
+    "src/aeread/shared_runner/model_call/__init__.py": "c75870db19390b77ed3d2146a1ba56323d2bf917f84e27e2e955a5e25bd75e8b",
+    "src/aeread/shared_runner/model_call/harness.py": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+    "src/aeread/shared_runner/model_call/open_harnesses.py": "2f3327ca098d6fac61c5fdb60d1391e90f29438ba136725e67b095089e5a21d0",
+    "src/aeread/shared_runner/quality.py": "91bcf09bdb0ec11f99b294301156af9bf9fcd69c9cf23e48bcb8fe56ee862337",
+    "src/aeread/shared_runner/registry.py": "20dc182c769fb07c4a933fb5b0604f6d9337bb81e126dc472fb574db395818bd",
+    "src/aeread/shared_runner/run/__init__.py": "45f2a9ebc0d71f99049927b825583f05f1201560a0f65a311ad1ef7d51371d96",
+    "src/aeread/shared_runner/run/adapter_campaign.py": "665f1154e014cf4b3df66ebedf3ff881308c824c59e1e3b8e35c20e27f3d7bd4",
+    "src/aeread/shared_runner/run/campaign.py": "18b7e6cf055edfaf6c7065a1d3e1565bd75ec7b99868ac7949386df17f1756e0",
+    "src/aeread/shared_runner/run/contract.py": "2a1738a999fd29705c65e02d9d5fc9440486139cde89b6f85ec968ab75014641",
+    "src/aeread/shared_runner/run/controlled_campaign.py": "b50cba3707456111b4a02a44857ab19f30b812a5fcd95f72fb66ed28df724f82",
+    "src/aeread/shared_runner/run/halt.py": "0c4711184fe67cfab009f1b16a80db4f968b73c8185f41d742bc5deba68de7dd",
+    "src/aeread/shared_runner/run/layout.py": "10e0d7a151a10017b77abbc1a0e3c9ba99acc64e21c653ddea2327d9d293cc6e",
+    "src/aeread/shared_runner/run/provenance.py": "1dc5ae67416e048b77882defdbf4acb56421f8b508deac6cfa69b7dcfceb4955",
+    "src/aeread/shared_runner/run/publication.py": "d0a1114510abc5d8c4dfedac65b752c3f6b5672d364593a9d2e287a7b23a3236",
+    "src/aeread/shared_runner/run/publish_trajectories.py": "4bf7f658844dea4e0b675b5237e552f5ed757dc59c656897d59398d36da3d713",
+    "src/aeread/shared_runner/run/replay_verification.py": "a78bbef92205c9e2da783e862e0f9cc26fd62f802cfda44eee682f1d50b6d816",
+    "src/aeread/shared_runner/run/resolver.py": "7599c186e00ec0eb0f8e083ba4bdd35b046a39640ae1368b3dae3423ef38d5ec",
+    "src/aeread/shared_runner/run/seal_manifest.py": "77543972f776376552131fafbfe7d8acb5f37e19a5ddfa44f684ce678a6f7d22",
+    "src/aeread/shared_runner/schemas.py": "555c2377722a2c44c2ed40feeaf16633404df8022fdc0590f0b70c67cda360e5",
+    "src/aeread/shared_runner/task/__init__.py": "51336a989e9cf97ea8dbf03722ac0e378c716ea18df102511c18e90b8ea52d6a",
+    "src/aeread/shared_runner/task/evaluation.py": "842e59b08c4b1e5052ea17de02f5ea7ad44cd39bee318166b32e660e238cb51b",
+    "src/aeread/shared_runner/task/execution.py": "02142651d0a9b56c8e7770e587015a75b63a9b267ab729590dd9d620e93ce6ad",
+    "src/aeread/shared_runner/task/receipts.py": "62e8ec714c2230d714dac0dda6165156ce3f4b7f5d037225435c781345e82cd2",
+    "src/aeread/shared_runner/task/scheduler.py": "586074adfefbc3cd8ea6f934afce9a67541f2d95df588836a62ac6e937d7f681",
+    "src/aeread/shared_runner/task/spend.py": "afea4e085d847ae910fc3cc5ff0c5c2c23fb84937a038048664aef1dd7b8c2ac",
+    "src/aeread/shared_runner/task/tools.py": "bd900e84da5b0182074e6e420163dcfe1b1bd67fc1dffbe7688958071a860631",
+    "src/aeread_families/datacenter_development_terms/__init__.py": "960c55821e36e95a5b81a738a1e776e22720044a32b8c354e8ba741f6a48dffd",
+    "src/aeread_families/datacenter_development_terms/__main__.py": "7e61c6e49416367abb05578aaab5d1626645126748e7399484bf7bae749fe5c7",
+    "src/aeread_families/datacenter_development_terms/budget_campaign.py": "2151aca8c08c58be78025d29c79dc090af0ccc1f01e470f6e51b28de9970fe77",
+    "src/aeread_families/datacenter_development_terms/campaign.py": "d83144afa60b1c341cbe2a10ad2fe1fad4695a1114c599a3dc651b62416dc1ad",
+    "src/aeread_families/datacenter_development_terms/cases.py": "af29f61ebe1e8b8653cd9fa6ec41e61343a04ca51b96c03f759f79e2e007bf45",
+    "src/aeread_families/datacenter_development_terms/environment.py": "9e5c743262ff50e2dbf669c135bf7964d788e5c8b2cccdd9827823eb7b6abc6d",
+    "src/aeread_families/datacenter_development_terms/grounded_campaign.py": "f64208ce6be00f55a712940bec7d1c7e26d7d4fc26d8b6d208fda61e894be6a3",
+    "src/aeread_families/datacenter_development_terms/grounded_cases.py": "8a1cbff39e925498b17ba6f44669d2b7a1e0ef83da53f0640c9e08b55ba0a328",
+    "src/aeread_families/datacenter_development_terms/grounded_glm_campaign.py": "bf03346b3d09e5def5c3eb160fe0ec5e50ecfbdbffd6f51b699308959dc726e0",
+    "src/aeread_families/datacenter_development_terms/grounded_glm_publication.py": "4d071447aa84cffc25c22569af0e5a103dc88ebc9db1e2f79e0d935dff9b9349",
+    "src/aeread_families/datacenter_development_terms/grounded_publication.py": "a2ade38273c3ffbab08814ecd3583750011595c0c03fd2bdce11014c21e76339",
+    "src/aeread_families/datacenter_development_terms/public_affirm_only_campaign.py": "013d506c5f6f27bfbc9cc0fbbfd46451212416b1d87cb867063fe1bf52ebcc42",
+    "src/aeread_families/datacenter_development_terms/public_affirm_only_cases.py": "56814f0d235b79356f93baf7495a934c93300e61c10bbc4d5681effcfecb1159",
+    "src/aeread_families/datacenter_development_terms/public_affirm_only_publication.py": "4a7d279d613f2892f61475e17246c1fc305f49943b8f7572cecd038dee81bdde",
+    "src/aeread_families/datacenter_development_terms/public_campaign.py": "4007073b4b39bb322d2d8b15cbd00b8d1fbe19aa621068d0fa70bb242d767e3f",
+    "src/aeread_families/datacenter_development_terms/public_candidate_screen_campaign.py": "dfe003ff2492b2ee79acd9030e41d2372f776e8ef182f5fa028a5e9ea9e6b78f",
+    "src/aeread_families/datacenter_development_terms/public_candidate_screen_cases.py": "26c19b5dfcc22e0b1e745daa4fecdd2b9b273bed73e9307906d8f2879ba28414",
+    "src/aeread_families/datacenter_development_terms/public_candidate_screen_publication.py": "f24101c2666e9d6969effde74cf35ad46d20cdb20cd782ce949c388b6d7499d1",
+    "src/aeread_families/datacenter_development_terms/public_cases.py": "f0e74666f659d630ae18629c9e935d42fd958ba133be75942e4ea5f7673da94a",
+    "src/aeread_families/datacenter_development_terms/public_composition_campaign.py": "a78d1224a4358fd42c7826d7ac22ca678eb78f6d144fa01829d6a43cbdd4c864",
+    "src/aeread_families/datacenter_development_terms/public_composition_publication.py": "9ea16088c389b66812ad91739da48388758bb4cc6cf8373730cd3b6b27842539",
+    "src/aeread_families/datacenter_development_terms/public_glm_transfer_campaign.py": "eea038a1bcad6928bdcad9027364020492e9cdfc5a81ec13f7b45e8366ca1180",
+    "src/aeread_families/datacenter_development_terms/public_glm_transfer_publication.py": "379d9192edce1572ed9b1398703839ada22260adbbe0c3573f186c2edcbc90e3",
+    "src/aeread_families/datacenter_development_terms/public_gptoss_campaign.py": "723681d9dfc4176bbd5484ab51d7950875d1a53f0adeb1dde5d6ff67225d138a",
+    "src/aeread_families/datacenter_development_terms/public_gptoss_publication.py": "bf7dd25663a8e5b79d727993b99a887eac69c5f8ac4fef92abacc08583ae5b8f",
+    "src/aeread_families/datacenter_development_terms/public_integrated_campaign.py": "61dc661721c189fa1ca6c86d7c757911219116de129b4e6f05b42ad7a8d6af29",
+    "src/aeread_families/datacenter_development_terms/public_integrated_cases.py": "b114d940b4b479147af5c68cd4bb31a763aad4e78ebfab3faf4694490984b119",
+    "src/aeread_families/datacenter_development_terms/public_integrated_expansion_cases.py": "979be9d9cf2943dd0bb8dd59b208ccd3625f0b91dea316b99bf72edfbcbba6ce",
+    "src/aeread_families/datacenter_development_terms/public_integrated_expansion_v2_cases.py": "f939dbbd72f5280b556f8330a4b39c564fba5b9a18d7dea9368c770bab1dfce2",
+    "src/aeread_families/datacenter_development_terms/public_integrated_expansion_v3_cases.py": "089c36b57e2272f940c4909077e67027ebdc9f0bf01505a55d07082117abd58f",
+    "src/aeread_families/datacenter_development_terms/public_integrated_expansion_v4_cases.py": "e39bf95ce249bb200a1f61a521cd8d5a33c43065aafc877bec02e27ae9493c20",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v10_campaign.py": "01fd1351eec849715a68338d50be5454b0af114f8083c350e4d03f5d25e0355e",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v10_publication.py": "52e9a393b1347c509206a970b5e96fb5fc042dfb3f8b143cac64a4e0906f8d6c",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v11_campaign.py": "b3a0135849aff759aed42457974f8b995ec342a220a37c24db3b78d147bcb3ea",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v11_publication.py": "4ea1132d9e02028db5982b13efe517652178cec5d90a8f3b5f77c444edfe9b07",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v12_campaign.py": "5a9535715b5c9b8175a909bd76bc3bef11e7505e8c337496659bdf75034c1b85",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v12_publication.py": "27f5fe30911a11dacbebb5f850e433666e245e4dc367703571f4a615bbc43b28",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v2_campaign.py": "e2ca741e81930538b37047d7aef54f62006c73fc3bac9b94ed86fa5002f862bb",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v2_cases.py": "9d288f0e2814c0707ea49930198099c911ffc2a0a460a181ec68d97929b49535",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v3_campaign.py": "69543bdb50cef4cf97f0f087bd68778b8c60dba2a4fb3dc24f6a23566d136c0a",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v3_cases.py": "a6df98368559b036874f66702c0f5f14421408000866743c1a6dbbba8e3acc4f",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v4_campaign.py": "a4b8d1d774c4ec1d442aea9bbe0b39900d401fadacea33c180e66d26629703b4",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v4_cases.py": "6e188a0a7dddb8c9605aead76ba7fabd9a0c7f094219701c526e9cf43646e464",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v4_publication.py": "dbc2196d78d65ac88a84dc17fcaac4a7ee2a169bd4ff999589d146f9b86cb6ce",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v5_campaign.py": "4da27ab405ba1f536d126cc991be2bb73fdbbd8cb8fc6f0cdf48db42ead0923d",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v5_publication.py": "1fb5dfe97dc01980e0ca3b9c2508588f3eb9cbd2ec4d0799467ffb00c59211c7",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v6_campaign.py": "f5e9953c98c520251a85471ebd6b2c391c71272cdaa2914a2b634f57f7116074",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v6_publication.py": "756c50f7c5ae6497977d6eca24940c2cc718b8709f9dc5045987624d3d7100d0",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v7_campaign.py": "5b2747441ed4322848582aac53f68fc813d3afec2a9f29f41e9c7b334597089e",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v7_publication.py": "f078c9f4ca04ba754c49d0573b2a3fb31df086360e85b99f30c4932973df1c8b",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v8_campaign.py": "c0ef0aa366f5664cac270dd352ddeaebbc6ba0dab3af8ac5ce9ff307eb6351bc",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v8_publication.py": "4a80e1b27bd45153827d3fe0c54a88228ea8c37b3690d5fa3dfbc42406c6eb26",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v9_campaign.py": "7140e8de0be6ebeb871f159a0bc8890f01f60422d946245e3fb4758bafbb86b1",
+    "src/aeread_families/datacenter_development_terms/public_integrated_v9_publication.py": "e5df8c82155385eb831952895fcf368d385810c2692c324c42d68f81f90d4bf1",
+    "src/aeread_families/datacenter_development_terms/public_mechanism_campaign.py": "fa41bd2bee5728dc731f1f7972248f834d551780cdeb1dc4802a2f6551990a85",
+    "src/aeread_families/datacenter_development_terms/public_mechanism_cases.py": "6ae47f12b9c66cc77b273cef7e372ce36956099b0d966533acc76e72ab2c3a17",
+    "src/aeread_families/datacenter_development_terms/public_mechanism_publication.py": "aaa5973d362d70a197fe9e45ef5c87f41eea512012d4b9ca45a5e60aef3f8405",
+    "src/aeread_families/datacenter_development_terms/public_publication.py": "b4beeb2a23a55e69e57ec6b10fb57acc375c9c25ce5e292de9639355aebdbdaf",
+    "src/aeread_families/datacenter_development_terms/publication.py": "16e66d7cbd329584fd66b7c0fc11f0e7e475339bd401813a838ebeb407bb0911",
+    "src/aeread_families/datacenter_development_terms/runner.py": "e4b3d8a74c5a5b940beeaffbcab8f59443623e58103cd66ff5d7eb3172a08c31",
+    "src/aeread_families/housing/__init__.py": "9f088572f470335fc551738d60511887b4c0af6b57ab5366263af2c80d9bff60",
+    "src/aeread_families/housing/backend_campaign.py": "a15a3420f8989dfd8d0de61817c3ac2e50e8b74db0e84ff11e29bbabbad15b5c",
+    "src/aeread_families/housing/backend_publication.py": "1bee380ea36d82cd52e9664c0f793814b90003fdb74222b44a1a0d5ac070ab84",
+    "src/aeread_families/housing/budget_campaign.py": "ace9faab3077af14fd01005dd8e12074765b3c1401b578dc7dcc29864ac90c18",
+    "src/aeread_families/housing/case_sweep.py": "66dac271f6ee97b0de1d93aca283ca132a0e4289557936f521a56c7fb18754ab",
+    "src/aeread_families/housing/environment.py": "4182057475816840253a8421fc461c09fa6bbb8ea0659e742f6d98ebc2a74a33",
+    "src/aeread_families/housing/harness_bakeoff.py": "4efbb29c684ded6d3265d3e045fffa2153cba7bdb07fe7d9bb5c2d6971159d5e",
+    "src/aeread_families/housing/harness_leaderboard.py": "dd26aeb276cf641e49520a650f996c4b3b7c18d5cbe7a9659442ee961b2445cd",
+    "src/aeread_families/housing/model_sensitivity.py": "dc22efea2158422e546ee76b2a24b61efec049dde72e833efe3bd43e6bdf646a",
+    "src/aeread_families/housing/population_campaign.py": "f93ac3087611b6a382d5b0d00c0c644614130bc05e55d01ffd768574b62160fa",
+    "src/aeread_families/housing/provider_pacing.py": "6e51c13330a2aa73e4b9f8e7610c0cc232873b1aecaf1b85960a3db2ab8790cd",
+    "src/aeread_families/housing/qc.py": "73a2cdbf743d7fc5a5930d50f8db6630bee47c12c80a41e5f49c0e6f1c307db3",
+    "src/aeread_families/housing/qc_bundle.py": "e3100f5997ea7ab7eb0a5ee1aa23669dcad0a348d5739e495df00a21a0fcfde5",
+    "src/aeread_families/housing/runner.py": "4b1eab64f7f0e7db31cf63b2259efa86f8a3458e2e88b0ee7de7b524c27ad5c8"
+  },
+  "resources": {
+    "housing_glm_53_flash_landlord_v0": {
+      "max_cost_usd": 0.01,
+      "base_max_output_tokens": 4096,
+      "effective_max_output_tokens_ceiling": 32768,
+      "max_action_attempts": 4,
+      "retryable_conditions": [
+        "length",
+        "rate_limit",
+        "provider_5xx"
+      ],
+      "cap_scope": "profile_shared_by_assigned_seats_within_cell_executor",
+      "profile_sha256s": [
+        "3c6e1594f89eecf21208b7ebbf25cee16f8fd575e53d9b45d90d53ec11f201ef"
+      ]
+    },
+    "housing_glm_53_flash_tenant_v0": {
+      "max_cost_usd": 0.01,
+      "base_max_output_tokens": 4096,
+      "effective_max_output_tokens_ceiling": 32768,
+      "max_action_attempts": 4,
+      "retryable_conditions": [
+        "length",
+        "rate_limit",
+        "provider_5xx"
+      ],
+      "cap_scope": "profile_shared_by_assigned_seats_within_cell_executor",
+      "profile_sha256s": [
+        "90fb4fc3eb0e993706355ad3bef3b30eceb1a06e818a3f53cf2aeeb103637c0a"
+      ]
+    },
+    "housing_deepseek_v4_flash_landlord_v0": {
+      "max_cost_usd": 0.01,
+      "base_max_output_tokens": 4096,
+      "effective_max_output_tokens_ceiling": 32768,
+      "max_action_attempts": 4,
+      "retryable_conditions": [
+        "length",
+        "rate_limit",
+        "provider_5xx"
+      ],
+      "cap_scope": "profile_shared_by_assigned_seats_within_cell_executor",
+      "profile_sha256s": [
+        "a8695eadc965158364e8a02b631ea02a8acffda5b78ba86e96c6f12e02612346"
+      ]
+    },
+    "housing_deepseek_v4_flash_tenant_v0": {
+      "max_cost_usd": 0.01,
+      "base_max_output_tokens": 4096,
+      "effective_max_output_tokens_ceiling": 32768,
+      "max_action_attempts": 4,
+      "retryable_conditions": [
+        "length",
+        "rate_limit",
+        "provider_5xx"
+      ],
+      "cap_scope": "profile_shared_by_assigned_seats_within_cell_executor",
+      "profile_sha256s": [
+        "693f0472889b39bf3ca6fbc554779b2254898b679864f8b5e47b00bf6fd1a5a2"
+      ]
+    }
+  },
+  "account_preflight": {
+    "required": false
+  }
+}

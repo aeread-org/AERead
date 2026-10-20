@@ -45,6 +45,7 @@ from aeread.shared_runner.task.execution import (
     execute_plan_cell,
 )
 from aeread.shared_runner.run.layout import RunLayout
+from aeread.shared_runner.task.spend import attempt_spend
 from aeread.shared_runner.analysis.paired import analyze_paired_results
 from aeread.shared_runner.quality import QCCoverage, QCEvidenceRef
 from aeread.shared_runner.task.receipts import verify_evaluation_receipt
@@ -864,7 +865,7 @@ def _live_stage_root(output_root: Path, stage: str, attempt_index: int) -> Path:
 
 def _failure_usage(
     *, evidence_root: Path, run_plan_id: str, cell_id: str
-) -> dict[str, int | float]:
+) -> dict[str, int | float | str]:
     cell_root = RunLayout(evidence_root, run_plan_id).resolve_attempts_dir(cell_id)
     attempts = (
         sorted(path for path in cell_root.iterdir() if path.is_dir())
@@ -877,30 +878,15 @@ def _failure_usage(
             "input_tokens": 0,
             "output_tokens": 0,
             "cost_usd": 0.0,
+            "cost_accounting": "lower_bound",
         }
-    evidence = EvidenceStore.audit_existing(attempts[0])
-    provider_calls = 0
-    input_tokens = 0
-    output_tokens = 0
-    cost_usd = 0.0
-    for event in evidence.read_events():
-        if event.event_type != "provider_call_succeeded":
-            continue
-        payload = evidence.read_event_payload(event)
-        result = payload.get("provider_result") if isinstance(payload, Mapping) else None
-        if not isinstance(result, Mapping):
-            continue
-        provider_calls += 1
-        input_tokens += int(result.get("input_tokens", 0))
-        output_tokens += int(result.get("output_tokens", 0))
-        cost = result.get("cost_usd")
-        if isinstance(cost, (int, float)) and not isinstance(cost, bool):
-            cost_usd += float(cost)
+    spend = attempt_spend(attempts[0])
     return {
-        "provider_calls": provider_calls,
-        "input_tokens": input_tokens,
-        "output_tokens": output_tokens,
-        "cost_usd": cost_usd,
+        "provider_calls": spend.provider_call_count,
+        "input_tokens": spend.input_tokens,
+        "output_tokens": spend.output_tokens,
+        "cost_usd": spend.cost_usd,
+        "cost_accounting": spend.cost_accounting,
     }
 
 
