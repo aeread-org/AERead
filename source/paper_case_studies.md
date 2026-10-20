@@ -144,7 +144,7 @@ best informed policy at that point.
 |---|---:|---:|---:|---:|
 | Declared test, 20 fresh worlds, two plays each | 35% [18, 52], p = 0.0003 | 0% in all 40 plays | 33% | 82% |
 | Development pilot, 6 worlds, two plays each | 50% [27, 71] | 0% in all 12 plays | 8% | 84% |
-| The same 20 worlds at the earlier pack's odds, one play each | not played | 0% in all 20 plays | | |
+| The same 20 worlds at the earlier pack's odds, one play each (a rule that plans one newcomer's test closes 58% here) | 59% [19, 100]; median 83% | 0% in all 20 plays | 62% | 90% |
 | Loss per world in the declared test (paying the premium: $51.25) | $32.51 | $51.25 | $33.46 | $8.38 |
 
 ![The share of the gap between paying the premium and the best policy each play closes, world by world, for Sol 6.1 and Opus 5.5 and an exact rule that may test two newcomers.](figures/procurement_v3_gap_closed.svg)
@@ -162,7 +162,9 @@ play, and the claim holds; it concerns Sol alone. Sol's play splits by world (Fi
 most of the gap in some worlds and none in others. Opus 5.5 played the same worlds as a control and
 paid the premium without testing a newcomer in all 84 of its plays on this pack. That includes 20
 copies of those worlds whose newcomers had the earlier pack's more favourable odds, where testing a
-newcomer first is best in every world. A diagnostic, which was not a declared test, points to why.
+newcomer first is best in every world. On those copies Sol tested a newcomer in all 20 plays and closed
+59% of the gap (95% t interval 19–100%; median 83%; one play walked away with no supply), about the 58%
+that a rule planning one newcomer's test closes there; this too is a declared diagnostic, not a test. A diagnostic, which was not a declared test, points to why.
 Under a brief corrected for four wording defects found on audit, none of which says whom to test,
 Opus again tested no newcomer in 40 plays of the declared worlds. In a check with no play, Opus was asked
 how likely a newcomer is to be sound once another newcomer of its kind has passed or failed a
@@ -395,6 +397,7 @@ support for a scripted seat that this family uses is still in development.
 | Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 | TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
 | Procurement harder version: pilot and confirmatory (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
+| Procurement harder version: Sol on the odds twins (§5.1, Table 5.3) | plan `docs/families/procurement-allocation/pay_or_test_v3_twins_sol_plan.md` declared in 2fb0140a before any play; results 87e67702 (`pay_or_test_v3_twins_sol_results.md`, `evidence/procurement_allocation/pay_or_test_v3_twins_sol/`, 20 of 20 plays replayed); exact rule shares from the twin pack's rule values; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row awaiting kernel review | diagnostic, declared |
 | Procurement corrected brief and comprehension check (§5.1) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
 | Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

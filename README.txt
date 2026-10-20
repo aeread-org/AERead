@@ -224,3 +224,6 @@ current one saturated"):
   clean quote first; myopic_pays__3 and two other worlds, each asked twice) Opus and Sol each answered 18 of 18
   within 0.05; Sol shows no change (+7.8 [-5.6, +21.2]). Sources row added (plan e7b94f91, amendments 5abf28f3 and
   16421dce, results acd0c706, branch codex/procurement-v3-brief-v31, same registry-row caveat).
+- Table 5.3's twins row filled (owner: "both"): Sol on the 20 odds twins, a declared diagnostic (2fb0140a, results
+  87e67702): 59% [19, 100], median 83%, one walk-away; exact shortcut 62%, two-newcomer rule 90%, one-step rule 58%.
+  One sentence in Section 5.1 and a sources row.
