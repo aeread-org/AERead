@@ -297,7 +297,7 @@ def main():
     assert hashlib.sha256((ROOT/figure_checks['source']).read_bytes()).hexdigest() == figure_checks['source_sha256']
     assert hashlib.sha256((ROOT/'figures/shortfall_by_case.svg').read_bytes()).hexdigest() == figure_checks['svg_sha256']
     assert (SOURCE/'figures/shortfall_by_case.svg').read_bytes() == (ROOT/'figures/shortfall_by_case.svg').read_bytes()
-    assert len(figure_checks['bars']) == 11
+    assert len(figure_checks['bars']) == 13
     # One numbered appendix table, four panels in the same order as the figure.
     caption = soup.find(id='table-E.10')
     panel_names = ['(a) Housing', '(b) Procurement', '(c) Data center', '(d) Refund']
@@ -334,7 +334,7 @@ def main():
             assert abs(component['value']-values[component['key']]['mean']) < 1e-9
     PROCUREMENT_KEYS = json.loads((ROOT/'figures/FIGURE_CHECKS.json').read_text())['procurement_table_keys']
     displayed_panels = [
-        ('housing', ['Gemini 3.8 Flash','GPT-6 Luna','GLM 5.3 Flash (addendum A)'],
+        ('housing', ['Gemini 3.8 Flash','GPT-6 Luna','Sol 6.1 (Codex, addendum B)','Opus 5.5 (Claude Code, addendum B)','GLM 5.3 Flash (addendum A)'],
          ['information_not_acquired','contrary_to_information_held','worse_terms',
           'commitment_error','procedure_and_format','interaction_cost','total']),
         ('procurement', ['Sol 6.1 (Codex)','Opus 5.5 (Claude Code)','Gemini 3.8 Flash','GPT-6 Luna'],

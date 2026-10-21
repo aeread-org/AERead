@@ -240,9 +240,9 @@ the current Data-center breakdown and uncertainty. Table E.10 retains the exact 
 
 **Figure 5.2. Shortfall to each case's reference.** Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
-v15's two declared models and GLM's addendum on the 260 main worlds of Table 5.2, below the reachable scripted
+v15's two declared models and the three addendum subjects (A: GLM; B: Sol and Opus through their command-line tools) on the 260 main worlds of Table 5.2, below the reachable scripted
 rule (`inspect_lowball`, as in Table 5.2's fourth row); the few negative amounts, at most
-$0.3 a world, are in Table E.10 and are not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
+$0.4 a world, are in Table E.10 and are not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
 against the full-information bound with the firm counterparts at $25k per paid redline, across all 80 worlds of
 Table 5.4 with both seats averaged. In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
 worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
@@ -281,6 +281,11 @@ below the lemon's value. Another 15% ($14.9, 64 cells) is signing without settli
 whose replies reveal nothing, where an inspection was worth its $25 fee every time; 21 of those listings were
 lemons. Ending with no lease where the rule leased costs $8.6. In v14, whose brief did not state how landlords
 price, the reply-proved lemon was 60% of Luna's shortfall.
+
+**Housing, Sol and Opus (addendum B): what remains is the price.** Neither lost anything by acting against what it
+knew, and neither left a worthwhile inspection undone beyond Opus's $1.4 a world. Worse terms are all of Sol's $15.3
+shortfall ($15.7, offset by $0.4 of inspection fees it saved) and 84% of Opus's $46.1 ($38.8); ending with no lease
+where the rule leased costs Opus another $6.3.
 
 **Refund, Gemini 2.5 Flash Lite: the case ends before it decides.** In 81% of its cells it asked
 again for a fact it had already been given; the environment rejects a repeated request and the
@@ -388,7 +393,7 @@ support for the scripted seat this family uses is now on the main branch.
 | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
 | Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
+| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch (Housing's addendum B subjects added in 2443c035, reading the run roots of `codex/housing-v15-cli`), built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
 | Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 | Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 | Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |

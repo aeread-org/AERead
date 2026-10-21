@@ -17445,6 +17445,5480 @@
         }
       },
       "worlds": 260
+    },
+    "Opus 5.5 (Claude Code, addendum B)": {
+      "by_stratum": {
+        "favourite_is_lemon": 59.892250000000004,
+        "favourite_is_sound": 0.0
+      },
+      "campaign_id": "housing_lemons_price_v15_cli_claude_opus55",
+      "cells": 520,
+      "declared_v15_pair": false,
+      "measure": "housing_price_reply_conditioned_v2 (v15 primary)",
+      "missing_cells": 0,
+      "reference": "inspect_lowball",
+      "summary": {
+        "commitment_error": {
+          "ci95": [
+            1.4612201847712507,
+            11.057433661382596
+          ],
+          "max": 348.16,
+          "mean": 6.259326923076924,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 252
+        },
+        "contrary_to_information_held": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "information_not_acquired": {
+          "ci95": [
+            -0.6479131661822641,
+            3.5058362431053407
+          ],
+          "max": 154.165,
+          "mean": 1.4289615384615384,
+          "median": 0.0,
+          "min": -46.265,
+          "n": 260,
+          "negative_count": 2,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 255
+        },
+        "interaction_cost": {
+          "ci95": [
+            -0.8845047761693529,
+            0.01912016078473744
+          ],
+          "max": 12.5,
+          "mean": -0.4326923076923077,
+          "median": 0.0,
+          "min": -12.5,
+          "n": 260,
+          "negative_count": 16,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 237
+        },
+        "operational": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "procedure_and_format": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "total": {
+          "ci95": [
+            33.94598720250538,
+            58.1959358744177
+          ],
+          "max": 348.16,
+          "mean": 46.07096153846154,
+          "median": 27.8275,
+          "min": -242.26500000000001,
+          "n": 260,
+          "negative_count": 47,
+          "q1": 0.0,
+          "q3": 96.01374999999999,
+          "zero_count": 61
+        },
+        "worse_terms": {
+          "ci95": [
+            27.517964209963683,
+            50.1127665592671
+          ],
+          "max": 326.095,
+          "mean": 38.81536538461539,
+          "median": 19.2575,
+          "min": -242.26500000000001,
+          "n": 260,
+          "negative_count": 46,
+          "q1": 0.0,
+          "q3": 88.17500000000001,
+          "zero_count": 69
+        }
+      },
+      "units": {
+        "500000": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 86.74,
+          "worse_terms": 86.74
+        },
+        "500001": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500005": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -123.55,
+          "worse_terms": -123.55
+        },
+        "500006": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -77.66,
+          "worse_terms": -77.66
+        },
+        "500007": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500009": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500010": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500011": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 54.835,
+          "worse_terms": 54.835
+        },
+        "500012": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500014": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500016": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500019": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 1.59,
+          "worse_terms": 1.59
+        },
+        "500021": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 140.86,
+          "worse_terms": 140.86
+        },
+        "500022": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 160.255,
+          "worse_terms": 160.255
+        },
+        "500024": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -85.13,
+          "worse_terms": -85.13
+        },
+        "500025": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 91.735,
+          "worse_terms": 104.235
+        },
+        "500026": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500027": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 95.76,
+          "worse_terms": 95.76
+        },
+        "500029": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 235.64000000000001,
+          "worse_terms": 235.64000000000001
+        },
+        "500030": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 221.79,
+          "worse_terms": 234.29
+        },
+        "500031": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 177.94,
+          "worse_terms": 190.44
+        },
+        "500032": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500034": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 48.425,
+          "worse_terms": 48.425
+        },
+        "500035": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 48.565,
+          "worse_terms": 48.565
+        },
+        "500036": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500037": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500039": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -62.345,
+          "worse_terms": -62.345
+        },
+        "500040": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500041": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 124.26,
+          "worse_terms": 111.76
+        },
+        "500042": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 110.975,
+          "worse_terms": 110.975
+        },
+        "500043": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -49.535,
+          "worse_terms": -49.535
+        },
+        "500044": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500047": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 13.37,
+          "worse_terms": 13.37
+        },
+        "500048": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 116.72,
+          "worse_terms": 116.72
+        },
+        "500051": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 22.805,
+          "worse_terms": 35.305
+        },
+        "500052": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 171.415,
+          "worse_terms": 171.415
+        },
+        "500053": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500054": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 143.31,
+          "worse_terms": 143.31
+        },
+        "500056": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500057": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500058": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 26.395,
+          "worse_terms": 26.395
+        },
+        "500060": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500061": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 120.92,
+          "worse_terms": 120.92
+        },
+        "500062": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 57.23,
+          "worse_terms": 57.23
+        },
+        "500064": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500066": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 175.09,
+          "worse_terms": 175.09
+        },
+        "500067": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 229.605,
+          "worse_terms": 229.605
+        },
+        "500068": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 76.825,
+          "worse_terms": 76.825
+        },
+        "500070": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -95.0,
+          "worse_terms": -95.0
+        },
+        "500071": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 85.905,
+          "worse_terms": 85.905
+        },
+        "500072": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 192.67,
+          "worse_terms": 192.67
+        },
+        "500073": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500074": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500075": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -60.39999999999999,
+          "worse_terms": -60.39999999999999
+        },
+        "500077": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 75.555,
+          "worse_terms": 88.055
+        },
+        "500078": {
+          "commitment_error": 142.97,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 142.97,
+          "worse_terms": 0.0
+        },
+        "500080": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500081": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500082": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 255.63,
+          "worse_terms": 268.13
+        },
+        "500083": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500085": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 15.68,
+          "worse_terms": 15.68
+        },
+        "500086": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -90.80000000000001,
+          "worse_terms": -90.80000000000001
+        },
+        "500088": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500089": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500090": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 110.75,
+          "worse_terms": 110.75
+        },
+        "500091": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 52.23,
+          "worse_terms": 52.23
+        },
+        "500093": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 41.705,
+          "worse_terms": 29.205
+        },
+        "500094": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 154.165,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 175.055,
+          "worse_terms": 20.89
+        },
+        "500095": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -206.02499999999998,
+          "worse_terms": -206.02499999999998
+        },
+        "500096": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 139.205,
+          "worse_terms": 151.705
+        },
+        "500097": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500099": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500105": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -90.99499999999999,
+          "worse_terms": -90.99499999999999
+        },
+        "500107": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 302.46000000000004,
+          "worse_terms": 302.46000000000004
+        },
+        "500108": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 97.78,
+          "worse_terms": 97.78
+        },
+        "500109": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -135.95999999999998,
+          "worse_terms": -135.95999999999998
+        },
+        "500110": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500111": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500112": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.78,
+          "worse_terms": 66.28
+        },
+        "500114": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -9.864999999999998,
+          "worse_terms": -9.864999999999998
+        },
+        "500115": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 33.24,
+          "worse_terms": 33.24
+        },
+        "500118": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 261.115,
+          "worse_terms": 261.115
+        },
+        "500119": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 96.505,
+          "worse_terms": 96.505
+        },
+        "500120": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500121": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 120.09,
+          "worse_terms": 120.09
+        },
+        "500123": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 112.065,
+          "worse_terms": 112.065
+        },
+        "500125": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500126": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 244.345,
+          "worse_terms": 244.345
+        },
+        "500129": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500130": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 131.64,
+          "worse_terms": 131.64
+        },
+        "500131": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 73.09,
+          "worse_terms": 85.59
+        },
+        "500132": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 94.095,
+          "worse_terms": 94.095
+        },
+        "500133": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500136": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -81.815,
+          "worse_terms": -81.815
+        },
+        "500137": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500138": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 70.195,
+          "worse_terms": 82.695
+        },
+        "500140": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500142": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500144": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 81.335,
+          "worse_terms": 81.335
+        },
+        "500145": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 102.95,
+          "worse_terms": 102.95
+        },
+        "500146": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 239.19,
+          "worse_terms": 239.19
+        },
+        "500147": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 32.845,
+          "worse_terms": 32.845
+        },
+        "500148": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 30.13,
+          "worse_terms": 30.13
+        },
+        "500150": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500151": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 174.31,
+          "worse_terms": 174.31
+        },
+        "500152": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 107.34,
+          "worse_terms": 94.84
+        },
+        "500155": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 316.385,
+          "worse_terms": 303.885
+        },
+        "500156": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500159": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 45.33,
+          "worse_terms": 45.33
+        },
+        "500160": {
+          "commitment_error": 326.92,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": -44.7,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 282.22,
+          "worse_terms": 0.0
+        },
+        "500161": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 12.0,
+          "worse_terms": 12.0
+        },
+        "500162": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500163": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500165": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -59.82000000000001,
+          "worse_terms": -59.82000000000001
+        },
+        "500167": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500168": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 121.58,
+          "worse_terms": 121.58
+        },
+        "500169": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500171": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500172": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 92.14,
+          "worse_terms": 92.14
+        },
+        "500173": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.340000000000003,
+          "worse_terms": 14.340000000000003
+        },
+        "500174": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500175": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.41,
+          "worse_terms": 14.41
+        },
+        "500176": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 5.265,
+          "worse_terms": 5.265
+        },
+        "500178": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500179": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 219.505,
+          "worse_terms": 219.505
+        },
+        "500181": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500182": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -70.60000000000001,
+          "worse_terms": -70.60000000000001
+        },
+        "500183": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 58.745,
+          "worse_terms": 58.745
+        },
+        "500184": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -12.629999999999995,
+          "worse_terms": -12.629999999999995
+        },
+        "500185": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500187": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500188": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500190": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 82.36499999999998,
+          "worse_terms": 82.36499999999998
+        },
+        "500191": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 70.27999999999999,
+          "worse_terms": 70.27999999999999
+        },
+        "500192": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 74.01,
+          "worse_terms": 74.01
+        },
+        "500193": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 56.995,
+          "worse_terms": 56.995
+        },
+        "500194": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 80.725,
+          "worse_terms": 80.725
+        },
+        "500196": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.43,
+          "worse_terms": 53.43
+        },
+        "500197": {
+          "commitment_error": 86.00500000000001,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 86.00500000000001,
+          "worse_terms": 0.0
+        },
+        "500198": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 228.63,
+          "worse_terms": 228.63
+        },
+        "500199": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500201": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500202": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500203": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 24.77,
+          "worse_terms": 24.77
+        },
+        "500204": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500207": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 82.845,
+          "worse_terms": 82.845
+        },
+        "500208": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 47.125,
+          "worse_terms": 47.125
+        },
+        "500209": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500210": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 45.135,
+          "worse_terms": 45.135
+        },
+        "500211": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -41.0,
+          "worse_terms": -41.0
+        },
+        "500212": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 49.400000000000006,
+          "worse_terms": 49.400000000000006
+        },
+        "500213": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 102.26,
+          "worse_terms": 102.26
+        },
+        "500214": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -223.625,
+          "worse_terms": -223.625
+        },
+        "500215": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -59.38000000000001,
+          "worse_terms": -59.38000000000001
+        },
+        "500217": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500219": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 74.64500000000001,
+          "worse_terms": 74.64500000000001
+        },
+        "500221": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500222": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 48.435,
+          "worse_terms": 48.435
+        },
+        "500228": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 127.165,
+          "worse_terms": 127.165
+        },
+        "500230": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -53.83,
+          "worse_terms": -53.83
+        },
+        "500232": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500234": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500235": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500236": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 204.345,
+          "worse_terms": 204.345
+        },
+        "500237": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 119.695,
+          "worse_terms": 119.695
+        },
+        "500239": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 67.63,
+          "worse_terms": 67.63
+        },
+        "500241": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 20.225,
+          "worse_terms": 32.725
+        },
+        "500242": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500244": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500249": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -48.44,
+          "worse_terms": -48.44
+        },
+        "500253": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 141.955,
+          "worse_terms": 141.955
+        },
+        "500255": {
+          "commitment_error": 151.375,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 151.375,
+          "worse_terms": 0.0
+        },
+        "500257": {
+          "commitment_error": 348.16,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 348.16,
+          "worse_terms": 0.0
+        },
+        "500259": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 29.26,
+          "worse_terms": 29.26
+        },
+        "500260": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 11.154999999999994,
+          "worse_terms": 11.154999999999994
+        },
+        "500263": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 75.48,
+          "worse_terms": 75.48
+        },
+        "500264": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -56.52999999999999,
+          "worse_terms": -56.52999999999999
+        },
+        "500265": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 5.050000000000001,
+          "worse_terms": 5.050000000000001
+        },
+        "500266": {
+          "commitment_error": 86.835,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 86.835,
+          "worse_terms": 0.0
+        },
+        "500269": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -57.925,
+          "worse_terms": -57.925
+        },
+        "500270": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 99.99,
+          "worse_terms": 99.99
+        },
+        "500271": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -50.56,
+          "worse_terms": -50.56
+        },
+        "500272": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -52.09,
+          "worse_terms": -52.09
+        },
+        "500273": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -96.81500000000001,
+          "worse_terms": -96.81500000000001
+        },
+        "500274": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 241.48,
+          "worse_terms": 241.48
+        },
+        "500277": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -22.60000000000001,
+          "worse_terms": -22.60000000000001
+        },
+        "500279": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -168.22500000000002,
+          "worse_terms": -168.22500000000002
+        },
+        "500281": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 84.705,
+          "worse_terms": 84.705
+        },
+        "500282": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 326.095,
+          "worse_terms": 326.095
+        },
+        "500283": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 190.115,
+          "worse_terms": 190.115
+        },
+        "500284": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -116.495,
+          "worse_terms": -116.495
+        },
+        "500291": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -89.43999999999998,
+          "worse_terms": -89.43999999999998
+        },
+        "500292": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 73.51,
+          "worse_terms": 86.01
+        },
+        "500293": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 88.535,
+          "worse_terms": 88.535
+        },
+        "500294": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 57.129999999999995,
+          "worse_terms": 57.129999999999995
+        },
+        "500295": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 70.325,
+          "worse_terms": 70.325
+        },
+        "500296": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 59.96,
+          "worse_terms": 59.96
+        },
+        "500300": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 111.95,
+          "worse_terms": 111.95
+        },
+        "500303": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 69.415,
+          "worse_terms": 69.415
+        },
+        "500304": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 242.84,
+          "worse_terms": 242.84
+        },
+        "500305": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 6.515000000000001,
+          "worse_terms": 19.015
+        },
+        "500306": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 17.94,
+          "worse_terms": 17.94
+        },
+        "500307": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 19.1,
+          "worse_terms": 19.1
+        },
+        "500309": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 20.5,
+          "worse_terms": 20.5
+        },
+        "500312": {
+          "commitment_error": 188.185,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 200.685,
+          "worse_terms": 0.0
+        },
+        "500313": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 49.45,
+          "worse_terms": 49.45
+        },
+        "500318": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 90.38,
+          "worse_terms": 90.38
+        },
+        "500321": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -43.79,
+          "worse_terms": -43.79
+        },
+        "500323": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 50.595,
+          "worse_terms": 50.595
+        },
+        "500324": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.015,
+          "worse_terms": 53.015
+        },
+        "500325": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 17.12,
+          "worse_terms": 29.62
+        },
+        "500329": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -241.99500000000003,
+          "worse_terms": -241.99500000000003
+        },
+        "500330": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 22.064999999999998,
+          "worse_terms": 22.064999999999998
+        },
+        "500332": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -71.47,
+          "worse_terms": -71.47
+        },
+        "500336": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -32.60499999999999,
+          "worse_terms": -32.60499999999999
+        },
+        "500337": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -20.609999999999985,
+          "worse_terms": -20.609999999999985
+        },
+        "500339": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -62.760000000000005,
+          "worse_terms": -62.760000000000005
+        },
+        "500340": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 84.27,
+          "worse_terms": 84.27
+        },
+        "500341": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 184.5,
+          "worse_terms": 184.5
+        },
+        "500342": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 156.14,
+          "worse_terms": 168.64
+        },
+        "500346": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -118.32499999999999,
+          "worse_terms": -118.32499999999999
+        },
+        "500351": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -168.935,
+          "worse_terms": -168.935
+        },
+        "500356": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 73.435,
+          "worse_terms": 73.435
+        },
+        "500357": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 54.48,
+          "worse_terms": 54.48
+        },
+        "500358": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 154.165,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 298.96,
+          "worse_terms": 144.795
+        },
+        "500362": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.26,
+          "worse_terms": 14.26
+        },
+        "500363": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 26.225,
+          "worse_terms": 26.225
+        },
+        "500366": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -20.815,
+          "worse_terms": -20.815
+        },
+        "500368": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 65.335,
+          "worse_terms": 65.335
+        },
+        "500369": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 87.305,
+          "worse_terms": 87.305
+        },
+        "500370": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 19.415,
+          "worse_terms": 19.415
+        },
+        "500372": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 143.43,
+          "worse_terms": 143.43
+        },
+        "500376": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -66.77,
+          "worse_terms": -66.77
+        },
+        "500377": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 137.94,
+          "worse_terms": 137.94
+        },
+        "500378": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 89.125,
+          "worse_terms": 89.125
+        },
+        "500379": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 50.415,
+          "worse_terms": 62.915
+        },
+        "500382": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 102.635,
+          "worse_terms": 90.135
+        },
+        "500383": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -147.195,
+          "worse_terms": -147.195
+        },
+        "500384": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -242.26500000000001,
+          "worse_terms": -242.26500000000001
+        },
+        "500386": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 55.555,
+          "worse_terms": 55.555
+        },
+        "500387": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 118.915,
+          "worse_terms": 118.915
+        },
+        "500389": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -71.05499999999999,
+          "worse_terms": -71.05499999999999
+        },
+        "500397": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 154.165,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 160.92999999999998,
+          "worse_terms": 6.765
+        },
+        "500398": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 125.84,
+          "worse_terms": 125.84
+        },
+        "500407": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": -46.265,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -30.66,
+          "worse_terms": 15.605
+        },
+        "500410": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 134.285,
+          "worse_terms": 134.285
+        },
+        "500411": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 182.305,
+          "worse_terms": 182.305
+        },
+        "500412": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 127.56,
+          "worse_terms": 127.56
+        },
+        "500413": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -143.745,
+          "worse_terms": -143.745
+        },
+        "500414": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 95.85,
+          "worse_terms": 95.85
+        },
+        "500415": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -111.49,
+          "worse_terms": -111.49
+        },
+        "500416": {
+          "commitment_error": 296.975,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 309.475,
+          "worse_terms": 0.0
+        },
+        "500420": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 44.725,
+          "worse_terms": 44.725
+        },
+        "500422": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 46.684999999999995,
+          "worse_terms": 46.684999999999995
+        },
+        "500423": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 212.06,
+          "worse_terms": 212.06
+        },
+        "500427": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -5.929999999999993,
+          "worse_terms": -5.929999999999993
+        },
+        "500429": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 76.355,
+          "worse_terms": 76.355
+        },
+        "500433": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 65.845,
+          "worse_terms": 65.845
+        },
+        "500434": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 104.44,
+          "worse_terms": 104.44
+        },
+        "500436": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 39.625,
+          "worse_terms": 39.625
+        }
+      },
+      "worlds": 260
+    },
+    "Sol 6.1 (Codex, addendum B)": {
+      "by_stratum": {
+        "favourite_is_lemon": 19.93985,
+        "favourite_is_sound": 0.0
+      },
+      "campaign_id": "housing_lemons_price_v15_cli_codex_sol61",
+      "cells": 520,
+      "declared_v15_pair": false,
+      "measure": "housing_price_reply_conditioned_v2 (v15 primary)",
+      "missing_cells": 0,
+      "reference": "inspect_lowball",
+      "summary": {
+        "commitment_error": {
+          "ci95": [
+            -0.035572887338678555,
+            0.011611348877140087
+          ],
+          "max": 0.0,
+          "mean": -0.011980769230769232,
+          "median": 0.0,
+          "min": -3.115,
+          "n": 260,
+          "negative_count": 1,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 259
+        },
+        "contrary_to_information_held": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "information_not_acquired": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "interaction_cost": {
+          "ci95": [
+            -0.8659828525701141,
+            0.09675208333934476
+          ],
+          "max": 12.5,
+          "mean": -0.38461538461538464,
+          "median": 0.0,
+          "min": -25.0,
+          "n": 260,
+          "negative_count": 15,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 237
+        },
+        "operational": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "procedure_and_format": {
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "n": 260,
+          "negative_count": 0,
+          "q1": 0.0,
+          "q3": 0.0,
+          "zero_count": 260
+        },
+        "total": {
+          "ci95": [
+            6.16014580680746,
+            24.51654650088485
+          ],
+          "max": 261.115,
+          "mean": 15.338346153846155,
+          "median": 0.0,
+          "min": -241.99500000000003,
+          "n": 260,
+          "negative_count": 59,
+          "q1": 0.0,
+          "q3": 53.699999999999996,
+          "zero_count": 78
+        },
+        "worse_terms": {
+          "ci95": [
+            6.562749801919248,
+            24.90713481346537
+          ],
+          "max": 261.115,
+          "mean": 15.734942307692307,
+          "median": 0.0,
+          "min": -241.99500000000003,
+          "n": 260,
+          "negative_count": 54,
+          "q1": 0.0,
+          "q3": 55.94875,
+          "zero_count": 85
+        }
+      },
+      "units": {
+        "500000": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 35.790000000000006,
+          "worse_terms": 35.790000000000006
+        },
+        "500001": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500005": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -123.55,
+          "worse_terms": -123.55
+        },
+        "500006": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -77.66,
+          "worse_terms": -77.66
+        },
+        "500007": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500009": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500010": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500011": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 62.14,
+          "worse_terms": 62.14
+        },
+        "500012": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500014": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500016": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500019": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 1.59,
+          "worse_terms": 1.59
+        },
+        "500021": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 140.86,
+          "worse_terms": 140.86
+        },
+        "500022": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 234.475,
+          "worse_terms": 234.475
+        },
+        "500024": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -85.13,
+          "worse_terms": -85.13
+        },
+        "500025": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 91.735,
+          "worse_terms": 104.235
+        },
+        "500026": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500027": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 95.76,
+          "worse_terms": 95.76
+        },
+        "500029": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500030": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 8.695,
+          "worse_terms": 21.195
+        },
+        "500031": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 92.405,
+          "worse_terms": 104.905
+        },
+        "500032": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 15.455,
+          "worse_terms": 15.455
+        },
+        "500034": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 3.235,
+          "worse_terms": 3.235
+        },
+        "500035": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 48.565,
+          "worse_terms": 48.565
+        },
+        "500036": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500037": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500039": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -62.345,
+          "worse_terms": -62.345
+        },
+        "500040": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500041": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 12.5,
+          "worse_terms": 0.0
+        },
+        "500042": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 110.975,
+          "worse_terms": 110.975
+        },
+        "500043": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -49.535,
+          "worse_terms": -49.535
+        },
+        "500044": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500047": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 25.87,
+          "worse_terms": 25.87
+        },
+        "500048": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500051": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -13.155,
+          "worse_terms": -0.655
+        },
+        "500052": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 171.415,
+          "worse_terms": 171.415
+        },
+        "500053": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500054": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.44,
+          "worse_terms": 53.44
+        },
+        "500056": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500057": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500058": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 26.395,
+          "worse_terms": 26.395
+        },
+        "500060": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500061": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 91.795,
+          "worse_terms": 91.795
+        },
+        "500062": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 21.67,
+          "worse_terms": 21.67
+        },
+        "500064": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500066": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 175.355,
+          "worse_terms": 175.355
+        },
+        "500067": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 34.175,
+          "worse_terms": 34.175
+        },
+        "500068": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 76.825,
+          "worse_terms": 76.825
+        },
+        "500070": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -95.0,
+          "worse_terms": -95.0
+        },
+        "500071": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 85.905,
+          "worse_terms": 85.905
+        },
+        "500072": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 12.5,
+          "worse_terms": 0.0
+        },
+        "500073": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500074": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500075": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -60.39999999999999,
+          "worse_terms": -60.39999999999999
+        },
+        "500077": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 47.24,
+          "worse_terms": 59.74
+        },
+        "500078": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 21.595,
+          "worse_terms": 21.595
+        },
+        "500080": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500081": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500082": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 128.495,
+          "worse_terms": 140.995
+        },
+        "500083": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500085": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 15.68,
+          "worse_terms": 15.68
+        },
+        "500086": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -90.80000000000001,
+          "worse_terms": -90.80000000000001
+        },
+        "500088": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500089": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500090": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 110.75,
+          "worse_terms": 110.75
+        },
+        "500091": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 52.23,
+          "worse_terms": 52.23
+        },
+        "500093": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 19.83,
+          "worse_terms": 7.33
+        },
+        "500094": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 20.89,
+          "worse_terms": 20.89
+        },
+        "500095": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -193.52499999999998,
+          "worse_terms": -193.52499999999998
+        },
+        "500096": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 8.489999999999998,
+          "worse_terms": 20.99
+        },
+        "500097": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500099": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500105": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -90.99499999999999,
+          "worse_terms": -90.99499999999999
+        },
+        "500107": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 93.69999999999999,
+          "worse_terms": 93.69999999999999
+        },
+        "500108": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 97.78,
+          "worse_terms": 97.78
+        },
+        "500109": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -123.46,
+          "worse_terms": -123.46
+        },
+        "500110": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500111": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500112": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 45.325,
+          "worse_terms": 57.825
+        },
+        "500114": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -9.864999999999998,
+          "worse_terms": -9.864999999999998
+        },
+        "500115": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 33.24,
+          "worse_terms": 33.24
+        },
+        "500118": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 261.115,
+          "worse_terms": 261.115
+        },
+        "500119": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 109.005,
+          "worse_terms": 109.005
+        },
+        "500120": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500121": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 120.09,
+          "worse_terms": 120.09
+        },
+        "500123": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500125": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500126": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 59.695,
+          "worse_terms": 59.695
+        },
+        "500129": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500130": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500131": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -12.5,
+          "worse_terms": 0.0
+        },
+        "500132": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 68.075,
+          "worse_terms": 68.075
+        },
+        "500133": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500136": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -81.91499999999999,
+          "worse_terms": -81.91499999999999
+        },
+        "500137": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500138": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 82.695,
+          "worse_terms": 82.695
+        },
+        "500140": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500142": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500144": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 81.335,
+          "worse_terms": 81.335
+        },
+        "500145": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 30.095,
+          "worse_terms": 30.095
+        },
+        "500146": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 176.1,
+          "worse_terms": 176.1
+        },
+        "500147": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 32.845,
+          "worse_terms": 32.845
+        },
+        "500148": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 30.13,
+          "worse_terms": 30.13
+        },
+        "500150": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500151": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 43.415,
+          "worse_terms": 43.415
+        },
+        "500152": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 42.4,
+          "worse_terms": 29.9
+        },
+        "500155": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 87.385,
+          "worse_terms": 74.885
+        },
+        "500156": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500159": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -53.36,
+          "worse_terms": -53.36
+        },
+        "500160": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 128.055,
+          "worse_terms": 115.555
+        },
+        "500161": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 12.0,
+          "worse_terms": 12.0
+        },
+        "500162": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500163": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500165": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -59.82000000000001,
+          "worse_terms": -59.82000000000001
+        },
+        "500167": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500168": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 121.58,
+          "worse_terms": 121.58
+        },
+        "500169": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500171": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500172": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 92.14,
+          "worse_terms": 92.14
+        },
+        "500173": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.340000000000003,
+          "worse_terms": 14.340000000000003
+        },
+        "500174": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500175": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.41,
+          "worse_terms": 14.41
+        },
+        "500176": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 5.265,
+          "worse_terms": 5.265
+        },
+        "500178": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500179": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500181": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500182": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -70.60000000000001,
+          "worse_terms": -70.60000000000001
+        },
+        "500183": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 49.52,
+          "worse_terms": 49.52
+        },
+        "500184": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -12.629999999999995,
+          "worse_terms": -12.629999999999995
+        },
+        "500185": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500187": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500188": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500190": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500191": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -1.1350000000000051,
+          "worse_terms": -1.1350000000000051
+        },
+        "500192": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 74.01,
+          "worse_terms": 74.01
+        },
+        "500193": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 6.385000000000002,
+          "worse_terms": 6.385000000000002
+        },
+        "500194": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 116.565,
+          "worse_terms": 116.565
+        },
+        "500196": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.43,
+          "worse_terms": 53.43
+        },
+        "500197": {
+          "commitment_error": -3.115,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -3.115,
+          "worse_terms": 0.0
+        },
+        "500198": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 184.18,
+          "worse_terms": 184.18
+        },
+        "500199": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500201": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500202": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500203": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 24.77,
+          "worse_terms": 24.77
+        },
+        "500204": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500207": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 82.845,
+          "worse_terms": 82.845
+        },
+        "500208": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 47.125,
+          "worse_terms": 47.125
+        },
+        "500209": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500210": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 45.135,
+          "worse_terms": 45.135
+        },
+        "500211": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -41.0,
+          "worse_terms": -41.0
+        },
+        "500212": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 49.400000000000006,
+          "worse_terms": 49.400000000000006
+        },
+        "500213": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500214": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -223.625,
+          "worse_terms": -223.625
+        },
+        "500215": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -59.38000000000001,
+          "worse_terms": -59.38000000000001
+        },
+        "500217": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500219": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 69.93,
+          "worse_terms": 69.93
+        },
+        "500221": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500222": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 58.29,
+          "worse_terms": 58.29
+        },
+        "500228": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 127.165,
+          "worse_terms": 127.165
+        },
+        "500230": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -53.83,
+          "worse_terms": -53.83
+        },
+        "500232": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500234": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500235": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500236": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -1.355,
+          "worse_terms": -1.355
+        },
+        "500237": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 88.51,
+          "worse_terms": 88.51
+        },
+        "500239": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 67.63,
+          "worse_terms": 67.63
+        },
+        "500241": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 32.725,
+          "worse_terms": 32.725
+        },
+        "500242": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500244": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500249": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -48.44,
+          "worse_terms": -48.44
+        },
+        "500253": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 141.955,
+          "worse_terms": 141.955
+        },
+        "500255": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500257": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 129.12,
+          "worse_terms": 129.12
+        },
+        "500259": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -12.5,
+          "worse_terms": 0.0
+        },
+        "500260": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 11.154999999999994,
+          "worse_terms": 11.154999999999994
+        },
+        "500263": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 75.48,
+          "worse_terms": 75.48
+        },
+        "500264": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -56.52999999999999,
+          "worse_terms": -56.52999999999999
+        },
+        "500265": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 5.050000000000001,
+          "worse_terms": 5.050000000000001
+        },
+        "500266": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500269": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -57.925,
+          "worse_terms": -57.925
+        },
+        "500270": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 99.99,
+          "worse_terms": 99.99
+        },
+        "500271": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -50.56,
+          "worse_terms": -50.56
+        },
+        "500272": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -52.09,
+          "worse_terms": -52.09
+        },
+        "500273": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -96.86000000000001,
+          "worse_terms": -96.86000000000001
+        },
+        "500274": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500277": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 76.475,
+          "worse_terms": 76.475
+        },
+        "500279": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -168.22500000000002,
+          "worse_terms": -168.22500000000002
+        },
+        "500281": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 84.705,
+          "worse_terms": 84.705
+        },
+        "500282": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500283": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 162.565,
+          "worse_terms": 162.565
+        },
+        "500284": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -116.495,
+          "worse_terms": -116.495
+        },
+        "500291": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -89.43999999999998,
+          "worse_terms": -89.43999999999998
+        },
+        "500292": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 35.9,
+          "worse_terms": 48.4
+        },
+        "500293": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 88.535,
+          "worse_terms": 88.535
+        },
+        "500294": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 57.129999999999995,
+          "worse_terms": 57.129999999999995
+        },
+        "500295": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 70.325,
+          "worse_terms": 70.325
+        },
+        "500296": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 59.96,
+          "worse_terms": 59.96
+        },
+        "500300": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 111.95,
+          "worse_terms": 111.95
+        },
+        "500303": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 69.415,
+          "worse_terms": 69.415
+        },
+        "500304": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500305": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -25.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -25.0,
+          "worse_terms": 0.0
+        },
+        "500306": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 17.94,
+          "worse_terms": 17.94
+        },
+        "500307": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 19.1,
+          "worse_terms": 19.1
+        },
+        "500309": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 6.899999999999977,
+          "worse_terms": 6.899999999999977
+        },
+        "500312": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 12.5,
+          "worse_terms": 0.0
+        },
+        "500313": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -7.675,
+          "worse_terms": -7.675
+        },
+        "500318": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 90.375,
+          "worse_terms": 90.375
+        },
+        "500321": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -43.79,
+          "worse_terms": -43.79
+        },
+        "500323": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500324": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 53.015,
+          "worse_terms": 53.015
+        },
+        "500325": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -15.21,
+          "worse_terms": -2.71
+        },
+        "500329": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -241.99500000000003,
+          "worse_terms": -241.99500000000003
+        },
+        "500330": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 22.064999999999998,
+          "worse_terms": 22.064999999999998
+        },
+        "500332": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -161.65,
+          "worse_terms": -161.65
+        },
+        "500336": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -32.60499999999999,
+          "worse_terms": -32.60499999999999
+        },
+        "500337": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -20.609999999999985,
+          "worse_terms": -20.609999999999985
+        },
+        "500339": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -92.80000000000001,
+          "worse_terms": -92.80000000000001
+        },
+        "500340": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 86.36,
+          "worse_terms": 86.36
+        },
+        "500341": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 184.5,
+          "worse_terms": 184.5
+        },
+        "500342": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -8.025,
+          "worse_terms": 4.475
+        },
+        "500346": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -118.32499999999999,
+          "worse_terms": -118.32499999999999
+        },
+        "500351": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -168.935,
+          "worse_terms": -168.935
+        },
+        "500356": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.580000000000005,
+          "worse_terms": 14.580000000000005
+        },
+        "500357": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 54.48,
+          "worse_terms": 54.48
+        },
+        "500358": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500362": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 14.26,
+          "worse_terms": 14.26
+        },
+        "500363": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 26.225,
+          "worse_terms": 26.225
+        },
+        "500366": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -20.815,
+          "worse_terms": -20.815
+        },
+        "500368": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500369": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 87.305,
+          "worse_terms": 87.305
+        },
+        "500370": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 15.015,
+          "worse_terms": 15.015
+        },
+        "500372": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 143.43,
+          "worse_terms": 143.43
+        },
+        "500376": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -93.865,
+          "worse_terms": -93.865
+        },
+        "500377": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 137.94,
+          "worse_terms": 137.94
+        },
+        "500378": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 12.565,
+          "worse_terms": 12.565
+        },
+        "500379": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": -12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 3.6700000000000017,
+          "worse_terms": 16.17
+        },
+        "500382": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 12.5,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 145.925,
+          "worse_terms": 133.425
+        },
+        "500383": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -147.195,
+          "worse_terms": -147.195
+        },
+        "500384": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -229.76500000000001,
+          "worse_terms": -229.76500000000001
+        },
+        "500386": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 55.555,
+          "worse_terms": 55.555
+        },
+        "500387": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 118.915,
+          "worse_terms": 118.915
+        },
+        "500389": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -71.05499999999999,
+          "worse_terms": -71.05499999999999
+        },
+        "500397": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 6.765,
+          "worse_terms": 6.765
+        },
+        "500398": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -15.105,
+          "worse_terms": -15.105
+        },
+        "500407": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -184.82500000000002,
+          "worse_terms": -184.82500000000002
+        },
+        "500410": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500411": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500412": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 199.46,
+          "worse_terms": 199.46
+        },
+        "500413": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -143.745,
+          "worse_terms": -143.745
+        },
+        "500414": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 82.49,
+          "worse_terms": 82.49
+        },
+        "500415": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -111.49,
+          "worse_terms": -111.49
+        },
+        "500416": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 186.125,
+          "worse_terms": 186.125
+        },
+        "500420": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 44.725,
+          "worse_terms": 44.725
+        },
+        "500422": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -62.885,
+          "worse_terms": -62.885
+        },
+        "500423": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 0.0,
+          "worse_terms": 0.0
+        },
+        "500427": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": -60.11,
+          "worse_terms": -60.11
+        },
+        "500429": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 17.835,
+          "worse_terms": 17.835
+        },
+        "500433": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 65.845,
+          "worse_terms": 65.845
+        },
+        "500434": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 104.44,
+          "worse_terms": 104.44
+        },
+        "500436": {
+          "commitment_error": 0.0,
+          "contrary_to_information_held": 0.0,
+          "information_not_acquired": 0.0,
+          "interaction_cost": 0.0,
+          "operational": 0.0,
+          "procedure_and_format": 0.0,
+          "total": 39.625,
+          "worse_terms": 39.625
+        }
+      },
+      "worlds": 260
     }
   },
   "housing_v14": {
@@ -25666,6 +31140,7 @@
     "campaign_refresh/datacenter_v2/bundles/datacenter_agreement_v2_integrator_firm/tables/cells.jsonl": "8f28866e407c57b0e47f903019556628b43c844e67025e8e1d95196e60317011",
     "housing_reply_conditioned/reports/reply_conditioned.json": "2275a8fdd6f9a159ddd47d749be5baa2ad5821cef8ba72dd2a8cb020ae7956ec",
     "housing_reply_conditioned/tables/cells.jsonl": "f9789a03df5425cc01f5a03bd50a96ba479390f5bce24dfebca19b9db39a888b",
+    "housing_v15/cli_addendum_analysis.json": "0d0600ecce508e419c78e21290340d7510e5d91fd738862e75fab03a976e8ec1",
     "housing_v15/glm_addendum_analysis.json": "4587f8fda6c2c8eff95a006fba07cc89fdcd4d029ccd3c4416507a4951738707",
     "housing_v15/v15_analysis.json": "f9b4b6e8b3bce72aba38a2c35a80b9973795dd482ccba8fbeb462e385c5b9e63",
     "procurement_v3/readout_gemini38_flash.json": "efd84081f5ba37cd8c6d9291d13c7677aceb46188d1189797957985a807a53a4",
@@ -25673,7 +31148,7 @@
     "procurement_v3/readout_opus55.json": "7c5b755e298c8e1c07a03c6a03d10b87cf28c88c062b1301f5d7771922f86d0b",
     "procurement_v3/readout_sol61.json": "858a652fe7b0d565649ca39f09a7549fb31c69e8dff8e712e15a215dbbbc1a67",
     "shortfall_panels/housing_v14_taxonomy.json": "ad6fa43398c4b56b90ea417b9a316aebaf6f48a5b95f0afdd09a7b0ecf0e0de4",
-    "shortfall_panels/housing_v15_taxonomy.json": "dbc14a04df0f93bfd01aaeeb29fbeac574c1b3921a13b4a8f9ac658f38b8fc0f",
+    "shortfall_panels/housing_v15_taxonomy.json": "7d9d1fbda19b9c3fb45759305e6f1df911bcb090a9262034160dfbc395c31bd6",
     "shortfall_panels/procurement_pay_or_test_v3_taxonomy.json": "52dc2c5dc5c9122aef221a95d4d83484209c153a18fff1d7b10ee73d1f4515ac",
     "shortfall_panels/refund_sources/gap_decomposition_deepseekv4flash.json": "f63d6fcbb71236c952dc126f879bc157261b94070c9c81e840bb778284f7f539",
     "shortfall_panels/refund_sources/gap_decomposition_gemini25flashlite.json": "6c09b7edafc556fc8b1a5b4ef1c44ee58aa0ba059e928de9d4957f7761d977d3",

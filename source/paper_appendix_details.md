@@ -388,19 +388,19 @@ not establish robustness to the chosen $25k fee per additional redline. Appendix
 scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
 adaptation would require new model runs under declared fee settings.
 
-**Table E.5. Housing and Procurement, every subject ($ per world; Housing v15 on the 260 main worlds of Table 5.2, GLM from its declared addendum; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
+**Table E.5. Housing and Procurement, every subject ($ per world; Housing v15 on the 260 main worlds of Table 5.2, GLM, Sol and Opus from their declared addenda; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
 
-| Class | Housing Gemini | Housing Luna | Housing GLM (addendum) | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Information not acquired | −0.2 | 14.9 | 18.9 | 17.5 | 51.0 | 49.4 | 55.4 |
-| Acted contrary to information held | 1.9 | 22.2 | 49.6 | 13.9 | 0 | 0 | 0 |
-| Worse terms | 40.7 | 54.3 | 40.1 | 0 | 0 | 0 | 0.5 |
-| Commitment error | 8.9 | 8.6 | 7.2 | 0 | 0 | 0 | 0 |
-| Interaction cost | −0.3 | −0.1 | −0.2 | 1.1 | 0.2 | 1.9 | 2.2 |
-| Procedure and format | 0 | 0 | 11.7 | 0 | 0 | 0 | 0 |
-| Total | 51.1 | 99.9 | 127.3 | 32.5 | 51.2 | 51.2 | 58.1 |
+| Class | Housing Gemini | Housing Luna | Housing Sol (addendum B) | Housing Opus (addendum B) | Housing GLM (addendum A) | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Information not acquired | −0.2 | 14.9 | 0 | 1.4 | 18.9 | 17.5 | 51.0 | 49.4 | 55.4 |
+| Acted contrary to information held | 1.9 | 22.2 | 0 | 0 | 49.6 | 13.9 | 0 | 0 | 0 |
+| Worse terms | 40.7 | 54.3 | 15.7 | 38.8 | 40.1 | 0 | 0 | 0 | 0.5 |
+| Commitment error | 8.9 | 8.6 | −0.0 | 6.3 | 7.2 | 0 | 0 | 0 | 0 |
+| Interaction cost | −0.3 | −0.1 | −0.4 | −0.4 | −0.2 | 1.1 | 0.2 | 1.9 | 2.2 |
+| Procedure and format | 0 | 0 | 0 | 0 | 11.7 | 0 | 0 | 0 | 0 |
+| Total | 51.1 | 99.9 | 15.3 | 46.1 | 127.3 | 32.5 | 51.2 | 51.2 | 58.1 |
 
-Housing's totals reproduce the published v15 differences from `inspect_lowball` (51.13 and 99.92 $ a world; GLM's addendum row R3, 127.32), and every one of the 520 main cells per subject completed, so no world is excluded. Main-world means average both landlord arms within a world. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
+Housing's totals reproduce the published v15 differences from `inspect_lowball` (51.13 and 99.92 $ a world; GLM's addendum row R3, 127.32; Sol's and Opus's addendum row R, 15.34 and 46.07), and every one of the 520 main cells per subject completed, so no world is excluded. Main-world means average both landlord arms within a world. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
 
 **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
 
@@ -460,15 +460,19 @@ v1's by pairing.
 |---|---:|---|---|---|
 | Housing: Gemini 3.8 Flash | 260 | 51.1 [38.3, 63.9] | 29.9 [0.0, 98.3] | 60 / 45 |
 | Housing: GPT-6 Luna | 260 | 99.9 [83.8, 116.0] | 72.1 [0.0, 167.6] | 46 / 32 |
-| Housing: GLM 5.3 Flash (addendum) | 260 | 127.3 [105.2, 149.4] | 79.9 [0.0, 212.8] | 36 / 39 |
+| Housing: Sol 6.1 (addendum B) | 260 | 15.3 [6.2, 24.5] | 0.0 [0.0, 53.7] | 78 / 59 |
+| Housing: Opus 5.5 (addendum B) | 260 | 46.1 [33.9, 58.2] | 27.8 [0.0, 96.0] | 61 / 47 |
+| Housing: GLM 5.3 Flash (addendum A) | 260 | 127.3 [105.2, 149.4] | 79.9 [0.0, 212.8] | 36 / 39 |
 | Procurement: Sol 6.1 | 20 | 32.5 [23.8, 41.3] | 33.3 [21.5, 48.7] | 0 / 0 |
+| Procurement: Opus 5.5 | 20 | 51.2 [46.3, 56.2] | 50.2 [45.1, 57.7] | 0 / 0 |
+| Procurement: Gemini 3.8 Flash | 20 | 51.2 [46.3, 56.2] | 50.2 [45.1, 57.7] | 0 / 0 |
 | Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
 | Data center: Opus 5.5 | 80 | 83.6 [68.8, 98.4] | 57.2 [27.8, 137.3] | 0 / 0 |
 | Data center: Sol 6.1 | 80 | 140.2 [120.6, 159.7] | 117.3 [87.5, 189.8] | 4 / 0 |
 | Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
 | Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
 
-Intervals here are Student t intervals over independent worlds (Housing after averaging arms;
+Opus and Gemini bought from the recorded supplier in every play, so their Procurement rows coincide. Intervals here are Student t intervals over independent worlds (Housing after averaging arms;
 Data center after averaging focal roles), or over the six fixed Refund cases after averaging
 20 cells per case. They describe variation in these panels and do not establish a model ranking
 or field-population coverage. They are newly derived descriptive intervals, not replacements
@@ -491,17 +495,17 @@ classification rules; the figure adds no new analysis or cross-case aggregate.
 
 $ per main world below the reachable scripted reference (`inspect_lowball`); v15, measure v2.
 
-| Component | Gemini 3.8 Flash | GPT-6 Luna | GLM 5.3 Flash (addendum A) |
-|---|---:|---:|---:|
-| Information not acquired | −0.2 | 14.9 | 18.9 |
-| Contrary to held information | 1.9 | 22.2 | 49.6 |
-| Worse lease terms | 40.7 | 54.3 | 40.1 |
-| Lease commitment error | 8.9 | 8.6 | 7.2 |
-| Procedure or format | 0.0 | 0.0 | 11.7 |
-| Inspection cost | −0.3 | −0.1 | −0.2 |
-| **Total shortfall** | **51.1** | **99.9** | **127.3** |
+| Component | Gemini 3.8 Flash | GPT-6 Luna | Sol 6.1 (Codex, addendum B) | Opus 5.5 (Claude Code, addendum B) | GLM 5.3 Flash (addendum A) |
+|---|---:|---:|---:|---:|---:|
+| Information not acquired | −0.2 | 14.9 | 0.0 | 1.4 | 18.9 |
+| Contrary to held information | 1.9 | 22.2 | 0.0 | 0.0 | 49.6 |
+| Worse lease terms | 40.7 | 54.3 | 15.7 | 38.8 | 40.1 |
+| Lease commitment error | 8.9 | 8.6 | −0.0 | 6.3 | 7.2 |
+| Procedure or format | 0.0 | 0.0 | 0.0 | 0.0 | 11.7 |
+| Inspection cost | −0.3 | −0.1 | −0.4 | −0.4 | −0.2 |
+| **Total shortfall** | **51.1** | **99.9** | **15.3** | **46.1** | **127.3** |
 
-Two landlord arms averaged within each of the 260 main worlds; no cell is missing. GLM played in a declared addendum outside v15's contrasts. Its procedure losses are actions the environment refused, chiefly malformed commits ($5.7 a world, 14 cells) and offers on listings already taken ($2.1, 5 cells). Negative amounts mean the subject did better than the reference in that class and are not drawn in Figure 5.2.
+Two landlord arms averaged within each of the 260 main worlds; no cell is missing. GLM (addendum A) and the two command-line subjects (addendum B) played in declared addenda outside v15's contrasts. Its procedure losses are actions the environment refused, chiefly malformed commits ($5.7 a world, 14 cells) and offers on listings already taken ($2.1, 5 cells). Negative amounts mean the subject did better than the reference in that class and are not drawn in Figure 5.2.
 
 **(b) Procurement**
 
@@ -635,12 +639,16 @@ in earlier versions) each lose at least $10 in every declared world. Rules that 
 looking two newcomers ahead loses $8.38 a world, as little as $0.09. Before the route existed, measured headroom was
 tried with a frozen control that tests, declared before its plays: it tested but lost to the kind-blind shortcut, so
 by that route only 2 of the 20 declared worlds passed (Appendix E.4). A control weaker than the shortcuts measures
-itself rather than the worlds, which is why the standard now takes the exact reference where a case has one. The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
+itself rather than the worlds, which is why the standard now takes the exact reference where a case has one. The
+subjects' two plays of a world scored identically in all 20 worlds for Opus and Gemini and in 7 for Sol, so the
+effective sample is the 20 worlds, as the world-mean intervals assume. The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
 the scripted Gate 3 checks and its screen meets the exact-reference route, but its pilot stopped at sizing and the case moved to v3 (Appendix F.4). The agreement's development
 packs fail Gate 1 because admission and type assignment were confounded. Its first confirmatory (v1) used
 the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
 incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
-lower controls (Appendix F.4).
+lower controls (Appendix F.4) and is `partial` at Gates 1, 2 and 4: a constant full refund solves 38 of its 180
+policy cases, its schema accepts a null refund method that its verifier then fails, and no adapter admits a model
+profile; no model has played it, so Gate 5 has not run.
 
 Housing v15 was declared and run after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
 `partial` at Gate 4:
@@ -666,7 +674,9 @@ lower bound, so Gate 1 needs a frozen control, which has not run; and the client
 Scoring every scripted integrator rule against that reference shows why the control is owed: a shortcut comes within
 25 of it in 12 of the 80 worlds, all 8 where no deal is possible (walking earns the reference, and every scripted rule
 walks) and 4 of the 72 deal worlds, three of them worlds whose whole ceiling is under 25. The shortcuts still lose
-104.8 to 205.2 a deal world on average, so the pack separates subjects in aggregate. Through the environment's hooks the
+104.8 to 205.2 a deal world on average, so the pack separates subjects in aggregate. A model's two plays of a world ended
+identically in 47 of 80 worlds for Opus and 28 for Codex, and some fixed negotiating style comes within 25 of the
+reference in 27 of the 72 deal worlds. Through the environment's hooks the
 full-information pair loses nothing in all 80 of its worlds.
 
 The identity rule was applied: Housing's 36 refused cells ran later under their own

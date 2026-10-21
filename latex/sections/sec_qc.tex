@@ -17,41 +17,49 @@ sized, frozen and executed without tuning on outcomes (5). Each gate is typed \t
 \texttt{partial}, \texttt{not\_run} or \texttt{not\_\allowbreak{}applicable}, and only \texttt{passed} promotes. The profiles followed the initial
 runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 yet (Table 6.1).
 
-\textbf{Table 6.1. Gate status of each reported comparison,} from its family's QC profile on 21 October. A gate's flags are
-what its checks found without blocking it; they qualify the claim.
+\textbf{Table 6.1. Gate status of each reported comparison,} 21 October: ● passed, ◐ partial, ✗ failed, -- not run.
+Reasons and flags are in Appendix F.1.
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Comparison
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+0
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+1
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+2
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+3
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+4
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+5
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Passed
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Not passed, and why
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Flags
+Main open item
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Housing v15 (Table 5.2) & 0, 1, 2, 3, 5 & 4 \texttt{partial}: the declared one-call profile probe ran only after the freeze & \texttt{inspect\_\allowbreak{}lowball}, which inspects the favourite, offers \$0 and signs the counter when the inspected value covers it, comes within \$25 of the best informed tenant in 229 of 260 worlds and equals it in all 60 with a sound favourite; every shortcut loses at least \$25 in every world \\
-Procurement, declared pack (Table 5.3) & 0, 1, 2, 3, 5 & 4 \texttt{partial}: the command-line subjects take no seed, and the runtime registration merged on the owner's override & looking two newcomers ahead loses \$8.38 a world, as little as \$0.09; Opus's and Gemini's two plays of a world always scored the same, Sol's in 7 of 20 worlds \\
-Data-center agreement v2 (Table 5.4) & 3, integrator seat & 0, 2, 5 \texttt{partial}: its registry row awaits a non-author review and its code is not on the main branch, so replay through the runtime's command line has not run; 1 \texttt{partial}: its grid reference is a lower bound, so only the control route applies and it has not run; scored against that reference, a shortcut comes within 25 in 12 of 80 worlds, all 8 where no deal is possible (walking earns the reference, and every scripted rule walks) and 4 of 72 deal worlds; the client seat keeps its construct limit; 4 \texttt{partial}: the command-line subjects take no seed & a model's two plays of a world ended identically in 47 of 80 worlds for Opus and 28 for Codex; some fixed negotiating style comes within 25 of the reference in 27 of the 72 deal worlds \\
-Refund V2.5 (developmental) & 0 & 3 \texttt{failed}: a full refund that collects no fact is fully right on 38 of 180 policy cases, and naive controls come close to the reference in three of four seats; 1, 2 and 4 \texttt{partial}; 5 not run & no model has played it \\
+Housing v15 & ● & ● & ● & ● & ◐ & ● & profile probe ran after the freeze \\
+Procurement, declared pack & ● & ● & ● & ● & ◐ & ● & subjects take no seed \\
+Data-center agreement v2, integrator seat & ◐ & ◐ & ◐ & ● & ◐ & ◐ & not on the main branch; no frozen control \\
+Refund V2.5, developmental & ● & ◐ & ◐ & ✗ & ◐ & -- & a constant full refund passes 38 of 180 cases \\
 \end{longtable}
 
-\textbf{Headroom (Gate 1) is shown in one of two ways.} Where a case computes its reference exactly, as Housing and Procurement
-do, its profile names the shortcuts, rules that skip the decision the case measures, and every
-shortcut must lose a declared margin to the reference in every admitted world; rules that do make the decision are
-reported beside it, as the flags above are. Where the reference is estimated, a frozen model control is played on the
-worlds before they are frozen; the agreement's grid reference is a lower bound, so it needs that route, which has not
-run. The first way was added on 21 October, after Procurement's frozen control proved weaker
-than the shortcuts it was compared with, so the check measured the control rather than the worlds (Appendix F.1).
+\textbf{Headroom (Gate 1).} Where a case computes its reference exactly (Housing, Procurement), every shortcut its profile
+names must lose a declared margin to the reference in every world; otherwise a frozen model control screens the
+worlds. The first route was added on 21 October (Appendix F.1).
 
 \textbf{The reference is played on every world.} For each case a test plays the reference through the
 real environment and verifier on every admitted world, with no model, and checks that it reaches
@@ -66,13 +74,14 @@ or the reference is wrong.
 \textbf{Other checks.} Every committed pack is regenerated byte for byte from its seeds; the Housing
 v14 and v15 receipts replay from their sealed events; trivial agents are reported beside the subjects,
 Procurement's fixed rules are scored exactly, and the briefs were audited for instructions that
-decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and five
-reported analyses were declared before their runs: Housing v14 and v15, the data-center signalling
-test and the two agreement confirmatories.
+decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and six
+reported analyses were declared before their runs: Housing v14 and v15 (with v15's two addenda), Procurement's
+declared test, the data-center signalling test and the two agreement confirmatories. Procurement's frozen-control
+diagnostic was also declared before its plays.
 
 \textbf{What it found.} Discovered failures are recorded in an incident log in design,
-operational, tooling and judgment rows that are never deleted (51, 57, 90 and 23 distinct entries across
-the project's logs). Of 25 defects selected for Table F.4, 14 were invisible in any single
+operational, tooling and judgment rows that are never deleted: 51 entries about Housing, 57 about Procurement, 90
+about the data center and 23 about Refund on 16 October (Table F.3), with rows added since. Of 25 defects selected for Table F.4, 14 were invisible in any single
 world; the 11 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
 single gate cell (Table F.4). Nine were open when the table was compiled; a later reanalysis from the sealed actions resolves
 one of them for the reported panels, leaving eight open. The same checks corrected three of our own

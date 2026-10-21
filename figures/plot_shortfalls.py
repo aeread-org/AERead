@@ -34,8 +34,8 @@ COST = '#D5A23A'
 PROCEDURE = '#7B899B'
 PANELS = [
     dict(case='housing', title='(a) Housing', subtitle='Declared v15 · reachable scripted reference',
-         names=['Gemini 3.8 Flash','GPT-6 Luna','GLM 5.3 Flash (addendum A)'],
-         labels=['Gemini 3.8\nFlash','GPT-6 Luna','GLM 5.3 Flash\n(addendum)'],
+         names=['Gemini 3.8 Flash','GPT-6 Luna','Sol 6.1 (Codex, addendum B)','Opus 5.5 (Claude Code, addendum B)','GLM 5.3 Flash (addendum A)'],
+         labels=['Gemini 3.8 Flash','GPT-6 Luna','Sol 6.1 (B)','Opus 5.5 (B)','GLM 5.3 Flash (A)'],
          sample='260 main worlds each; two landlord arms averaged', unit='Shortfall ($ / world)', legend_columns=3, legend_spacing=.6,
          limit=150, ticks=[0,50,100,150],
          parts=[('information_not_acquired','Info not acquired',INFO,''),
@@ -133,7 +133,7 @@ def main():
                 # The classes Table E.10's Procurement panel shows, in order; build.py checks each displayed mean.
                 procurement_table_keys=[k for k,*_ in next(p for p in PANELS if p['case']=='procurement')['parts']]+['total'],
                 component_sums_checked=len(checks), bars=checks,
-                negative_component_policy='a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero',
+                negative_component_policy='a negative component above -1 is not drawn and is reported in the caption and Table E.10 (Housing inspection cost: GLM 5.3 Flash -0.2, Sol 6.1 and Opus 5.5 -0.4); positive components stack from zero',
                 uncertainty='Point estimates; descriptive intervals in Table E.9',
                 svg_sha256=hashlib.sha256(svg.read_bytes()).hexdigest(),
                 png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())

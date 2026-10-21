@@ -1,6 +1,6 @@
 {
   "source": "analysis_evidence/shortfall_panels/panels.json",
-  "source_sha256": "42bcbd843bc649e659d3672ea62331d9b04582e4f49719f65d81e46006cdb9c2",
+  "source_sha256": "383f768fc8caae2dfb61eb08370cdc5ae2a0ea7f612b4df8a145d2c5e2aec752",
   "figure": "Figure 5.2",
   "table": "Table E.10",
   "procurement_table_keys": [
@@ -10,7 +10,7 @@
     "interaction_cost",
     "total"
   ],
-  "component_sums_checked": 11,
+  "component_sums_checked": 13,
   "bars": [
     {
       "case": "housing",
@@ -72,6 +72,70 @@
         {
           "key": "interaction_cost",
           "value": -0.09615384615384616
+        }
+      ],
+      "axis_limit": 150
+    },
+    {
+      "case": "housing",
+      "subject": "Sol 6.1 (Codex, addendum B)",
+      "total": 15.338346153846155,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 0.0
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 0.0
+        },
+        {
+          "key": "worse_terms",
+          "value": 15.734942307692307
+        },
+        {
+          "key": "commitment_error",
+          "value": -0.011980769230769232
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 0.0
+        },
+        {
+          "key": "interaction_cost",
+          "value": -0.38461538461538464
+        }
+      ],
+      "axis_limit": 150
+    },
+    {
+      "case": "housing",
+      "subject": "Opus 5.5 (Claude Code, addendum B)",
+      "total": 46.07096153846154,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 1.4289615384615384
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 0.0
+        },
+        {
+          "key": "worse_terms",
+          "value": 38.81536538461539
+        },
+        {
+          "key": "commitment_error",
+          "value": 6.259326923076924
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 0.0
+        },
+        {
+          "key": "interaction_cost",
+          "value": -0.4326923076923077
         }
       ],
       "axis_limit": 150
@@ -285,8 +349,8 @@
       "axis_limit": 115
     }
   ],
-  "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero",
+  "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (Housing inspection cost: GLM 5.3 Flash -0.2, Sol 6.1 and Opus 5.5 -0.4); positive components stack from zero",
   "uncertainty": "Point estimates; descriptive intervals in Table E.9",
-  "svg_sha256": "830bddcad4d6bcf9b1b64252524309e4844e8c0807309222c15da2206b6e7ee4",
-  "png_sha256": "53359e6fe8981618056f15e94069e381249de3d4733932919b35466fbc2a51b7"
+  "svg_sha256": "43a63591ed77faab5e701d786d38bed807b3789c1cdad90c013c84fac20595b8",
+  "png_sha256": "c6ef7ac7d730478a947aba8a92391100d4ce3ad338f86d59fd6330f795d25970"
 }

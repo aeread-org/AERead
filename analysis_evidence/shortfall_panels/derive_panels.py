@@ -58,13 +58,16 @@ def main():
                   interval_method='95% Student t interval across worlds; Refund across six fixed cases, descriptive only',
                   housing={}, housing_v14={}, procurement={}, datacenter={}, datacenter_v1={}, refund={})
     # Housing v15 (Table 5.2, Figure 5.2a): the 260 main worlds, measure v2 primary, shortfall to inspect_lowball.
-    # Each cell's class and gap come from housing_v15.py (5522d543); a world is the mean of its two landlord arms.
+    # Each cell's class and gap come from housing_v15.py (5522d543; Sol and Opus, addendum B, from 2443c035); a world is the mean of its two landlord arms.
     v15 = read(ROOT/'housing_v15_taxonomy.json')
     v15_report = read(EVIDENCE/'housing_v15/v15_analysis.json')['secondary']['means_main']
     glm_report = read(EVIDENCE/'housing_v15/glm_addendum_analysis.json')['R3']
+    cli_report = read(EVIDENCE/'housing_v15/cli_addendum_analysis.json')['subjects']
     published = {'Gemini 3.8 Flash': v15_report['inspect_lowball'] - v15_report['gemini'],
                  'GPT-6 Luna': v15_report['inspect_lowball'] - v15_report['luna'],
-                 'GLM 5.3 Flash (addendum A)': -glm_report['mean']}
+                 'GLM 5.3 Flash (addendum A)': -glm_report['mean'],
+                 'Sol 6.1 (Codex, addendum B)': -cli_report['sol']['R']['mean'],
+                 'Opus 5.5 (Claude Code, addendum B)': -cli_report['opus']['R']['mean']}
     for name, subject in v15['subjects'].items():
         assert subject['completed_cells'] == subject['planned_cells'] == 520 and not subject['missing_cells']['total']
         by_world = defaultdict(list)

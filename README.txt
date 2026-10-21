@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.36 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.37 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -342,3 +342,10 @@ current one saturated"):
 - Version 15.36 (2026-10-21): the abstract, Section 1 and Section 7 said only Housing passes four of the five gates;
   after 15.35's Gate 1 re-read Procurement's declared pack does too. LaTeX export: the contact address centres under
   both authors instead of sitting under the second.
+- Version 15.37 (2026-10-21): Table 6.1 cut to a status grid (one symbol per gate, one open item per row); its
+  reasons and flags moved to Appendix F.1, which gains Procurement's and the agreement's identical-play counts and
+  Refund V2.5's gate reasons; the headroom paragraph after it cut to two sentences.
+  Also: Housing failure classes for Sol 6.1 and Opus 5.5 (addendum B, taxonomy 2443c035) in Figure 5.2a (13 bars),
+  Tables E.5, E.9 and E.10(a) and a short §5.2 paragraph; E.9 gains Procurement's Opus and Gemini rows; §6 says six
+  declared analyses (was five) and gives the incident counts as per-case totals dated 16 October (it read as
+  per-category counts). The QC rule change (PR #299) is merged into main (9d77bd5f).
