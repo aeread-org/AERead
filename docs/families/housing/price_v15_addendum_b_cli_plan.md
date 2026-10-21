@@ -85,3 +85,11 @@ Both admissions passed. Each CLI's isolation probe found no violation, and each 
 
 Both projections are under the 6-hour gate, so both main runs start. The ceilings are list prices on subscription
 logins, not charges.
+
+## Amendment 2, 2026-10-20 (both main runs started; no cell read)
+
+The owner waived the 6-hour wall-time stop ("run them", relayed 2026-10-20). Both main runs had already started under
+it: the projections above (about 2.7 and 2.6 hours) were under the gate, so the waiver changes nothing that ran. Every
+other stop stands as declared: an isolation violation refuses a run; the cost ceilings of amendment 1; v15's halt rule
+of 3 consecutive failed cells (stricter than the 5 the relay named, and kept as declared); a failed cell is typed
+missingness and never rerun.
