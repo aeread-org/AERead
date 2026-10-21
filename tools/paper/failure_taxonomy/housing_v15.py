@@ -27,8 +27,14 @@ outside-demand rate and is not in the panels). The whole cell shortfall, negativ
 class whose rule fires, in PRIORITY order. A world's class amount is the mean over its two arms, as the primary is;
 worlds missing an arm are left out (Operational; v15 completed every cell).
 
+Addendum B (Sol 6.1 through Codex, Opus 5.5 through Claude Code, `housing_lemons_price_v15_cli_addendum`) is
+classified the same way and reported apart, like addendum A. Its run roots were written in another checkout
+(`codex/housing-v15-cli`), named by ``AEREAD_HOUSING_CLI_RUNS``; its code is the same commit (add1efdb), which
+``codex/housing-v15-offline`` contains.
+
 Run:
-  AEREAD_HOUSING_ROOT=<checkout of codex/housing-v15-offline with runs/housing_v15> PYTHONDONTWRITEBYTECODE=1 \\
+  AEREAD_HOUSING_ROOT=<checkout of codex/housing-v15-offline with runs/housing_v15> \\
+  AEREAD_HOUSING_CLI_RUNS=<checkout of codex/housing-v15-cli>/runs/housing_v15 PYTHONDONTWRITEBYTECODE=1 \\
       PYTHONPATH=$AEREAD_HOUSING_ROOT/src python housing_v15.py
 """
 from __future__ import annotations
@@ -45,12 +51,15 @@ from typing import Any
 
 WT = Path(os.environ["AEREAD_HOUSING_ROOT"])
 RUNS = WT / "runs/housing_v15"
+CLI_RUNS = Path(os.environ.get("AEREAD_HOUSING_CLI_RUNS", RUNS))
 OUT = Path(__file__).resolve().parent
 BUNDLES = {"v15": WT / "evidence/housing/housing_lemons_price_v15_confirmatory",
-           "addendum": WT / "evidence/housing/housing_lemons_price_v15_glm_addendum"}
+           "addendum": WT / "evidence/housing/housing_lemons_price_v15_glm_addendum",
+           "cli_addendum": WT / "evidence/housing/housing_lemons_price_v15_cli_addendum"}
 PACK = WT / "evidence/housing/housing_lemons_price_pack_v2/reports/pack.json"
 ANALYSIS = WT / "evidence/housing/housing_lemons_price_v15_analysis/reports/analysis.json"
 ADDENDUM_ANALYSIS = WT / "evidence/housing/housing_lemons_price_v15_glm_addendum_analysis/reports/analysis.json"
+CLI_ANALYSIS = WT / "evidence/housing/housing_lemons_price_v15_cli_addendum_analysis/reports/analysis.json"
 
 from aeread_families.housing import lemons, lemons_design, price_controls, price_endpoint as pe  # noqa: E402
 from aeread_families.housing import price_outside_demand, price_reference as pr  # noqa: E402
@@ -59,7 +68,9 @@ from aeread_families.housing import price_reply_posterior as posterior  # noqa: 
 # campaign id -> (name, bundle, whether it is in v15's declared pair). GLM is addendum A, reported apart.
 PANEL = {"housing_lemons_price_v15_gemini38_flash": ("Gemini 3.8 Flash", "v15", True),
          "housing_lemons_price_v15_gpt6_luna": ("GPT-6 Luna", "v15", True),
-         "housing_lemons_price_v15_glm53_flash_nearai": ("GLM 5.3 Flash (addendum A)", "addendum", False)}
+         "housing_lemons_price_v15_glm53_flash_nearai": ("GLM 5.3 Flash (addendum A)", "addendum", False),
+         "housing_lemons_price_v15_cli_codex_sol61": ("Sol 6.1 (Codex, addendum B)", "cli_addendum", False),
+         "housing_lemons_price_v15_cli_claude_opus55": ("Opus 5.5 (Claude Code, addendum B)", "cli_addendum", False)}
 CLASSES = ("information_not_acquired", "contrary_to_information_held", "worse_terms", "commitment_error",
            "interaction_cost", "procedure_and_format", "operational")
 PRIORITY = ("procedure_and_format", "contrary_to_information_held", "information_not_acquired", "commitment_error",
@@ -126,7 +137,8 @@ def seat0_offers(cell_json: Path) -> list[tuple[int, int, float]]:
 
 def analyse_cell(row: dict[str, Any], cid: str) -> dict[str, Any]:
     seed, arm = int(row["world_seed"]), row["arm"]
-    cell_json = RUNS / cid / "live" / f"world_{seed}__{arm}.json"
+    root = CLI_RUNS if PANEL[cid][1] == "cli_addendum" else RUNS
+    cell_json = root / cid / "live" / f"world_{seed}__{arm}.json"
     seat0, trajectory = seat0_block(cell_json)
     world = pr.make_world(seed, arm)
     decisions = seat0["commit_decisions"]
@@ -273,6 +285,9 @@ def published_total(cid: str) -> float:
         means = json.loads(ANALYSIS.read_text())["secondary"]["means_main"]
         key = {"housing_lemons_price_v15_gemini38_flash": "gemini", "housing_lemons_price_v15_gpt6_luna": "luna"}[cid]
         return round(means[key] - means["inspect_lowball"], 2)
+    if PANEL[cid][1] == "cli_addendum":  # addendum B's declared row R: seat 0 less inspect_lowball, main pack
+        key = {"housing_lemons_price_v15_cli_codex_sol61": "sol", "housing_lemons_price_v15_cli_claude_opus55": "opus"}[cid]
+        return json.loads(CLI_ANALYSIS.read_text())["subjects"][key]["R"]["mean"]
     return None
 
 
