@@ -52,7 +52,11 @@ where a family keeps a case directory for each version, each is still run.
 | Line | Latest | Other versions | Still imported by siblings |
 |---|---|---|---|
 | `confirmatory_case_matrix` | v2: [`confirmatory_v2_case_matrix.py`](../../src/aeread_families/procurement_allocation/confirmatory_v2_case_matrix.py) | [v1](../../src/aeread_families/procurement_allocation/confirmatory_case_matrix.py) | v1 by 7 |
+| `inference_case_matrix` | v2: [`inference_v2_case_matrix.py`](../../src/aeread_families/procurement_allocation/inference_v2_case_matrix.py) | [v1](../../src/aeread_families/procurement_allocation/inference_case_matrix.py) | v1 by 2 |
 | `negotiation_worksheet_campaign` | v2: [`negotiation_worksheet_v2_campaign.py`](../../src/aeread_families/procurement_allocation/negotiation_worksheet_v2_campaign.py) | [v1](../../src/aeread_families/procurement_allocation/negotiation_worksheet_campaign.py) | none |
+| `pay_or_test_case_matrix` | v3: [`pay_or_test_v3_case_matrix.py`](../../src/aeread_families/procurement_allocation/pay_or_test_v3_case_matrix.py) | [v1](../../src/aeread_families/procurement_allocation/pay_or_test_case_matrix.py), [v2](../../src/aeread_families/procurement_allocation/pay_or_test_v2_case_matrix.py) | v1 by 2 |
+| `pay_or_test_prompt` | v3: [`pay_or_test_v3_prompt.py`](../../src/aeread_families/procurement_allocation/pay_or_test_v3_prompt.py) | [v1](../../src/aeread_families/procurement_allocation/pay_or_test_prompt.py), [v2](../../src/aeread_families/procurement_allocation/pay_or_test_v2_prompt.py) | v1 by 1 |
+| `pay_or_test_reference` | v3: [`pay_or_test_v3_reference.py`](../../src/aeread_families/procurement_allocation/pay_or_test_v3_reference.py) | [v1](../../src/aeread_families/procurement_allocation/pay_or_test_reference.py), [v2](../../src/aeread_families/procurement_allocation/pay_or_test_v2_reference.py) | v1 by 6, v2 by 3 |
 | `qwen235b_constraint_analysis` | v2: [`qwen235b_constraint_v2_analysis.py`](../../src/aeread_families/procurement_allocation/qwen235b_constraint_v2_analysis.py) | [v1](../../src/aeread_families/procurement_allocation/qwen235b_constraint_analysis.py) | none |
 | `qwen235b_constraint_campaign` | v2: [`qwen235b_constraint_v2_campaign.py`](../../src/aeread_families/procurement_allocation/qwen235b_constraint_v2_campaign.py) | [v1](../../src/aeread_families/procurement_allocation/qwen235b_constraint_campaign.py) | v1 by 2 |
 
@@ -64,3 +68,11 @@ where a family keeps a case directory for each version, each is still run.
 | `experiment` | v2: [`v2_experiment.py`](../../src/aeread_families/refund/v2_experiment.py) | [v1](../../src/aeread_families/refund/experiment.py) | none |
 | `measurement` | v2: [`v2_measurement.py`](../../src/aeread_families/refund/v2_measurement.py) | [v1](../../src/aeread_families/refund/measurement.py) | v1 by 2 |
 | `runner` | v2: [`v2_runner.py`](../../src/aeread_families/refund/v2_runner.py) | [v1](../../src/aeread_families/refund/runner.py) | v1 by 1 |
+
+## `termsbench`
+
+| Line | Latest | Other versions | Still imported by siblings |
+|---|---|---|---|
+| `cases` | v2: [`cases_v2.py`](../../src/aeread_families/termsbench/cases_v2.py) | [v1](../../src/aeread_families/termsbench/cases.py) | v1 by 4 |
+| `environment` | v2: [`environment_v2.py`](../../src/aeread_families/termsbench/environment_v2.py) | [v1](../../src/aeread_families/termsbench/environment.py) | v1 by 5 |
+| `harness` | v2: [`harness_v2.py`](../../src/aeread_families/termsbench/harness_v2.py) | [v1](../../src/aeread_families/termsbench/harness.py) | v1 by 3 |

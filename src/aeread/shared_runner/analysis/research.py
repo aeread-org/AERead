@@ -1602,7 +1602,9 @@ def project_loss_analysis_tables(
         receipt = selected_receipts.get(cell.cell_id)
         calls = () if evidence is None else _extract_model_calls(evidence, task_id=cell.cell_id)
         if evidence is not None:
-            permitted_seats = set(cell.profile_by_seat)
+            # A scripted seat is a seat of the cell that makes no provider
+            # call; naming it here keeps the check about seats, not models.
+            permitted_seats = set(cell.profile_by_seat) | set(cell.scripted_seats)
             unknown_seats = sorted(
                 {
                     call.seat_id
@@ -1613,6 +1615,15 @@ def project_loss_analysis_tables(
             if unknown_seats:
                 raise ResearchContractError(
                     f"model calls reference seats absent from task {cell.cell_id!r}: {unknown_seats}"
+                )
+            # A scripted seat never reaches a provider; a recorded call naming
+            # one would mean the scheduler sent a scripted turn to a model.
+            scripted_calls = sorted(
+                {call.seat_id for call in calls if call.seat_id in cell.scripted_seats}
+            )
+            if scripted_calls:
+                raise ResearchContractError(
+                    f"scripted seats made provider calls in task {cell.cell_id!r}: {scripted_calls}"
                 )
         if receipt is not None and evidence is not None:
             try:
@@ -2245,6 +2256,9 @@ def _deserialize_run_plan(value: Mapping[str, Any]) -> RunPlan:
                     "profile_by_seat": MappingProxyType(
                         dict(item["profile_by_seat"])
                     ),
+                    "scripted_seats": MappingProxyType(
+                        dict(item.get("scripted_seats", {}))
+                    ),
                 }
             )
             for item in value["cells"]
@@ -2473,6 +2487,9 @@ def _deserialize_receipt(value: Mapping[str, Any]) -> EvaluationReceipt:
             # immediately above was already carried correctly; this mirrors
             # it exactly.
             inapplicable_leaf_ids=tuple(value.get("inapplicable_leaf_ids", ())),
+            # Omitted from the serialized receipt when empty (the digest
+            # neutrality rule), so an older receipt reads back unchanged.
+            scripted_seats=MappingProxyType(dict(value.get("scripted_seats", {}))),
         )
         verify_evaluation_receipt(receipt)
         return receipt

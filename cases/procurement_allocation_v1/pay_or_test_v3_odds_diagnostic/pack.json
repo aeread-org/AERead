@@ -1,0 +1,2939 @@
+{
+  "cohort_ranges": {
+    "failed": [
+      8,
+      14,
+      20,
+      24
+    ],
+    "late": [
+      4,
+      8
+    ]
+  },
+  "family": {
+    "id": "procurement_allocation_v1",
+    "version": "1.1.0"
+  },
+  "generator": {
+    "id": "procurement_allocation_pay_or_test_case_matrix_v3",
+    "version": "3.0.0"
+  },
+  "pack_id": "pay_or_test_v3_odds_diagnostic",
+  "reads": "the confirmatory worlds' structures with cohort records redrawn; valued exactly, not admitted",
+  "schema_version": "aeread.procurement_pay_or_test_pack/0.3",
+  "twin_of": "pay_or_test_v3_confirm",
+  "world_count": 20,
+  "worlds": [
+    {
+      "best_first_action": "request_quote driver_board_l753",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.379,
+      "best_policy_value_usd": 444.38,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__1",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 20,
+          "late": 8
+        }
+      },
+      "content_sha256": "a12b2cb24cee58a1f3f64f1d8c60249fe453cacc0db6bc1c046d9a8f2af47d45",
+      "expected_full_information_value_usd": 537.8,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 57.28,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l101"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 76.86,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l604"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 10.6,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l753"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l753",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 4,
+          "days": 4,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 320.26
+        },
+        "best_policy": {
+          "actions": 4,
+          "days": 4,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 320.26
+        },
+        "cheapest_first_once": {
+          "actions": 4,
+          "days": 4,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 320.26
+        },
+        "cheapest_sample_first": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 19.55,
+          "lookups": 0,
+          "margin_usd": 295.26
+        },
+        "cheapest_until_found": {
+          "actions": 8,
+          "days": 10,
+          "decision_loss_usd": 206.0,
+          "lookups": 0,
+          "margin_usd": 114.26
+        },
+        "look_up_first": {
+          "actions": 6,
+          "days": 4,
+          "decision_loss_usd": 11.66,
+          "lookups": 2,
+          "margin_usd": 318.26
+        },
+        "one_step_value": {
+          "actions": 4,
+          "days": 4,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 320.26
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 122.12,
+          "lookups": 0,
+          "margin_usd": 322.26
+        },
+        "probe_same_kind_first": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 19.55,
+          "lookups": 0,
+          "margin_usd": 295.26
+        },
+        "two_step_value": {
+          "actions": 4,
+          "days": 4,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 320.26
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 100.81,
+        "cheapest_first_once": 100.81,
+        "cheapest_sample_first": 34.58,
+        "cheapest_until_found": 642.95,
+        "look_up_first": 51.78,
+        "one_step_value": 39.89,
+        "pay_premium": 122.12,
+        "probe_same_kind_first": 34.58,
+        "two_step_value": 26.03
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 343.56,
+        "cheapest_first_once": 343.56,
+        "cheapest_sample_first": 409.79,
+        "cheapest_until_found": -198.57,
+        "look_up_first": 392.59,
+        "one_step_value": 404.49,
+        "pay_premium": 322.26,
+        "probe_same_kind_first": 409.79,
+        "two_step_value": 418.35
+      },
+      "shared_by_group": [
+        false,
+        false
+      ],
+      "slug": "myopic_pays__1",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__1",
+      "types": [
+        "late",
+        "poor",
+        "late"
+      ],
+      "world_seed": 9400448
+    },
+    {
+      "best_first_action": "request_quote driver_board_l876",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.3589,
+      "best_policy_value_usd": 692.43,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__2",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 14,
+          "late": 4
+        },
+        "trading company": {
+          "failed": 8,
+          "late": 4
+        }
+      },
+      "content_sha256": "756f9c8c47074b08996cc86e6f737f28c39f801f4f44f929080dfb1d73faab3e",
+      "expected_full_information_value_usd": 761.6,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 36.67,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l316"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 50.1,
+          "stated_good_share": 0.7,
+          "supplier_id": "driver_board_l561"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 12.71,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l876"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l876",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 8,
+          "days": 9,
+          "decision_loss_usd": 1464.43,
+          "lookups": 0,
+          "margin_usd": -772.0
+        },
+        "best_policy": {
+          "actions": 8,
+          "days": 8,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 478.56
+        },
+        "cheapest_first_once": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 40.22,
+          "lookups": 0,
+          "margin_usd": 305.56
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 47.03,
+          "lookups": 0,
+          "margin_usd": 484.56
+        },
+        "cheapest_until_found": {
+          "actions": 7,
+          "days": 10,
+          "decision_loss_usd": 1120.52,
+          "lookups": 0,
+          "margin_usd": -833.0
+        },
+        "look_up_first": {
+          "actions": 8,
+          "days": 8,
+          "decision_loss_usd": 65.0,
+          "lookups": 2,
+          "margin_usd": 303.56
+        },
+        "one_step_value": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 40.22,
+          "lookups": 0,
+          "margin_usd": 305.56
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 182.87,
+          "lookups": 0,
+          "margin_usd": 509.56
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 47.03,
+          "lookups": 0,
+          "margin_usd": 484.56
+        },
+        "two_step_value": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 39.14,
+          "lookups": 0,
+          "margin_usd": 480.56
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 397.15,
+        "cheapest_first_once": 44.5,
+        "cheapest_sample_first": 39.57,
+        "cheapest_until_found": 323.51,
+        "look_up_first": 42.71,
+        "one_step_value": 29.05,
+        "pay_premium": 182.87,
+        "probe_same_kind_first": 39.57,
+        "two_step_value": 17.56
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 295.28,
+        "cheapest_first_once": 647.93,
+        "cheapest_sample_first": 652.85,
+        "cheapest_until_found": 368.92,
+        "look_up_first": 649.71,
+        "one_step_value": 663.38,
+        "pay_premium": 509.56,
+        "probe_same_kind_first": 652.85,
+        "two_step_value": 674.87
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__2",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__2",
+      "types": [
+        "poor",
+        "good",
+        "poor"
+      ],
+      "world_seed": 9404173
+    },
+    {
+      "best_first_action": "request_quote driver_board_l309",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.2153,
+      "best_policy_value_usd": 586.73,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__3",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 8,
+          "late": 4
+        }
+      },
+      "content_sha256": "1f4b8346e94b03639df6bbd8a5954ba780adffdbb7c7c5380911f79034a6fa79",
+      "expected_full_information_value_usd": 632.16,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 12.47,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l309"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 68.61,
+          "stated_good_share": 0.7,
+          "supplier_id": "driver_board_l685"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 26.87,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l578"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l309",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 10,
+          "days": 13,
+          "decision_loss_usd": 1257.73,
+          "lookups": 0,
+          "margin_usd": -671.0
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 474.8
+        },
+        "cheapest_first_once": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 474.8
+        },
+        "cheapest_sample_first": {
+          "actions": 8,
+          "days": 10,
+          "decision_loss_usd": 30.32,
+          "lookups": 0,
+          "margin_usd": 449.8
+        },
+        "cheapest_until_found": {
+          "actions": 10,
+          "days": 10,
+          "decision_loss_usd": 1090.14,
+          "lookups": 0,
+          "margin_usd": -620.0
+        },
+        "look_up_first": {
+          "actions": 9,
+          "days": 7,
+          "decision_loss_usd": 12.71,
+          "lookups": 2,
+          "margin_usd": 472.8
+        },
+        "one_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 474.8
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 103.93,
+          "lookups": 0,
+          "margin_usd": 482.8
+        },
+        "probe_same_kind_first": {
+          "actions": 8,
+          "days": 10,
+          "decision_loss_usd": 6.05,
+          "lookups": 0,
+          "margin_usd": 444.8
+        },
+        "two_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 474.8
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 224.57,
+        "cheapest_first_once": 137.39,
+        "cheapest_sample_first": 90.75,
+        "cheapest_until_found": 721.55,
+        "look_up_first": 70.65,
+        "one_step_value": 63.82,
+        "pay_premium": 103.93,
+        "probe_same_kind_first": 6.05,
+        "two_step_value": 0.68
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 362.15,
+        "cheapest_first_once": 449.34,
+        "cheapest_sample_first": 495.97,
+        "cheapest_until_found": -134.82,
+        "look_up_first": 516.08,
+        "one_step_value": 522.9,
+        "pay_premium": 482.8,
+        "probe_same_kind_first": 580.67,
+        "two_step_value": 586.04
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__3",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__3",
+      "types": [
+        "late",
+        "good",
+        "late"
+      ],
+      "world_seed": 9408879
+    },
+    {
+      "best_first_action": "request_quote driver_board_l505",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.5219,
+      "best_policy_value_usd": 588.18,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__4",
+      "cohorts": {
+        "trading company": {
+          "failed": 14,
+          "late": 4
+        }
+      },
+      "content_sha256": "9f5ae92547a06b427647b8a8119e7e6ba6b3dd1e0e4beda69674f72c47dc8d0f",
+      "expected_full_information_value_usd": 681.04,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 13.02,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l505"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 22.29,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l389"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 28.81,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l836"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l505",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 39.17,
+          "lookups": 0,
+          "margin_usd": 144.47
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 142.47
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 39.17,
+          "lookups": 0,
+          "margin_usd": 144.47
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 68.22,
+          "lookups": 0,
+          "margin_usd": 356.47
+        },
+        "cheapest_until_found": {
+          "actions": 5,
+          "days": 8,
+          "decision_loss_usd": 187.17,
+          "lookups": 0,
+          "margin_usd": 213.15
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 13.71,
+          "lookups": 2,
+          "margin_usd": 142.47
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 39.17,
+          "lookups": 0,
+          "margin_usd": 144.47
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 201.71,
+          "lookups": 0,
+          "margin_usd": 386.47
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 68.22,
+          "lookups": 0,
+          "margin_usd": 356.47
+        },
+        "two_step_value": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 78.65,
+          "lookups": 0,
+          "margin_usd": 352.47
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 83.5,
+        "cheapest_first_once": 83.5,
+        "cheapest_sample_first": 44.51,
+        "cheapest_until_found": 409.45,
+        "look_up_first": 43.44,
+        "one_step_value": 28.29,
+        "pay_premium": 201.71,
+        "probe_same_kind_first": 44.51,
+        "two_step_value": 26.9
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 504.68,
+        "cheapest_first_once": 504.68,
+        "cheapest_sample_first": 543.67,
+        "cheapest_until_found": 178.72,
+        "look_up_first": 544.74,
+        "one_step_value": 559.89,
+        "pay_premium": 386.47,
+        "probe_same_kind_first": 543.67,
+        "two_step_value": 561.28
+      },
+      "shared_by_group": [
+        false
+      ],
+      "slug": "myopic_pays__4",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__4",
+      "types": [
+        "poor",
+        "good",
+        "poor"
+      ],
+      "world_seed": 9412092
+    },
+    {
+      "best_first_action": "request_quote driver_board_l538",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.1692,
+      "best_policy_value_usd": 505.05,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__5",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 24,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 14,
+          "late": 8
+        }
+      },
+      "content_sha256": "9e28e4366b1a6fdf5ce9de7d19b1a144f2b04bbbe3710410ace16a0671ca4c2f",
+      "expected_full_information_value_usd": 570.07,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 9.82,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l538"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 47.48,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l678"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 61.51,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l605"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l538",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 235.09,
+          "lookups": 0,
+          "margin_usd": 269.96
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 423.96
+        },
+        "cheapest_first_once": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 423.96
+        },
+        "cheapest_sample_first": {
+          "actions": 7,
+          "days": 9,
+          "decision_loss_usd": 12.21,
+          "lookups": 0,
+          "margin_usd": 395.96
+        },
+        "cheapest_until_found": {
+          "actions": 10,
+          "days": 11,
+          "decision_loss_usd": 1199.96,
+          "lookups": 0,
+          "margin_usd": -776.0
+        },
+        "look_up_first": {
+          "actions": 9,
+          "days": 7,
+          "decision_loss_usd": 0.87,
+          "lookups": 2,
+          "margin_usd": 421.96
+        },
+        "one_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 423.96
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 73.09,
+          "lookups": 0,
+          "margin_usd": 431.96
+        },
+        "probe_same_kind_first": {
+          "actions": 7,
+          "days": 9,
+          "decision_loss_usd": 12.21,
+          "lookups": 0,
+          "margin_usd": 395.96
+        },
+        "two_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 423.96
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 377.01,
+        "cheapest_first_once": 129.63,
+        "cheapest_sample_first": 16.51,
+        "cheapest_until_found": 910.19,
+        "look_up_first": 65.05,
+        "one_step_value": 63.05,
+        "pay_premium": 73.09,
+        "probe_same_kind_first": 16.51,
+        "two_step_value": 4.34
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 128.03,
+        "cheapest_first_once": 375.42,
+        "cheapest_sample_first": 488.54,
+        "cheapest_until_found": -405.15,
+        "look_up_first": 440.0,
+        "one_step_value": 442.0,
+        "pay_premium": 431.96,
+        "probe_same_kind_first": 488.54,
+        "two_step_value": 500.71
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__5",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__5",
+      "types": [
+        "late",
+        "late",
+        "good"
+      ],
+      "world_seed": 9416090
+    },
+    {
+      "best_first_action": "request_quote driver_board_l402",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.5924,
+      "best_policy_value_usd": 530.22,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__6",
+      "cohorts": {
+        "trading company": {
+          "failed": 14,
+          "late": 8
+        }
+      },
+      "content_sha256": "cabb025af764219bf59e802f3c8a6e6875dfac1e4401c73b6eaf5a1ce8b11905",
+      "expected_full_information_value_usd": 609.8,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 80.31,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l834"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 12.33,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l402"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 45.48,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l534"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l402",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 40.5,
+          "lookups": 0,
+          "margin_usd": 944.16
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 6,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 942.16
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 40.5,
+          "lookups": 0,
+          "margin_usd": 944.16
+        },
+        "cheapest_sample_first": {
+          "actions": 6,
+          "days": 9,
+          "decision_loss_usd": 42.32,
+          "lookups": 0,
+          "margin_usd": 924.16
+        },
+        "cheapest_until_found": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 40.5,
+          "lookups": 0,
+          "margin_usd": 944.16
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 6,
+          "decision_loss_usd": 21.32,
+          "lookups": 2,
+          "margin_usd": 942.16
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 40.5,
+          "lookups": 0,
+          "margin_usd": 944.16
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 197.26,
+          "lookups": 0,
+          "margin_usd": 332.96
+        },
+        "probe_same_kind_first": {
+          "actions": 6,
+          "days": 9,
+          "decision_loss_usd": 42.32,
+          "lookups": 0,
+          "margin_usd": 924.16
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 40.5,
+          "lookups": 0,
+          "margin_usd": 944.16
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 30.06,
+        "cheapest_first_once": 30.06,
+        "cheapest_sample_first": 68.9,
+        "cheapest_until_found": 323.77,
+        "look_up_first": 48.6,
+        "one_step_value": 26.0,
+        "pay_premium": 197.26,
+        "probe_same_kind_first": 68.9,
+        "two_step_value": 26.0
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 500.16,
+        "cheapest_first_once": 500.16,
+        "cheapest_sample_first": 461.31,
+        "cheapest_until_found": 206.45,
+        "look_up_first": 481.61,
+        "one_step_value": 504.22,
+        "pay_premium": 332.96,
+        "probe_same_kind_first": 461.31,
+        "two_step_value": 504.22
+      },
+      "shared_by_group": [
+        false
+      ],
+      "slug": "myopic_pays__6",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__6",
+      "types": [
+        "good",
+        "good",
+        "late"
+      ],
+      "world_seed": 9420482
+    },
+    {
+      "best_first_action": "request_quote driver_board_l419",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.2328,
+      "best_policy_value_usd": 502.84,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__7",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 24,
+          "late": 4
+        },
+        "trading company": {
+          "failed": 20,
+          "late": 4
+        }
+      },
+      "content_sha256": "a2d76ca44adafe4b141c871f86850ceb0aae4a8a1d3ddee5b9b32e078e6f779b",
+      "expected_full_information_value_usd": 572.13,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 13.69,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l419"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 28.38,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l315"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 28.38,
+          "stated_good_share": 0.4,
+          "supplier_id": "driver_board_l661"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l419",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 8,
+          "days": 10,
+          "decision_loss_usd": 218.79,
+          "lookups": 0,
+          "margin_usd": 279.88
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 6,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 949.38
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 51.33,
+          "lookups": 0,
+          "margin_usd": 951.38
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 17.96,
+          "lookups": 0,
+          "margin_usd": 367.88
+        },
+        "cheapest_until_found": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 51.33,
+          "lookups": 0,
+          "margin_usd": 951.38
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 6,
+          "decision_loss_usd": 8.0,
+          "lookups": 2,
+          "margin_usd": 949.38
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 6,
+          "decision_loss_usd": 51.33,
+          "lookups": 0,
+          "margin_usd": 951.38
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 94.96,
+          "lookups": 0,
+          "margin_usd": 407.88
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 17.96,
+          "lookups": 0,
+          "margin_usd": 367.88
+        },
+        "two_step_value": {
+          "actions": 7,
+          "days": 9,
+          "decision_loss_usd": 19.36,
+          "lookups": 0,
+          "margin_usd": 361.88
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 301.91,
+        "cheapest_first_once": 107.98,
+        "cheapest_sample_first": 15.43,
+        "cheapest_until_found": 682.9,
+        "look_up_first": 46.52,
+        "one_step_value": 37.62,
+        "pay_premium": 94.96,
+        "probe_same_kind_first": 15.43,
+        "two_step_value": 10.96
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 200.93,
+        "cheapest_first_once": 394.86,
+        "cheapest_sample_first": 487.41,
+        "cheapest_until_found": -180.06,
+        "look_up_first": 456.31,
+        "one_step_value": 465.21,
+        "pay_premium": 407.88,
+        "probe_same_kind_first": 487.41,
+        "two_step_value": 491.87
+      },
+      "shared_by_group": [
+        false,
+        false
+      ],
+      "slug": "myopic_pays__7",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__7",
+      "types": [
+        "good",
+        "poor",
+        "poor"
+      ],
+      "world_seed": 9424034
+    },
+    {
+      "best_first_action": "request_quote driver_board_l512",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.198,
+      "best_policy_value_usd": 453.39,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__8",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 24,
+          "late": 4
+        }
+      },
+      "content_sha256": "cb100ed26a5fdce1bb3ad592c9bb248eba50e89b2f60dcdc5865a36b841aa400",
+      "expected_full_information_value_usd": 615.99,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 14.86,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l791"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 14.67,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l512"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 27.45,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l956"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l512",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 96.17,
+          "lookups": 0,
+          "margin_usd": 862.93
+        },
+        "best_policy": {
+          "actions": 5,
+          "days": 4,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 860.93
+        },
+        "cheapest_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 96.17,
+          "lookups": 0,
+          "margin_usd": 862.93
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 9.49,
+          "lookups": 0,
+          "margin_usd": 348.45
+        },
+        "cheapest_until_found": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 96.17,
+          "lookups": 0,
+          "margin_usd": 862.93
+        },
+        "look_up_first": {
+          "actions": 5,
+          "days": 4,
+          "decision_loss_usd": 0.73,
+          "lookups": 2,
+          "margin_usd": 860.93
+        },
+        "one_step_value": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 96.17,
+          "lookups": 0,
+          "margin_usd": 862.93
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 74.94,
+          "lookups": 0,
+          "margin_usd": 378.45
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 9.49,
+          "lookups": 0,
+          "margin_usd": 348.45
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 1.61,
+          "lookups": 0,
+          "margin_usd": 346.45
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 255.88,
+        "cheapest_first_once": 255.88,
+        "cheapest_sample_first": 16.96,
+        "cheapest_until_found": 336.71,
+        "look_up_first": 62.91,
+        "one_step_value": 60.91,
+        "pay_premium": 74.94,
+        "probe_same_kind_first": 16.96,
+        "two_step_value": 8.24
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 197.51,
+        "cheapest_first_once": 197.51,
+        "cheapest_sample_first": 436.43,
+        "cheapest_until_found": 116.67,
+        "look_up_first": 390.48,
+        "one_step_value": 392.48,
+        "pay_premium": 378.45,
+        "probe_same_kind_first": 436.43,
+        "two_step_value": 445.15
+      },
+      "shared_by_group": [
+        false
+      ],
+      "slug": "myopic_pays__8",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__8",
+      "types": [
+        "poor",
+        "good",
+        "poor"
+      ],
+      "world_seed": 9428479
+    },
+    {
+      "best_first_action": "request_quote driver_board_l400",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.27,
+      "best_policy_value_usd": 490.82,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__9",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 20,
+          "late": 4
+        }
+      },
+      "content_sha256": "89dade2132dfedbd579bd28f7dae516a0f3227bd2c53e6e1033ac838f560d3e1",
+      "expected_full_information_value_usd": 538.12,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 35.46,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l318"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 13.38,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l400"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 35.46,
+          "stated_good_share": 0.4,
+          "supplier_id": "driver_board_l965"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l400",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 7,
+          "days": 9,
+          "decision_loss_usd": 129.27,
+          "lookups": 0,
+          "margin_usd": 360.47
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 352.47
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 112.0,
+          "lookups": 0,
+          "margin_usd": 144.47
+        },
+        "cheapest_sample_first": {
+          "actions": 6,
+          "days": 10,
+          "decision_loss_usd": 144.63,
+          "lookups": 0,
+          "margin_usd": 124.47
+        },
+        "cheapest_until_found": {
+          "actions": 9,
+          "days": 13,
+          "decision_loss_usd": 148.0,
+          "lookups": 0,
+          "margin_usd": 108.47
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 132.09,
+          "lookups": 2,
+          "margin_usd": 142.47
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 112.0,
+          "lookups": 0,
+          "margin_usd": 144.47
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 104.34,
+          "lookups": 0,
+          "margin_usd": 386.47
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 5.7,
+          "lookups": 0,
+          "margin_usd": 356.47
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 0.51,
+          "lookups": 0,
+          "margin_usd": 354.47
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 349.84,
+        "cheapest_first_once": 148.74,
+        "cheapest_sample_first": 103.28,
+        "cheapest_until_found": 549.37,
+        "look_up_first": 85.28,
+        "one_step_value": 80.4,
+        "pay_premium": 104.34,
+        "probe_same_kind_first": 5.76,
+        "two_step_value": 0.33
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 140.98,
+        "cheapest_first_once": 342.08,
+        "cheapest_sample_first": 387.54,
+        "cheapest_until_found": -58.55,
+        "look_up_first": 405.54,
+        "one_step_value": 410.42,
+        "pay_premium": 386.47,
+        "probe_same_kind_first": 485.06,
+        "two_step_value": 490.49
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__9",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__9",
+      "types": [
+        "poor",
+        "poor",
+        "poor"
+      ],
+      "world_seed": 9432068
+    },
+    {
+      "best_first_action": "request_quote driver_board_l653",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.317,
+      "best_policy_value_usd": 660.53,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__10",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 14,
+          "late": 8
+        }
+      },
+      "content_sha256": "6e613194dcdc58e986023fc0cfcb5a9247becd038a26e6a801d36c1d08a9402c",
+      "expected_full_information_value_usd": 906.52,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 36.9,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l816"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 11.97,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l653"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 11.97,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l647"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l653",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 339.53
+        },
+        "best_policy": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 339.53
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 106.91,
+          "lookups": 0,
+          "margin_usd": 339.53
+        },
+        "cheapest_sample_first": {
+          "actions": 6,
+          "days": 10,
+          "decision_loss_usd": 29.68,
+          "lookups": 0,
+          "margin_usd": 314.53
+        },
+        "cheapest_until_found": {
+          "actions": 5,
+          "days": 8,
+          "decision_loss_usd": 352.64,
+          "lookups": 0,
+          "margin_usd": -924.0
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 1.87,
+          "lookups": 2,
+          "margin_usd": 337.53
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 339.53
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 159.0,
+          "lookups": 0,
+          "margin_usd": 501.53
+        },
+        "probe_same_kind_first": {
+          "actions": 6,
+          "days": 10,
+          "decision_loss_usd": 29.68,
+          "lookups": 0,
+          "margin_usd": 314.53
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 339.53
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 38.84,
+        "cheapest_first_once": 218.27,
+        "cheapest_sample_first": 35.11,
+        "cheapest_until_found": 257.65,
+        "look_up_first": 6.51,
+        "one_step_value": 4.51,
+        "pay_premium": 159.0,
+        "probe_same_kind_first": 35.11,
+        "two_step_value": 1.18
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 621.69,
+        "cheapest_first_once": 442.26,
+        "cheapest_sample_first": 625.42,
+        "cheapest_until_found": 402.88,
+        "look_up_first": 654.01,
+        "one_step_value": 656.01,
+        "pay_premium": 501.53,
+        "probe_same_kind_first": 625.42,
+        "two_step_value": 659.35
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__10",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__10",
+      "types": [
+        "poor",
+        "poor",
+        "poor"
+      ],
+      "world_seed": 9436004
+    },
+    {
+      "best_first_action": "request_quote driver_board_l679",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.535,
+      "best_policy_value_usd": 502.87,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__11",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 14,
+          "late": 4
+        }
+      },
+      "content_sha256": "2e0ef13d8a4631a2f161e98d89e29574cd0a58fcfb6e4fdd6f8b7fcc38f3df72",
+      "expected_full_information_value_usd": 584.07,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 29.99,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l568"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 66.14,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l106"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 15.96,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l679"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l679",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 24.39,
+          "lookups": 0,
+          "margin_usd": 793.9
+        },
+        "best_policy": {
+          "actions": 6,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 766.9
+        },
+        "cheapest_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 24.39,
+          "lookups": 0,
+          "margin_usd": 793.9
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 7,
+          "decision_loss_usd": 44.23,
+          "lookups": 0,
+          "margin_usd": 768.9
+        },
+        "cheapest_until_found": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 24.39,
+          "lookups": 0,
+          "margin_usd": 793.9
+        },
+        "look_up_first": {
+          "actions": 5,
+          "days": 4,
+          "decision_loss_usd": 65.29,
+          "lookups": 2,
+          "margin_usd": 791.9
+        },
+        "one_step_value": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 24.39,
+          "lookups": 0,
+          "margin_usd": 793.9
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 175.27,
+          "lookups": 0,
+          "margin_usd": 327.61
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 7,
+          "decision_loss_usd": 44.23,
+          "lookups": 0,
+          "margin_usd": 768.9
+        },
+        "two_step_value": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 24.39,
+          "lookups": 0,
+          "margin_usd": 793.9
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 71.36,
+        "cheapest_first_once": 71.36,
+        "cheapest_sample_first": 71.9,
+        "cheapest_until_found": 328.62,
+        "look_up_first": 31.57,
+        "one_step_value": 17.61,
+        "pay_premium": 175.27,
+        "probe_same_kind_first": 71.9,
+        "two_step_value": 17.61
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 431.51,
+        "cheapest_first_once": 431.51,
+        "cheapest_sample_first": 430.97,
+        "cheapest_until_found": 174.25,
+        "look_up_first": 471.3,
+        "one_step_value": 485.26,
+        "pay_premium": 327.61,
+        "probe_same_kind_first": 430.97,
+        "two_step_value": 485.26
+      },
+      "shared_by_group": [
+        false,
+        true
+      ],
+      "slug": "myopic_pays__11",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__11",
+      "types": [
+        "poor",
+        "good",
+        "good"
+      ],
+      "world_seed": 9440179
+    },
+    {
+      "best_first_action": "request_quote driver_board_l650",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.1035,
+      "best_policy_value_usd": 432.38,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__12",
+      "cohorts": {
+        "trading company": {
+          "failed": 24,
+          "late": 8
+        }
+      },
+      "content_sha256": "74c25b1b8616025923fb0ecf7d181cd96e99b6cb03fdd6388168e8c4b19c2d70",
+      "expected_full_information_value_usd": 496.24,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 39.97,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l651"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 39.97,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l944"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 12.97,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l650"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l410",
+      "one_step_kind": "myopic_pays",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 115.89,
+          "lookups": 0,
+          "margin_usd": 149.83
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 362.83
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 115.89,
+          "lookups": 0,
+          "margin_usd": 149.83
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 9.23,
+          "lookups": 0,
+          "margin_usd": 366.83
+        },
+        "cheapest_until_found": {
+          "actions": 10,
+          "days": 14,
+          "decision_loss_usd": 163.89,
+          "lookups": 0,
+          "margin_usd": 101.83
+        },
+        "look_up_first": {
+          "actions": 5,
+          "days": 3,
+          "decision_loss_usd": 64.69,
+          "lookups": 2,
+          "margin_usd": 389.83
+        },
+        "one_step_value": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 40.56,
+          "lookups": 0,
+          "margin_usd": 391.83
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 40.56,
+          "lookups": 0,
+          "margin_usd": 391.83
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 9.23,
+          "lookups": 0,
+          "margin_usd": 366.83
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 7.36,
+          "lookups": 0,
+          "margin_usd": 364.83
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 158.91,
+        "cheapest_first_once": 158.91,
+        "cheapest_sample_first": 13.24,
+        "cheapest_until_found": 633.59,
+        "look_up_first": 42.56,
+        "one_step_value": 40.56,
+        "pay_premium": 40.56,
+        "probe_same_kind_first": 13.24,
+        "two_step_value": 8.04
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 273.47,
+        "cheapest_first_once": 273.47,
+        "cheapest_sample_first": 419.14,
+        "cheapest_until_found": -201.21,
+        "look_up_first": 389.83,
+        "one_step_value": 391.83,
+        "pay_premium": 391.83,
+        "probe_same_kind_first": 419.14,
+        "two_step_value": 424.34
+      },
+      "shared_by_group": [
+        true
+      ],
+      "slug": "myopic_pays__12",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__12",
+      "types": [
+        "poor",
+        "poor",
+        "poor"
+      ],
+      "world_seed": 9444231
+    },
+    {
+      "best_first_action": "request_quote driver_board_l921",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.1151,
+      "best_policy_value_usd": 589.1,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__13",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 8,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 24,
+          "late": 8
+        }
+      },
+      "content_sha256": "90ba61849e8100d27928e320bf9d2a28f0a056a92b3a7d7b828cd0803b6fe019",
+      "expected_full_information_value_usd": 646.41,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 9.14,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l921"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 24.59,
+          "stated_good_share": 0.6,
+          "supplier_id": "driver_board_l458"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 66.28,
+          "stated_good_share": 0.2,
+          "supplier_id": "driver_board_l756"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l312",
+      "one_step_kind": "myopic_pays",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 4,
+          "days": 5,
+          "decision_loss_usd": 306.6,
+          "lookups": 0,
+          "margin_usd": 290.07
+        },
+        "best_policy": {
+          "actions": 5,
+          "days": 5,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 524.29
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 5,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 524.29
+        },
+        "cheapest_sample_first": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 4.62,
+          "lookups": 0,
+          "margin_usd": 504.29
+        },
+        "cheapest_until_found": {
+          "actions": 6,
+          "days": 7,
+          "decision_loss_usd": 239.67,
+          "lookups": 0,
+          "margin_usd": 286.07
+        },
+        "look_up_first": {
+          "actions": 5,
+          "days": 3,
+          "decision_loss_usd": 78.3,
+          "lookups": 2,
+          "margin_usd": 526.29
+        },
+        "one_step_value": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 60.81,
+          "lookups": 0,
+          "margin_usd": 528.29
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 60.81,
+          "lookups": 0,
+          "margin_usd": 528.29
+        },
+        "probe_same_kind_first": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 4.62,
+          "lookups": 0,
+          "margin_usd": 504.29
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 5,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 524.29
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 248.17,
+        "cheapest_first_once": 204.92,
+        "cheapest_sample_first": 19.27,
+        "cheapest_until_found": 291.56,
+        "look_up_first": 62.81,
+        "one_step_value": 60.81,
+        "pay_premium": 60.81,
+        "probe_same_kind_first": 19.27,
+        "two_step_value": 13.21
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 340.93,
+        "cheapest_first_once": 384.17,
+        "cheapest_sample_first": 569.82,
+        "cheapest_until_found": 297.54,
+        "look_up_first": 526.29,
+        "one_step_value": 528.29,
+        "pay_premium": 528.29,
+        "probe_same_kind_first": 569.82,
+        "two_step_value": 575.89
+      },
+      "shared_by_group": [
+        false,
+        true
+      ],
+      "slug": "myopic_pays__13",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__13",
+      "types": [
+        "late",
+        "good",
+        "late"
+      ],
+      "world_seed": 9448182
+    },
+    {
+      "best_first_action": "request_quote driver_board_l672",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.5463,
+      "best_policy_value_usd": 663.79,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__14",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 14,
+          "late": 8
+        }
+      },
+      "content_sha256": "7e47d5432097a31aa89f4449e0a90bff5dfeadde91c589485c28f4707f700e25",
+      "expected_full_information_value_usd": 767.47,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 53.18,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l411"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 30.12,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l306"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 8.73,
+          "stated_good_share": 0.45,
+          "supplier_id": "driver_board_l672"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l672",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 8,
+          "days": 8,
+          "decision_loss_usd": 2.0,
+          "lookups": 0,
+          "margin_usd": 419.29
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 421.29
+        },
+        "cheapest_first_once": {
+          "actions": 8,
+          "days": 8,
+          "decision_loss_usd": 2.0,
+          "lookups": 0,
+          "margin_usd": 419.29
+        },
+        "cheapest_sample_first": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 84.16,
+          "lookups": 0,
+          "margin_usd": 395.29
+        },
+        "cheapest_until_found": {
+          "actions": 9,
+          "days": 8,
+          "decision_loss_usd": 1037.29,
+          "lookups": 0,
+          "margin_usd": -616.0
+        },
+        "look_up_first": {
+          "actions": 9,
+          "days": 7,
+          "decision_loss_usd": 1.11,
+          "lookups": 2,
+          "margin_usd": 419.29
+        },
+        "one_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 421.29
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 234.51,
+          "lookups": 0,
+          "margin_usd": 429.29
+        },
+        "probe_same_kind_first": {
+          "actions": 6,
+          "days": 8,
+          "decision_loss_usd": 84.16,
+          "lookups": 0,
+          "margin_usd": 395.29
+        },
+        "two_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 421.29
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 29.79,
+        "cheapest_first_once": 29.79,
+        "cheapest_sample_first": 85.46,
+        "cheapest_until_found": 527.08,
+        "look_up_first": 25.39,
+        "one_step_value": 23.39,
+        "pay_premium": 234.51,
+        "probe_same_kind_first": 85.46,
+        "two_step_value": 5.0
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 634.01,
+        "cheapest_first_once": 634.01,
+        "cheapest_sample_first": 578.34,
+        "cheapest_until_found": 136.72,
+        "look_up_first": 638.41,
+        "one_step_value": 640.41,
+        "pay_premium": 429.29,
+        "probe_same_kind_first": 578.34,
+        "two_step_value": 658.8
+      },
+      "shared_by_group": [
+        true
+      ],
+      "slug": "myopic_pays__14",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__14",
+      "types": [
+        "late",
+        "late",
+        "late"
+      ],
+      "world_seed": 9452621
+    },
+    {
+      "best_first_action": "request_quote driver_board_l700",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.2996,
+      "best_policy_value_usd": 505.75,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__15",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 8
+        }
+      },
+      "content_sha256": "a97d315b213ff44957d3eea214ee923ac11aab2f8334298cb561ae4390342187",
+      "expected_full_information_value_usd": 570.26,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 59.52,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l391"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 36.99,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l624"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 12.99,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l700"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l700",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 8,
+          "days": 9,
+          "decision_loss_usd": 495.08,
+          "lookups": 0,
+          "margin_usd": -772.0
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 381.15
+        },
+        "cheapest_first_once": {
+          "actions": 8,
+          "days": 9,
+          "decision_loss_usd": 495.08,
+          "lookups": 0,
+          "margin_usd": -772.0
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 21.46,
+          "lookups": 0,
+          "margin_usd": 369.15
+        },
+        "cheapest_until_found": {
+          "actions": 8,
+          "days": 9,
+          "decision_loss_usd": 495.08,
+          "lookups": 0,
+          "margin_usd": -772.0
+        },
+        "look_up_first": {
+          "actions": 9,
+          "days": 7,
+          "decision_loss_usd": 0.72,
+          "lookups": 2,
+          "margin_usd": 379.15
+        },
+        "one_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 381.15
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 116.6,
+          "lookups": 0,
+          "margin_usd": 389.15
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 21.46,
+          "lookups": 0,
+          "margin_usd": 369.15
+        },
+        "two_step_value": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 381.15
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 95.25,
+        "cheapest_first_once": 95.25,
+        "cheapest_sample_first": 37.4,
+        "cheapest_until_found": 250.66,
+        "look_up_first": 41.8,
+        "one_step_value": 39.8,
+        "pay_premium": 116.6,
+        "probe_same_kind_first": 37.4,
+        "two_step_value": 26.43
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 410.51,
+        "cheapest_first_once": 410.51,
+        "cheapest_sample_first": 468.35,
+        "cheapest_until_found": 255.09,
+        "look_up_first": 463.95,
+        "one_step_value": 465.95,
+        "pay_premium": 389.15,
+        "probe_same_kind_first": 468.35,
+        "two_step_value": 479.33
+      },
+      "shared_by_group": [
+        true
+      ],
+      "slug": "myopic_pays__15",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__15",
+      "types": [
+        "poor",
+        "poor",
+        "poor"
+      ],
+      "world_seed": 9456245
+    },
+    {
+      "best_first_action": "request_quote driver_board_l607",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 1.018,
+      "best_policy_value_usd": 693.49,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__16",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 8,
+          "late": 4
+        },
+        "trading company": {
+          "failed": 8,
+          "late": 4
+        }
+      },
+      "content_sha256": "2353df456b522a92b11aa2675853196de520220a9075262c4855a8cba03c9751",
+      "expected_full_information_value_usd": 775.52,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 40.07,
+          "stated_good_share": 0.7,
+          "supplier_id": "driver_board_l778"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 13.41,
+          "stated_good_share": 0.7,
+          "supplier_id": "driver_board_l607"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 26.02,
+          "stated_good_share": 0.7,
+          "supplier_id": "driver_board_l440"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l607",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 14.0,
+          "lookups": 0,
+          "margin_usd": 930.36
+        },
+        "best_policy": {
+          "actions": 6,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 903.36
+        },
+        "cheapest_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 14.0,
+          "lookups": 0,
+          "margin_usd": 930.36
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 7,
+          "decision_loss_usd": 58.85,
+          "lookups": 0,
+          "margin_usd": 910.36
+        },
+        "cheapest_until_found": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 14.0,
+          "lookups": 0,
+          "margin_usd": 930.36
+        },
+        "look_up_first": {
+          "actions": 5,
+          "days": 4,
+          "decision_loss_usd": 52.72,
+          "lookups": 2,
+          "margin_usd": 928.36
+        },
+        "one_step_value": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 14.0,
+          "lookups": 0,
+          "margin_usd": 930.36
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 349.83,
+          "lookups": 0,
+          "margin_usd": 343.66
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 7,
+          "decision_loss_usd": 15.0,
+          "lookups": 0,
+          "margin_usd": 905.36
+        },
+        "two_step_value": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 14.0,
+          "lookups": 0,
+          "margin_usd": 930.36
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 48.62,
+        "cheapest_first_once": 48.62,
+        "cheapest_sample_first": 53.88,
+        "cheapest_until_found": 204.53,
+        "look_up_first": 45.85,
+        "one_step_value": 10.52,
+        "pay_premium": 349.83,
+        "probe_same_kind_first": 25.6,
+        "two_step_value": 10.52
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 644.88,
+        "cheapest_first_once": 644.88,
+        "cheapest_sample_first": 639.61,
+        "cheapest_until_found": 488.97,
+        "look_up_first": 647.64,
+        "one_step_value": 682.97,
+        "pay_premium": 343.66,
+        "probe_same_kind_first": 667.89,
+        "two_step_value": 682.97
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__16",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__16",
+      "types": [
+        "good",
+        "good",
+        "good"
+      ],
+      "world_seed": 9460017
+    },
+    {
+      "best_first_action": "request_quote driver_board_l853",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.1905,
+      "best_policy_value_usd": 523.82,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__17",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 24,
+          "late": 4
+        },
+        "trading company": {
+          "failed": 20,
+          "late": 4
+        }
+      },
+      "content_sha256": "36af92b5687c1aac80d986dd62d5152b2757377a76c0ad52a0eb82a39bf4c10e",
+      "expected_full_information_value_usd": 587.58,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 13.38,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l853"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 27.73,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l497"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 29.87,
+          "stated_good_share": 0.4,
+          "supplier_id": "driver_board_l538"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l853",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 6,
+          "days": 6,
+          "decision_loss_usd": 89.83,
+          "lookups": 0,
+          "margin_usd": 433.99
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 235.99
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 84.67,
+          "lookups": 0,
+          "margin_usd": 237.99
+        },
+        "cheapest_sample_first": {
+          "actions": 6,
+          "days": 10,
+          "decision_loss_usd": 117.07,
+          "lookups": 0,
+          "margin_usd": 217.99
+        },
+        "cheapest_until_found": {
+          "actions": 7,
+          "days": 11,
+          "decision_loss_usd": 111.67,
+          "lookups": 0,
+          "margin_usd": 210.99
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 5.43,
+          "lookups": 2,
+          "margin_usd": 235.99
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 84.67,
+          "lookups": 0,
+          "margin_usd": 237.99
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 83.83,
+          "lookups": 0,
+          "margin_usd": 439.99
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 6.52,
+          "lookups": 0,
+          "margin_usd": 414.99
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 8.06,
+          "lookups": 0,
+          "margin_usd": 412.99
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 249.09,
+        "cheapest_first_once": 138.64,
+        "cheapest_sample_first": 86.02,
+        "cheapest_until_found": 283.53,
+        "look_up_first": 68.02,
+        "one_step_value": 63.58,
+        "pay_premium": 83.83,
+        "probe_same_kind_first": 6.29,
+        "two_step_value": 4.88
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 274.73,
+        "cheapest_first_once": 385.18,
+        "cheapest_sample_first": 437.8,
+        "cheapest_until_found": 240.29,
+        "look_up_first": 455.8,
+        "one_step_value": 460.23,
+        "pay_premium": 439.99,
+        "probe_same_kind_first": 517.53,
+        "two_step_value": 518.94
+      },
+      "shared_by_group": [
+        false,
+        false
+      ],
+      "slug": "myopic_pays__17",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__17",
+      "types": [
+        "poor",
+        "poor",
+        "late"
+      ],
+      "world_seed": 9464228
+    },
+    {
+      "best_first_action": "request_quote driver_board_l468",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.1572,
+      "best_policy_value_usd": 595.87,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__18",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 4
+        },
+        "trading company": {
+          "failed": 20,
+          "late": 8
+        }
+      },
+      "content_sha256": "1344072385e87f4d24dbf24f445a1e182b15477d2c82fbb13036f95f1678180b",
+      "expected_full_information_value_usd": 659.29,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 29.22,
+          "stated_good_share": 0.4,
+          "supplier_id": "driver_board_l228"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 12.18,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l468"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 26.79,
+          "stated_good_share": 0.3,
+          "supplier_id": "driver_board_l306"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l468",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 8,
+          "days": 9,
+          "decision_loss_usd": 843.97,
+          "lookups": 0,
+          "margin_usd": -642.0
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 480.91
+        },
+        "cheapest_first_once": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 88.25,
+          "lookups": 0,
+          "margin_usd": 312.91
+        },
+        "cheapest_sample_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 16.0,
+          "lookups": 0,
+          "margin_usd": 484.91
+        },
+        "cheapest_until_found": {
+          "actions": 8,
+          "days": 10,
+          "decision_loss_usd": 94.25,
+          "lookups": 0,
+          "margin_usd": 306.91
+        },
+        "look_up_first": {
+          "actions": 7,
+          "days": 7,
+          "decision_loss_usd": 95.87,
+          "lookups": 2,
+          "margin_usd": 310.91
+        },
+        "one_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 88.25,
+          "lookups": 0,
+          "margin_usd": 312.91
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 80.96,
+          "lookups": 0,
+          "margin_usd": 514.91
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 16.0,
+          "lookups": 0,
+          "margin_usd": 484.91
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 7,
+          "decision_loss_usd": 1.01,
+          "lookups": 0,
+          "margin_usd": 482.91
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 275.62,
+        "cheapest_first_once": 106.58,
+        "cheapest_sample_first": 20.52,
+        "cheapest_until_found": 358.74,
+        "look_up_first": 51.68,
+        "one_step_value": 49.68,
+        "pay_premium": 80.96,
+        "probe_same_kind_first": 20.52,
+        "two_step_value": 5.43
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 320.26,
+        "cheapest_first_once": 489.3,
+        "cheapest_sample_first": 575.35,
+        "cheapest_until_found": 237.13,
+        "look_up_first": 544.19,
+        "one_step_value": 546.19,
+        "pay_premium": 514.91,
+        "probe_same_kind_first": 575.35,
+        "two_step_value": 590.45
+      },
+      "shared_by_group": [
+        false,
+        true
+      ],
+      "slug": "myopic_pays__18",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__18",
+      "types": [
+        "poor",
+        "poor",
+        "poor"
+      ],
+      "world_seed": 9468393
+    },
+    {
+      "best_first_action": "request_quote driver_board_l228",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.3707,
+      "best_policy_value_usd": 632.42,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__19",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 20,
+          "late": 4
+        },
+        "trading company": {
+          "failed": 8,
+          "late": 8
+        }
+      },
+      "content_sha256": "68bc69c3f54e6c30474838517a482e570e1734fcfdd891f5b21d4a6cda821e63",
+      "expected_full_information_value_usd": 718.98,
+      "newcomers": [
+        {
+          "kind": "trading company",
+          "price_usd": 46.47,
+          "stated_good_share": 0.6,
+          "supplier_id": "driver_board_l195"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 30.59,
+          "stated_good_share": 0.4,
+          "supplier_id": "driver_board_l116"
+        },
+        {
+          "kind": "manufacturer",
+          "price_usd": 10.14,
+          "stated_good_share": 0.4,
+          "supplier_id": "driver_board_l228"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l228",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 6,
+          "days": 7,
+          "decision_loss_usd": 1218.19,
+          "lookups": 0,
+          "margin_usd": -585.77
+        },
+        "best_policy": {
+          "actions": 7,
+          "days": 8,
+          "decision_loss_usd": 0.0,
+          "lookups": 2,
+          "margin_usd": 1061.36
+        },
+        "cheapest_first_once": {
+          "actions": 4,
+          "days": 5,
+          "decision_loss_usd": 44.22,
+          "lookups": 0,
+          "margin_usd": 1103.36
+        },
+        "cheapest_sample_first": {
+          "actions": 5,
+          "days": 8,
+          "decision_loss_usd": 74.8,
+          "lookups": 0,
+          "margin_usd": 1083.36
+        },
+        "cheapest_until_found": {
+          "actions": 4,
+          "days": 5,
+          "decision_loss_usd": 44.22,
+          "lookups": 0,
+          "margin_usd": 1103.36
+        },
+        "look_up_first": {
+          "actions": 6,
+          "days": 5,
+          "decision_loss_usd": 88.47,
+          "lookups": 2,
+          "margin_usd": 1101.36
+        },
+        "one_step_value": {
+          "actions": 4,
+          "days": 5,
+          "decision_loss_usd": 44.22,
+          "lookups": 0,
+          "margin_usd": 1103.36
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 171.03,
+          "lookups": 0,
+          "margin_usd": 461.39
+        },
+        "probe_same_kind_first": {
+          "actions": 5,
+          "days": 8,
+          "decision_loss_usd": 20.76,
+          "lookups": 0,
+          "margin_usd": 1063.36
+        },
+        "two_step_value": {
+          "actions": 5,
+          "days": 8,
+          "decision_loss_usd": 13.07,
+          "lookups": 0,
+          "margin_usd": 1063.36
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 836.38,
+        "cheapest_first_once": 96.98,
+        "cheapest_sample_first": 58.71,
+        "cheapest_until_found": 607.42,
+        "look_up_first": 50.75,
+        "one_step_value": 32.02,
+        "pay_premium": 171.03,
+        "probe_same_kind_first": 38.53,
+        "two_step_value": 30.91
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": -203.96,
+        "cheapest_first_once": 535.44,
+        "cheapest_sample_first": 573.71,
+        "cheapest_until_found": 25.0,
+        "look_up_first": 581.68,
+        "one_step_value": 600.4,
+        "pay_premium": 461.39,
+        "probe_same_kind_first": 593.89,
+        "two_step_value": 601.52
+      },
+      "shared_by_group": [
+        true,
+        false
+      ],
+      "slug": "myopic_pays__19",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__19",
+      "types": [
+        "good",
+        "good",
+        "good"
+      ],
+      "world_seed": 9472275
+    },
+    {
+      "best_first_action": "request_quote driver_board_l691",
+      "best_first_to_newcomer": true,
+      "best_over_pay_share": 0.6105,
+      "best_policy_value_usd": 717.23,
+      "case_id": "procurement_allocation_v1.pay_or_test_v3_odds_diagnostic.myopic_pays__20",
+      "cohorts": {
+        "manufacturer": {
+          "failed": 8,
+          "late": 8
+        },
+        "trading company": {
+          "failed": 14,
+          "late": 4
+        }
+      },
+      "content_sha256": "dcba873d5418e3c8bed4c14b8d62449231b4c1dc8496159c89ddd87635a0ea7d",
+      "expected_full_information_value_usd": 798.71,
+      "newcomers": [
+        {
+          "kind": "manufacturer",
+          "price_usd": 35.54,
+          "stated_good_share": 0.6,
+          "supplier_id": "driver_board_l501"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 31.05,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l996"
+        },
+        {
+          "kind": "trading company",
+          "price_usd": 9.72,
+          "stated_good_share": 0.55,
+          "supplier_id": "driver_board_l691"
+        }
+      ],
+      "one_step_first_action": "request_quote driver_board_l691",
+      "one_step_kind": "myopic_tests",
+      "realized": {
+        "best_odds_first_once": {
+          "actions": 3,
+          "days": 4,
+          "decision_loss_usd": 770.35,
+          "lookups": 0,
+          "margin_usd": -48.02
+        },
+        "best_policy": {
+          "actions": 9,
+          "days": 9,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 433.34
+        },
+        "cheapest_first_once": {
+          "actions": 10,
+          "days": 10,
+          "decision_loss_usd": 771.54,
+          "lookups": 0,
+          "margin_usd": -620.0
+        },
+        "cheapest_sample_first": {
+          "actions": 7,
+          "days": 9,
+          "decision_loss_usd": 78.91,
+          "lookups": 0,
+          "margin_usd": 419.34
+        },
+        "cheapest_until_found": {
+          "actions": 10,
+          "days": 10,
+          "decision_loss_usd": 771.54,
+          "lookups": 0,
+          "margin_usd": -620.0
+        },
+        "look_up_first": {
+          "actions": 9,
+          "days": 7,
+          "decision_loss_usd": 29.58,
+          "lookups": 2,
+          "margin_usd": 435.34
+        },
+        "one_step_value": {
+          "actions": 9,
+          "days": 9,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 433.34
+        },
+        "pay_premium": {
+          "actions": 3,
+          "days": 3,
+          "decision_loss_usd": 271.89,
+          "lookups": 0,
+          "margin_usd": 445.34
+        },
+        "probe_same_kind_first": {
+          "actions": 4,
+          "days": 6,
+          "decision_loss_usd": 90.5,
+          "lookups": 0,
+          "margin_usd": 420.34
+        },
+        "two_step_value": {
+          "actions": 9,
+          "days": 9,
+          "decision_loss_usd": 0.0,
+          "lookups": 0,
+          "margin_usd": 433.34
+        }
+      },
+      "rule_loss_usd": {
+        "best_odds_first_once": 564.98,
+        "cheapest_first_once": 81.41,
+        "cheapest_sample_first": 105.78,
+        "cheapest_until_found": 152.0,
+        "look_up_first": 61.66,
+        "one_step_value": 30.63,
+        "pay_premium": 271.89,
+        "probe_same_kind_first": 51.49,
+        "two_step_value": 30.63
+      },
+      "rule_value_usd": {
+        "best_odds_first_once": 152.25,
+        "cheapest_first_once": 635.82,
+        "cheapest_sample_first": 611.45,
+        "cheapest_until_found": 565.23,
+        "look_up_first": 655.57,
+        "one_step_value": 686.59,
+        "pay_premium": 445.34,
+        "probe_same_kind_first": 665.74,
+        "two_step_value": 686.59
+      },
+      "shared_by_group": [
+        false,
+        false
+      ],
+      "slug": "myopic_pays__20",
+      "twin_case_id": "procurement_allocation_v1.pay_or_test_v3_confirm.myopic_pays__20",
+      "types": [
+        "good",
+        "poor",
+        "good"
+      ],
+      "world_seed": 9476024
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+ "arm_a": {
+  "subject": "procurement_allocation_pay_or_test_v3_confirm_v3_codex_cli_sol61_v1",
+  "worlds": 20,
+  "missing_worlds": [],
+  "plays": 40,
+  "failed_plays": [],
+  "gap_closed_mean": 0.3533,
+  "world_sd": 0.3611,
+  "t_ci95": [
+   0.1843,
+   0.5223
+  ],
+  "bootstrap_ci95": [
+   0.206,
+   0.5106
+  ],
+  "t": 4.376,
+  "p_two_sided": 0.0003248376897765025,
+  "verdict": "positive_share_closed",
+  "per_world": {
+   "myopic_pays__1": 0.9118,
+   "myopic_pays__2": -0.0001,
+   "myopic_pays__3": 0.4198,
+   "myopic_pays__4": 0.0001,
+   "myopic_pays__5": -0.0868,
+   "myopic_pays__6": 0.3225,
+   "myopic_pays__7": 0.2544,
+   "myopic_pays__8": 0.8564,
+   "myopic_pays__9": 0.8581,
+   "myopic_pays__10": 0.9556,
+   "myopic_pays__11": 0.0,
+   "myopic_pays__12": 0.9082,
+   "myopic_pays__13": 0.395,
+   "myopic_pays__14": 0.4521,
+   "myopic_pays__15": 0.3445,
+   "myopic_pays__16": 0.0,
+   "myopic_pays__17": 0.2811,
+   "myopic_pays__18": 0.0,
+   "myopic_pays__19": 0.0455,
+   "myopic_pays__20": 0.1481
+  },
+  "decision_loss_mean_usd": 32.51,
+  "pay_premium_loss_mean_usd": 51.25
+ },
+ "arm_b": {
+  "paired_worlds": 20,
+  "control_touched": 0,
+  "twin_touched": 0,
+  "twin_only": 0,
+  "control_only": 0,
+  "twins_where_best_first_goes_to_a_newcomer": 20,
+  "reading": "odds_alone_do_not_explain",
+  "rows": [
+   {
+    "slug": "myopic_pays__1",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.379,
+    "control_gap_closed": -0.0001,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__10",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.317,
+    "control_gap_closed": 0.0001,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__11",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.535,
+    "control_gap_closed": 0.0,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__12",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.1035,
+    "control_gap_closed": -0.0002,
+    "twin_gap_closed": -0.0001
+   },
+   {
+    "slug": "myopic_pays__13",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.1151,
+    "control_gap_closed": 0.0,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__14",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.5463,
+    "control_gap_closed": -0.0001,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__15",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.2996,
+    "control_gap_closed": 0.0,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__16",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 1.018,
+    "control_gap_closed": 0.0,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__17",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.1905,
+    "control_gap_closed": -0.0,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__18",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.1572,
+    "control_gap_closed": 0.0,
+    "twin_gap_closed": -0.0001
+   },
+   {
+    "slug": "myopic_pays__19",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.3707,
+    "control_gap_closed": 0.0002,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__2",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.3589,
+    "control_gap_closed": -0.0001,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__20",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.6105,
+    "control_gap_closed": -0.0,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__3",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.2153,
+    "control_gap_closed": -0.0,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__4",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.5219,
+    "control_gap_closed": 0.0001,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__5",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.1692,
+    "control_gap_closed": 0.0001,
+    "twin_gap_closed": 0.0001
+   },
+   {
+    "slug": "myopic_pays__6",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.5924,
+    "control_gap_closed": -0.0,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__7",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.2328,
+    "control_gap_closed": 0.0001,
+    "twin_gap_closed": 0.0
+   },
+   {
+    "slug": "myopic_pays__8",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.198,
+    "control_gap_closed": -0.0001,
+    "twin_gap_closed": -0.0
+   },
+   {
+    "slug": "myopic_pays__9",
+    "control_touched": false,
+    "twin_touched": false,
+    "twin_best_first_to_newcomer": true,
+    "twin_best_over_pay_share": 0.27,
+    "control_gap_closed": 0.0001,
+    "twin_gap_closed": 0.0001
+   }
+  ]
+ }
+}
