@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.34 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.35 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -333,3 +333,9 @@ current one saturated"):
 - Version 15.34 (2026-10-21): a LaTeX export for integration (latex/: main.tex, sections/, figures/, runtime.bib,
   README.txt, and main.pdf compiled with lualatex + bibtex, 50 pages). Regenerate with `python export_latex.py`
   after any change; it reads the same sources as build.py. No content changed.
+- Version 15.35 (2026-10-21): Section 5.1 opens with results; the gate logistics moved to a new Table 6.1 (each
+  comparison's passed gates, what is not passed and why, and the flags its checks raised). Gate 1 re-read under the
+  QC standard's new exact-reference route (draft PR #299): Procurement's declared pack now passes Gate 1; Housing v15
+  still passes, with the inspect_lowball flag (within $25 of the reference in 229 of 260 worlds); the data-center v2
+  pack stays partial (lower-bound reference; a shortcut within 25 in 12 of 80 worlds). Section 6 and Appendices E.4
+  and F.1 updated to match; Section 6's v2 oracle sentence corrected (all 80 worlds, checked after the runs).

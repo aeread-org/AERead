@@ -218,14 +218,16 @@ development pilot and three diagnostics, each declared before its plays; none te
 | How likely a newcomer is to be sound once another of its kind has passed or failed a sample, with and without a clean quote of its own first, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; earlier attempts, whose schema asked for the model's working, were refused | |
 
 A further diagnostic, declared before its plays, tried to certify Gate 1's measured headroom with a frozen control that
-tests. GPT-6 Luna at high reasoning was chosen on the pilot worlds because it tested a newcomer in 5 of 12 plays (Gemini
+tests, as the standard then required. GPT-6 Luna at high reasoning was chosen on the pilot worlds because it tested a newcomer in 5 of 12 plays (Gemini
 3.8 Flash at high reasoning tested in none). On the declared worlds, three plays each, it tested in 26 of 60 plays but
 closed −34% of the gap on average, worse than paying the premium. Against it 3 worlds score the same at every seed and 18
 are matched by a screened rule (the kind-blind shortcut in 14, the one-step rule in 4), so only 2 of 20 pass: the
 control is weaker than the shortcut, which says more about the control than about the worlds. Beside it, and not
 declared, Sol's better play of each world beats every screened rule in 11 of 20, and read as a control on its two plays
-Sol would pass the check in only 9 of 20 worlds: on a frozen pack the check can only count passing worlds, so certifying
-the headroom needs a pack screened by a control that tests well before it is frozen.
+Sol would pass the check in only 9 of 20 worlds. A world a model fails to exploit is not a world without room: every
+shortcut loses at least $10 to the exact reference in every declared world. The standard therefore now accepts that
+exact screen where a case has an exact reference, and the pack passes Gate 1 on it (Appendix F.1); the control's
+result stays reported as a diagnostic.
 
 The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
 alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes
@@ -622,14 +624,19 @@ The QC standard defines six gates and the rule that a changed bound input reopen
 test rejects a registered family without a profile. Each of the four current designs
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
 and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's harder pack,
-used in Table 5.3, passes Gates 0, 2, 3 and 5 and is `partial` at Gates 1 and 4 (profile section 8.2). Its environment
+used in Table 5.3, passes Gates 0, 1, 2, 3 and 5 and is `partial` at Gate 4 (profile section 8.2). Its environment
 and its registration with the runtime reached the main branch on 20 October, the registration on the owner's override
 without a non-author review. Its 12 published bundles replay through the runtime's command line, 432 of 432 receipts,
 among them 100 from five scripted baselines played on the declared worlds with no model, each scoring as the reference
-scores its moves. Gate 4 stays `partial` because the command-line subjects take no seed. Gate 1's measured headroom was then tried with a frozen control that tests,
-declared before its plays: it tested but lost to the kind-blind shortcut, so only 2 of the 20 declared worlds pass
-that check and the gate stays `partial` (Appendix E.4). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
-the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
+scores its moves. Gate 4 stays `partial` because the command-line subjects take no seed. Gate 1 passes on the
+exact-reference route the standard added on 21 October: the reference is exact, and the six shortcuts the profile
+names (paying the premium, three fixed testing rules, the one-step rule and the kind-blind shortcut, the last two found
+in earlier versions) each lose at least $10 in every declared world. Rules that do make the decision come nearer:
+looking two newcomers ahead loses $8.38 a world, as little as $0.09. Before the route existed, measured headroom was
+tried with a frozen control that tests, declared before its plays: it tested but lost to the kind-blind shortcut, so
+by that route only 2 of the 20 declared worlds passed (Appendix E.4). A control weaker than the shortcuts measures
+itself rather than the worlds, which is why the standard now takes the exact reference where a case has one. The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
+the scripted Gate 3 checks and its screen meets the exact-reference route, but its pilot stopped at sizing and the case moved to v3 (Appendix F.4). The agreement's development
 packs fail Gate 1 because admission and type assignment were confounded. Its first confirmatory (v1) used
 the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
 incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
@@ -637,7 +644,12 @@ lower controls (Appendix F.4).
 
 Housing v15 was declared and run after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
 `partial` at Gate 4:
-- **Gate 1.** Its pack is screened for headroom, and its holdout changes a mechanism.
+- **Gate 1.** Its pack is screened for headroom against `inspect_then_sign`, and its holdout changes a mechanism.
+  Scored per world afterwards, every rule that skips the decision loses at least $25 to the best informed tenant in
+  every world (never trading $28.06 at least, signing anything $92.37, inspecting then signing at the ask $25.69).
+  `inspect_lowball`, which inspects the favourite, offers $0 and signs the counter when the inspected value covers it, comes within
+  $25 of the reference in 229 of 260 worlds and equals it in all 60 with a sound favourite: the room this pack leaves is
+  in carrying out a simple procedure, and every subject falls short of that rule on average (Table 5.2).
 - **Gate 2.** A golden-receipt bundle was sealed through its builder, and all 1,720 cells replay.
 - **Gate 3.** Its beatability rule was declared before results, both models pass it, and its receipts score the
   deciding tenant.
@@ -649,8 +661,12 @@ Housing v15 was declared and run after these profiles were first written. It pas
 The agreement's v2 confirmatory (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves room
 in every deal world by construction, the best informed integrator earns far more than either model, and the pack
 separates the subjects. It is partial at Gates 0, 1, 2, 4 and 5. Its registry row awaits a non-author review and its
-code is not on the main branch, so replay through the runtime's command line has not run; no frozen control has
-screened its worlds; and the client seat keeps its construct limit. Through the environment's hooks the
+code is not on the main branch, so replay through the runtime's command line has not run; its grid reference is a
+lower bound, so Gate 1 needs a frozen control, which has not run; and the client seat keeps its construct limit.
+Scoring every scripted integrator rule against that reference shows why the control is owed: a shortcut comes within
+25 of it in 12 of the 80 worlds, all 8 where no deal is possible (walking earns the reference, and every scripted rule
+walks) and 4 of the 72 deal worlds, three of them worlds whose whole ceiling is under 25. The shortcuts still lose
+104.8 to 205.2 a deal world on average, so the pack separates subjects in aggregate. Through the environment's hooks the
 full-information pair loses nothing in all 80 of its worlds.
 
 The identity rule was applied: Housing's 36 refused cells ran later under their own
@@ -661,7 +677,7 @@ identity, and Procurement's corrected schema ran under new identities.
 | Gate | Question | Stops when | In the four cases |
 |---|---|---|---|
 | 0. Profile | Is there a place to record each gate's verdict? | the family has no QC profile | an earlier Procurement design's construct check found a public-price rule beating the model by $28.50 a world; with no profile, the verdict was read as a campaign finding and lost. The profiles followed initial development; the agreement confirmatory followed its profile |
-| 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test v1 fails: a rule reading only public information solves 23 of 24 worlds; v2 remains `partial`: scripted headroom is shown, but a 50-cell gate/pilot found almost no newcomer testing and stopped at sizing |
+| 1. Task distribution | Are the worlds valid, distinct, split and informative? | an unverified bound, duplicates across clusters, development and holdout overlap, no measured headroom | Housing v14 admits a seed on the tenant's own structure and reads quality afterwards, with a holdout from a disjoint seed range; pay-or-test v1 fails: a rule reading only public information solves 23 of 24 worlds; v2's screen meets the exact-reference route, but its 50-cell pilot found almost no newcomer testing and stopped at sizing; the declared v3 pack passes on that route, every named shortcut losing at least $10 in every world |
 | 2. Environment and verifier | Do actions change the intended state, and is every score rebuilt from sealed evidence? | invalid actions mutate state, an oracle disagrees, hidden state leaks, replay differs | Housing v14 has 1,764 scored completions and 36 failure exclusions: completed receipt scores replay from sealed events, and failure rows are verified as exclusions; the headline measure is computed outside the receipts. Procurement's harder pack passes: its 12 published bundles replay through the runtime's command line, 432 of 432 receipts |
 | 3. Construct and baselines | Does a better-informed policy do better, and do shortcuts lose? | stronger and weaker policies indistinguishable, a shortcut drives the score | pay-or-test v1 fails: Procurement's fixed rules give up $45.7 to $146.1 a world, but a one-step comparison reaches the best policy to within $0.06; v2, built after the runs, passes for scripted policies: every screened rule, the one-step rule included, gives up at least $10 in every world; Refund V2.5 fails: under a rule committed before its controls ran, naive controls come too close to the reference in three of four seats |
 | 4. Attribution and controls | Does the result support the attribution it claims? | an undeclared control changes, the matrix is incomplete, the block cannot carry the claim | the three v14 identities differ in model and route and also in reasoning tier, sampling and cost ceiling, a declared choice the contract did not state; data-center claims name their counterparts |

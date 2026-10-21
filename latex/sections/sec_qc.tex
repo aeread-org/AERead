@@ -15,8 +15,43 @@ state and every score is rebuilt from sealed evidence (2); a better-informed pol
 and shortcuts lose (3); the result supports the attribution it claims (4); and the comparison was
 sized, frozen and executed without tuning on outcomes (5). Each gate is typed \texttt{passed}, \texttt{failed},
 \texttt{partial}, \texttt{not\_run} or \texttt{not\_\allowbreak{}applicable}, and only \texttt{passed} promotes. The profiles followed the initial
-runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 yet; Housing v15
-passes all but Gate 4 (Appendix F.1).
+runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 yet (Table 6.1).
+
+\textbf{Table 6.1. Gate status of each reported comparison,} from its family's QC profile on 21 October. A gate's flags are
+what its checks found without blocking it; they qualify the claim.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Comparison
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Passed
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Not passed, and why
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Flags
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Housing v15 (Table 5.2) & 0, 1, 2, 3, 5 & 4 \texttt{partial}: the declared one-call profile probe ran only after the freeze & \texttt{inspect\_\allowbreak{}lowball}, which inspects the favourite, offers \$0 and signs the counter when the inspected value covers it, comes within \$25 of the best informed tenant in 229 of 260 worlds and equals it in all 60 with a sound favourite; every shortcut loses at least \$25 in every world \\
+Procurement, declared pack (Table 5.3) & 0, 1, 2, 3, 5 & 4 \texttt{partial}: the command-line subjects take no seed, and the runtime registration merged on the owner's override & looking two newcomers ahead loses \$8.38 a world, as little as \$0.09; Opus's and Gemini's two plays of a world always scored the same, Sol's in 7 of 20 worlds \\
+Data-center agreement v2 (Table 5.4) & 3, integrator seat & 0, 2, 5 \texttt{partial}: its registry row awaits a non-author review and its code is not on the main branch, so replay through the runtime's command line has not run; 1 \texttt{partial}: its grid reference is a lower bound, so only the control route applies and it has not run; scored against that reference, a shortcut comes within 25 in 12 of 80 worlds, all 8 where no deal is possible (walking earns the reference, and every scripted rule walks) and 4 of 72 deal worlds; the client seat keeps its construct limit; 4 \texttt{partial}: the command-line subjects take no seed & a model's two plays of a world ended identically in 47 of 80 worlds for Opus and 28 for Codex; some fixed negotiating style comes within 25 of the reference in 27 of the 72 deal worlds \\
+Refund V2.5 (developmental) & 0 & 3 \texttt{failed}: a full refund that collects no fact is fully right on 38 of 180 policy cases, and naive controls come close to the reference in three of four seats; 1, 2 and 4 \texttt{partial}; 5 not run & no model has played it \\
+\end{longtable}
+
+\textbf{Headroom (Gate 1) is shown in one of two ways.} Where a case computes its reference exactly, as Housing and Procurement
+do, its profile names the shortcuts, rules that skip the decision the case measures, and every
+shortcut must lose a declared margin to the reference in every admitted world; rules that do make the decision are
+reported beside it, as the flags above are. Where the reference is estimated, a frozen model control is played on the
+worlds before they are frozen; the agreement's grid reference is a lower bound, so it needs that route, which has not
+run. The first way was added on 21 October, after Procurement's frozen control proved weaker
+than the shortcuts it was compared with, so the check measured the control rather than the worlds (Appendix F.1).
 
 \textbf{The reference is played on every world.} For each case a test plays the reference through the
 real environment and verifier on every admitted world, with no model, and checks that it reaches
@@ -25,8 +60,7 @@ values in all 600 v14 cells, and the full-information tenant reaches the ceiling
 plays through the environment, within four standard errors, on all 12 pilot worlds and all 20 worlds of the declared
 test (the declared worlds checked on 20 October, after the runs), and on the
 earlier pack the best policy equals the environment's average over its 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
-both development packs and all 60 of v1's admitted pack (v2's 80 worlds were checked only by a kernel dry run of 12
-negotiations); Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
+both development packs, all 60 of v1's admitted pack and all 80 of v2's (checked on 20 October, after its runs); Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
 or the reference is wrong.
 
 \textbf{Other checks.} Every committed pack is regenerated byte for byte from its seeds; the Housing
