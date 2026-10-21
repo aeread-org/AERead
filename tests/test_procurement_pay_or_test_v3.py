@@ -460,14 +460,17 @@ def _sealed_case_path(tmp_path, seed: int = THREE_OF_A_KIND):
     return path, case
 
 
-def test_the_kernel_refuses_the_version_three_plugin_until_it_is_trusted(tmp_path) -> None:
-    from aeread.shared_runner.registry import ContributionAdmissionError
+def test_the_kernel_trusts_the_version_three_plugin(tmp_path) -> None:
+    """The registry row of #294 (``procurement_allocation_v1`` 1.1.0): the kernel admits the plugin with no patch.
+    Before it, the kernel refused the plugin as not an exact in-tree trusted plugin."""
+    from aeread.shared_runner.registry import TRUSTED_BUILTIN_PLUGIN_KEYS
     from aeread_families.procurement_allocation import pay_or_test_v3_runner as runner
     from aeread_families.procurement_allocation.pay_or_test_v3_prompt import PROMPT_ID
 
+    assert (environment.FAMILY_ID, environment.FAMILY_VERSION, environment.PLUGIN_ID) in TRUSTED_BUILTIN_PLUGIN_KEYS
     path, _ = _sealed_case_path(tmp_path)
-    with pytest.raises(ContributionAdmissionError, match="not an exact in-tree trusted plugin"):
-        runner.build_offline_setup(case_path=path, prompt=PAY_OR_TEST_V3_PROMPT, prompt_id=PROMPT_ID)
+    setup = runner.build_offline_setup(case_path=path, prompt=PAY_OR_TEST_V3_PROMPT, prompt_id=PROMPT_ID)
+    assert setup.plan.cells
 
 
 @pytest.mark.parametrize("rule", ["look_up_first", None])

@@ -145,6 +145,8 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Pay or test v3: Sol on the odds twins (results)](procurement-allocation/pay_or_test_v3_twins_sol_results.md) (59% [19, 100], median 83%; one walk-away)
 - [Pay or test v3: flash models on the declared worlds (plan)](procurement-allocation/pay_or_test_v3_flash_plan.md)
 - [Pay or test v3: flash models on the declared worlds (results)](procurement-allocation/pay_or_test_v3_flash_results.md) (neither touches a newcomer; Luna −14%)
+- [Pay or test v3: a frozen control that tests (plan)](procurement-allocation/pay_or_test_v3_control_plan.md)
+- [Pay or test v3: a frozen control that tests (results)](procurement-allocation/pay_or_test_v3_control_results.md) (tests but loses to the shortcut; 2 of 20 worlds meet the headroom ground)
 
 ## Refund
 
