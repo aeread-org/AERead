@@ -366,7 +366,10 @@ def test_each_pilot_worlds_values_are_its_own_average_through_the_environment(wo
     """Spec check 1 on every pilot world: the best policy's and the one-step rule's exact values against 400 plays
     through the environment under the stated law (types, sharing, factories and replies redrawn)."""
     world = worlds[index]
-    spec = next(s for s in pack_module.world_specs() if s["slug"] == world["slug"])
+    _values_are_the_environments_own_averages(world, next(s for s in pack_module.world_specs() if s["slug"] == world["slug"]))
+
+
+def _values_are_the_environments_own_averages(world: dict, spec: dict) -> None:
     seed = world["world_seed"]
     structure = pack_module.draw_structure(spec, seed)
     ref = reference.Reference(pack_module._blind(spec, seed, structure))
@@ -514,6 +517,15 @@ def test_each_confirmatory_world_is_rebuilt_from_its_seed_byte_for_byte(index) -
     case, entry = pack_module.world_at(spec, world["world_seed"], world["seeds_scanned"])
     root = pack_module.pack_root(pack_module.CONFIRM_PACK_ID)
     assert case == json.loads((root / f"{world['slug']}.json").read_text(encoding="utf-8")) and entry == world
+
+
+@pytest.mark.parametrize("index", range(20))
+def test_each_confirmatory_worlds_values_are_its_own_average_through_the_environment(index) -> None:
+    """Spec check 1 on every world of the declared test, as on the pilot (qc.md 8.2, Gate 2): the best policy's and
+    the one-step rule's exact values against 400 plays through the environment under the stated law."""
+    world = _confirm_manifest()["worlds"][index]
+    _values_are_the_environments_own_averages(
+        world, next(s for s in pack_module.world_specs(pack_module.CONFIRM_PACK_ID) if s["slug"] == world["slug"]))
 
 
 def test_no_earlier_seed_of_any_confirmatory_block_is_admitted() -> None:
