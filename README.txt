@@ -279,3 +279,15 @@ current one saturated"):
   rule signs it in all 200 lemon-favourite worlds of that arm; Gemini offered on it in 4, Luna in 7); Luna's
   reply-proved lemon fell from 60% (v14) to 22% of its shortfall. Counts checked independently from the sealed
   trajectories (same favourite, offers, bucket splits and the 187-of-200 equality).
+- Appendices A-C readability and two corrections (2026-10-20, owner's "yes" to the appendix agent's drafts in
+  ~/analysis/aeread-paper/appendix_readability_drafts_20261020.md; each claim re-checked against the code first).
+  Corrections: B.1 note 1 said the firm counterpart's style hashes the whole world including the client's hidden
+  charge; true only of development runs, both confirmatories draw it from public facts (public_style, DC-D-32; the
+  signalling test used fixed `firm`). A.1 said the prompt does not state the pricing rule or cost range; that is v14's
+  prompt, and v15's brief states both ($25 margin, cost $20-$80 under the ask, >$55 below proves a lemon). Also: a
+  glossary (world, pack, admission, seat, cell, identity, declared, gate); A.1 explains the two landlord kinds before
+  they are used; A.2's cost and A.3's C_I and C_C as term-by-term tables; data-center symbols that meant two things
+  renamed (a, s -> z_pre, z_site; services sigma -> Psi; outside option m -> O_I; owed O -> omega; script seat sigma ->
+  j and surplus v -> g; stand-ins' share a -> h; reader intercept a, b -> b0, b1; mu-bar defined; CC -> C_C as in
+  Section 5.1); B.3 defines V, the fee is 0 on move 1, and a price-only script keeps redlining (agreement_negotiator
+  move()); C.1's two compressed sentences and C.2's "V counts only future spending" rewritten. No number changed.
