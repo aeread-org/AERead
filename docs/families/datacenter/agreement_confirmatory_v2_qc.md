@@ -22,6 +22,21 @@ it is not an invalid case for being so.
 | 4, attribution and controls | `partial` | both CLIs isolated and probed clean at the freeze and before every run (amendments 1 and 2); CLI versions are part of the identity; the integrator's brief is v1's byte for byte; every claim names its counterpart, and head to head is reported as a pairing | a CLI takes no seed or temperature; every receipt was sealed under the unreviewed registry row |
 | 5, confirmatory reliability | `partial` | plan declared before the pack, the modules or any cell, with three amendments before any cell; a 12-world end-to-end pilot (96 negotiations) on its own pack; sizing from a committed module; freeze with the CLI versions; 640 of 640 negotiations valid, no missingness, no interim look; Holm across the four primaries; v1's departures closed in advance (plan §7); no departure recorded | the bundles are on the branch, not on `main`: the claim cannot stand there until Gates 0 and 2 clear |
 
+**Gate 1 by the reference route (2026-10-21).** Measured headroom can also be shown without a model control, by
+scoring every shortcut against a computed reference on every world. Applied here (no model called;
+`tools/datacenter/agreement_v2_shortcut_margins.py`, pinned by `tests/test_datacenter_agreement_v2_shortcut_margins.py`),
+it does not pass, and the Gate 1 status above stays `partial`. Each scripted integrator rule plays against the client's
+public firm style and is compared with the grid ceiling the screen uses (a lower bound on the best reply, DC-D-40).
+`price_only` loses at least 25 in all 72 deal worlds, as the screen guarantees. The integrator's paper as it stands
+(`draft`) comes within 25 of the ceiling in 4 deal worlds, and walking away at once in 3. In those 3 the ceiling itself
+is under 25, and `price_only` cleared the screen only by paying redline fees. In the 8 worlds without a deal every rule
+earns the reference exactly. Counting competent styles too, some fixed rule comes within 25 of the ceiling in 27 of 72
+deal worlds, and two styles beat the grid by up to 16.7. Against the best informed integrator's tighter references
+(`agreement_best_informed_v2`, c12539b5) the counts are similar: 21 deal worlds told the type, 30 at the true types.
+The pack still separates the subjects on average, since the shortcuts lose 186.7 to 205.2 a deal world and the best
+style 104.0. But 12 of 80 worlds have a shortcut within 25 of the best reply, 9 of them exactly, and the reading of
+P3a and P3b should say so (DC-D-43).
+
 **Reading.** Apart from Gate 1's missing frozen-control screen and the client seat's known limit, every remaining
 blocker is the one Procurement's version 3 has: the family's registry row awaits a non-author review, and its code is
 not on `main`. With the row reviewed and the family merged, verify-replay through `main` closes Gate 2, and Gates 0, 4
