@@ -1,0 +1,181 @@
+% Condensed paper appendix; full prior technical reference preserved in the supplement.
+\section{Runtime contract and experimental coverage}
+\label{app:runtime}
+
+This appendix describes the runtime as of 8 October 2026
+and the execution paths behind the reported results, with the
+later agreement confirmatory and headline verification identified separately. Reported
+panels used different revisions; the baseline does not retrospectively
+upgrade earlier execution or evidence. The full record definitions,
+adapter inventory and review history are retained in
+\texttt{technical\_\allowbreak{}supplement/\allowbreak{}runtime\_\allowbreak{}technical\_\allowbreak{}reference.\allowbreak{}html} in the
+editable artifact package. Appendix G identifies the experimental artifacts.
+
+\subsection{Execution contract}
+\label{app:runtime-overview}
+
+Families supply economic rules, observations, actions, transitions and
+scorers. The kernel resolves a plan, schedules play, records calls and
+actions, and finalizes evidence (Figure~\ref{fig:runtime}). A resolved
+plan binds worlds and their content hashes, seat-to-profile assignments,
+sampling and pairing, prompts, agent settings, budgets, retry policies and
+implementation pins before provider execution. Hashes detect changes to
+the bound bytes; they do not establish that a provider obeyed a control
+or that a driver followed the declared seat assignment.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[box/.style={draw=black!70, fill=black!3, rounded corners=1pt, minimum width=4.2cm,
+  minimum height=1.05cm, align=center, font=\footnotesize}, >=Stealth]
+\node[box] (a) at (0,0) {World, block, profiles, seeds\\Resolved plan};
+\node[box] (b) at (4.7,0) {Freeze observations\\Act, then transition};
+\node[box] (c) at (9.4,0) {Provider / tool events\\Action envelopes};
+\node[box] (d) at (9.4,-1.7) {Reconstruct state and score\\Seal evidence};
+\node[box] (e) at (4.7,-1.7) {Receipt with typed scores\\Reference values};
+\node[box] (f) at (0,-1.7) {Replay state and score\\No model call};
+\draw[->] (a) -- (b); \draw[->] (b) -- (c); \draw[->] (c) -- (d); \draw[->] (d) -- (e); \draw[->] (e) -- (f);
+\end{tikzpicture}
+\caption{Execution and receipt path.}
+\label{fig:runtime}
+\end{figure}
+
+For simultaneous play, observations are frozen before requesting any
+action, and the family receives the joint action set. This prevents a
+seat from observing a peer's same-phase action through request order;
+order effects inside the family transition remain the family's
+responsibility. Parsing and legality failures retain typed reasons.
+The declared invalid-action policy either stops execution or passes an
+invalid envelope to the family for its stated consequence. A family-hook
+exception is a defect in the evaluation apparatus, not a subject score.
+
+Each attempt has an append-only event log and content-addressed artifacts.
+Instrumented calls record a start before dispatch and a terminal outcome;
+actions, transitions and termination are also recorded. Finalization
+reconciles these records, reconstructs scoring input, invokes the scorer
+and seals the evidence before writing a receipt. Retries follow the
+declared conditions and limits. The October path rejects empty replies and
+incomplete truncated answers before family parsing; older executors can
+differ. These guarantees cover the interfaces actually used by the driver.
+
+\subsection{Scoring, replay and access}
+\label{app:runtime-replay}
+
+A receipt binds the plan, world, cell, attempt, declared per-seat profile
+hashes, implementation pins and evidence seal to typed score records.
+Measurement validity and inclusion in analysis are separate statuses.
+Each score records its metric, reference type, scope, direction and native
+units. Declared applicable metrics must be returned; deferred and
+inapplicable metrics are listed separately. Deferred metrics cannot serve
+as the primary score. At most one receipt is included per planned cell,
+but this cardinality check cannot establish that attempt selection
+preceded observation of the outcome.
+
+Replay uses the family's state-transition and scoring hooks with recorded
+actions and compares reconstructed states and receipt scores. It reads
+the stored observation, response, parse result and legality result; it
+does not rerun the model, harness or parser. Completed scored executions
+carry \texttt{state\_\allowbreak{}and\_\allowbreak{}score}, including those excluded as invalid
+measurements. Operational-failure receipts carry \texttt{none} and are
+verified as exclusions. Replay neither converts an exclusion into a
+successful episode nor certifies an analysis outside the receipt.
+
+At the October baseline, the reviewer command is:
+\begin{verbatim}
+aeread verify-replay BUNDLE --run-root R \
+  --setup MODULE:CALLABLE
+\end{verbatim}
+It checks published bindings against retained run evidence and reports
+verified, differing or missing-evidence rows. Coverage extends to every
+published episode only when the bundle identifies that trajectory grain;
+otherwise it covers the receipts found under the run root. Having this
+command available does not establish that it was run on a given panel.
+
+Public live bundles contain sanitized receipt projections and digests;
+the baseline policy omits full prompts, raw responses, model reasoning,
+complete live receipts and failure messages. Independent replay therefore
+also requires retained run roots. A digest cannot recover omitted inputs.
+Appendix G records access limits, and Table~\ref{tab:case-paths} separates
+inline checks, later audits and headline-score reconstruction. Seeds and
+sealed requests support reconstruction of recorded play, without
+guaranteeing a fresh model response \citep{he2025nondeterminism}.
+
+\subsection{Applied controls and experimental coverage}
+\label{app:runtime-cases}
+
+The API and CLI paths do not apply the same controls. Table~\ref{tab:cli-controls}
+summarizes the CLI subjects in the reviewed case studies. The OpenRouter
+client checks reported model and route information against the declared
+pin, but cannot independently attest the hosted deployment or whether a
+requested seed or reasoning control was honored. Reasoning-effort labels
+are not a common scale of deliberation across models.
+
+\input{sections/tab_cli_controls}
+
+Table~\ref{tab:cli-controls} describes the first agreement confirmatory. The
+second isolated both tools and probed their context before and during its
+runs, and every probe was clean (Section~\ref{sec:cases}).
+
+Table~\ref{tab:case-paths} identifies the paths behind the reported
+results. The October executor digest prefix is \texttt{607a79ce}; the September prefix is
+\texttt{3cd3278c}.
+
+\input{sections/tab_case_paths}
+
+\paragraph{Housing: seat attribution and headline measure.}
+The v14 plan names the subject profile for all six tenant seats, while
+the driver-side \texttt{SeatRouterClient} supplies scripts for seats 1--5.
+The realized routing map is retained in an unsealed side log.
+The original receipt scores the six-tenant sum, while the headline
+concerns seat 0. The original headline reads outcome facts
+copied into a separate unsealed result file. The later
+\texttt{price\_\allowbreak{}reply\_\allowbreak{}posterior} analysis derives its
+corrected measure from sealed events. On 16 October, its trajectory table
+was re-extracted from the original sealed run roots and the committed
+analysis regenerated exactly. This remains a post-run, separately
+versioned derivation; the original receipt's certificate is unchanged.
+
+\paragraph{Procurement: the decision-loss reference.}
+The receipt scores contribution margin and regret against a
+full-information bound. Headline decision loss instead uses the optimal
+policy under the buyer's information. The original report replayed an
+\texttt{action\_\allowbreak{}trace} copied into an unsealed result row through an unpinned
+\texttt{pay\_\allowbreak{}or\_\allowbreak{}test\_\allowbreak{}reference}. On 16 October, a separate
+\texttt{pay\_\allowbreak{}or\_\allowbreak{}test\_\allowbreak{}reanalysis} audited all 144 original receipts through
+state and score replay, extracted parsed actions and validity from sealed
+events, and recomputed every loss with a source-pinned reference. The 96
+final-brief results and 48 earlier-brief results match; preserving the
+original bootstrap order also reproduces Table E.14's intervals. The
+accompanying projection permits headline recomputation without private
+run roots, while re-auditing the original logs still requires them.
+This resolves the reported panels' derivation gap. It does not add a
+decision-loss leaf to their historical receipts or implement the
+prospective case-interface standardization that has been proposed.
+
+\subsection{Scope and remaining limits}
+\label{app:runtime-limits}
+
+The kernel supplies neither a sandbox nor complete mediation of external
+activity: families and tools can run outside its ports. Resume checks and
+continues a valid log, but a hard kill can leave an unmatched call start
+that cannot be finalized. An outcome-unknown record does not prove
+whether an external side effect occurred. Hosted-model determinism and
+arbitrary-crash recovery are not claimed.
+
+Campaign stopping and spend accounting also depend on the driver.
+At the reviewed baseline no family driver used the kernel's optional
+consecutive-failure halt helper, and there was no kernel-wide campaign
+cost circuit breaker. The later agreement confirmatory driver froze its
+own five-failure halt, list-price cap and wall-time ceiling; none fired. Housing used worker-level stop rules; twelve
+workers account for its 36 refused cells. The event-log spend reader
+distinguishes exact from incomplete totals, but had not been adopted by
+family drivers; CLI list-price estimates remain separate from billed
+charges. The inclusion rule does not prove pre-outcome attempt selection.
+
+Integration and scientific qualification are distinct. The 21-package
+inventory includes wrappers, re-implementations and native packages with
+different fidelity, fixture and live-run coverage. The supplement retains
+those distinctions and the incomplete implementation-review status;
+package counts and passing tests do not establish case validity.
+Section 6 and Appendix F give the applied QC evidence and incident
+history. None of the four designs fully passes Gates 1--5 in this review,
+and later checks or repairs do not retroactively qualify earlier runs.

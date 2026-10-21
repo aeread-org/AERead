@@ -1,0 +1,256 @@
+% Sections 1--3, drafting pass 16 October 2026.
+% Empirical scope follows the merged Sections 4--6 review snapshot.
+\section{Introduction}
+\label{sec:introduction}
+
+An agent buying on behalf of a firm must decide more than whether it can
+place an order. It must choose whom to trust, whether another test is worth
+its cost, and when to commit before an offer expires. A tenant faces the
+same problem when inspecting a home; a negotiator faces it when exchanging
+price for contractual risk. In these settings, completing a transaction
+can destroy value, while refusing it can be the right decision. We use
+\emph{economic-agent readiness} to mean an agent's ability to obtain value
+for a principal within a stated mandate, given limited information and
+other parties' interests.
+
+Evaluating this ability requires a reference for what the agent could
+have achieved. A good realized outcome can follow a poor decision, and a
+shortfall from a fully informed optimum can reflect information the agent
+never had. The counterpart also matters: a strategy that succeeds against
+a cooperative seller may fail against a different policy. Existing work
+provides interactive task evaluation and economic decision benchmarks
+\citep{merrill2026terminalbench,fish2025econevals,zhang2026termsbench}.
+The problem we address is how to make information, counterpart behavior
+and reference values explicit across different economic cases, then test
+whether the resulting scores measure the intended decisions.
+
+AERead provides a framework for constructing and evaluating such cases.
+Each case specifies the parties, their observations and legal actions,
+the world distribution, and checks on behavior and outcomes. A shared
+runtime executes play and records evidence. Case-specific references give
+scores an economic interpretation: a feasible policy, an optimal policy
+under the deciding seat's information, or a labelled full-information
+upper bound. Results retain their native units and reference types.
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{figures/evaluation_levels.png}
+\caption{\textbf{The three levels of an AERead evaluation,} with the Data-center agreement as the example. The runtime hosts several case families (left). A case draws a population of worlds and admits those where the decision matters; quality control runs over that population (centre). In one world, the agent holds a seat, a counterpart holds another, and the score is compared with the case reference and split into shortfall classes (right). Dashed lines mean ``contains'', not a sequence. Each panel lists the properties of Section~1 that belong to its level. The dot pattern and the score bar are schematic.}
+\label{fig:case}
+\end{figure}
+
+
+AERead combines seven properties. Prior benchmarks have some of them,
+TERMS-Bench five in full; AERead has six in full and the seventh, a
+shortcut-screening admission rule, in three of its cases (Table~2.1). The first three
+concern a single world, the next two a case's population of worlds, and the
+last two the runtime (Figure~1.1). Each is built and was applied to the
+cases reported here.
+\begin{enumerate}
+\item \textbf{Value against a reference with stated information.} Scores
+are economic values in each case's own units, measured against a feasible
+policy, the best policy given the deciding seat's information, or a
+labelled full-information bound. Each reference is played through the
+environment on every admitted world (Section~\ref{sec:qc}).
+\item \textbf{The counterpart is part of the case.} Other parties are seats
+with their own information and interests, played by scripted policies,
+another model or the same model, and each claim names its counterpart. In
+the Data-center case, one agent's earnings lead over another is 42\% of the
+value available in a deal head to head and 7\% against a fixed scripted
+counterpart
+(Section~\ref{sec:cases}).
+\item \textbf{Typed shortfall.} The gap to the reference is split into
+observed action classes, such as tests not taken, worse terms, harmful
+agreements and negotiation fees, so a result states where value was lost
+as well as how much (Section~\ref{sec:cases}).
+\item \textbf{World generators with admission.} A case is a generator of
+worlds, and its packs regenerate from their seeds. An admission rule,
+computed before any agent plays, keeps only worlds in which simple
+shortcuts lose a stated margin: the Data-center comparison used 80 worlds
+admitted from 5,436 scanned. Housing's v15 pack admits a world only if the best informed tenant
+beats a simple inspect-then-sign rule by \$25, and the reported Procurement pack only if a rule
+that plans one newcomer's test exactly pays the premium while the best policy beats paying it by
+10\%: 20 worlds from 5,164 scanned (Section~\ref{sec:cases}).
+\item \textbf{Quality control over populations of worlds.} Cases are
+qualified through typed gates; simple-rule ceilings are scored beside the
+agents and briefs are audited. Of 25 defects selected from our record, 14
+were invisible in any single world (Section~\ref{sec:qc}).
+\item \textbf{Scores recomputed from sealed evidence.} The kernel hashes a
+plan before execution, seals the events, and replays each receipt to
+recompute its scores without calling a model; no model judges a score
+(Section~\ref{sec:runtime}).
+\item \textbf{One runtime for several activities.} Families supply only the
+economic rules. Four maintainer-built cases and a reimplementation of three
+TERMS-Bench counterpart families run on the same kernel
+(Section 5.3).
+\end{enumerate}
+A researcher studying another economic decision therefore writes only its
+rules, worlds and reference: execution, sealing, replay, counterpart seats
+and the quality-control gates come with the runtime, so a new case starts
+with the same evidence and checks as the existing ones.
+Sections 3 and 4 describe the case design and the runtime, Section 5 the
+cases, and Section 6 the quality control. The cases are maintainer-built
+worked examples; Housing passes four of the five qualification gates and
+none passes all five; Section 7
+states what their results do and do not establish.
+
+\section{Related work}
+\label{sec:related-work}
+
+Table~2.1 compares the closest benchmarks on the seven properties of
+Section~\ref{sec:introduction}; the paragraphs below discuss them by theme.
+
+\begin{table}[htbp]\centering\small
+\caption{\textbf{The seven properties in related benchmarks,} read from each paper's description of its own method: $\bullet$ present, $\circ$ partly present, -- absent. Columns: 1. Value against a reference with stated information; 2. Counterpart is part of the case; 3. Typed shortfall; 4. World generator with admission; 5. Quality control over populations of worlds; 6. Scores recomputed from sealed evidence; 7. Several economic activities on one runtime. Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here; Housing v15 passes four of the five qualification gates and none passes all five (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in three of its cases, an admission rule that screens shortcuts.}
+\label{tab:comparison}
+\begin{tabular}{lccccccc}
+\toprule
+Benchmark & 1 & 2 & 3 & 4 & 5 & 6 & 7 \\
+\midrule
+Terminal-Bench & -- & -- & $\circ$ & $\circ$ & $\bullet$ & $\circ$ & $\circ$ \\
+τ²-bench & -- & $\circ$ & $\circ$ & $\circ$ & $\circ$ & $\circ$ & $\circ$ \\
+GDPval & -- & -- & $\circ$ & -- & $\circ$ & -- & $\circ$ \\
+Agents' Last Exam & -- & -- & $\circ$ & $\circ$ & $\circ$ & $\circ$ & $\circ$ \\
+EconEvals & $\bullet$ & -- & $\circ$ & $\circ$ & $\circ$ & $\circ$ & $\bullet$ \\
+NegotiationArena & $\circ$ & $\bullet$ & $\circ$ & -- & -- & $\circ$ & $\circ$ \\
+AgenticPay & $\circ$ & $\bullet$ & $\circ$ & -- & -- & $\circ$ & $\circ$ \\
+TERMS-Bench & $\bullet$ & $\bullet$ & $\bullet$ & $\circ$ & $\bullet$ & $\bullet$ & $\circ$ \\
+AERead (this paper)$^{*}$ & $\bullet$ & $\bullet$ & $\bullet$ & $\circ$ & $\bullet$ & $\bullet$ & $\bullet$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\paragraph{Economically valuable work.}
+GDPval selects professional tasks by occupation and evaluates deliverables
+through expert comparison \citep{patwardhan2025gdpval}. Agents' Last Exam
+(ALE) evaluates expert-authored professional workflows with task-specific
+verification \citep{sun2026agentslastexam}. AERead evaluates decisions
+under a principal's mandate, with responsive counterparts and payoff
+references that specify the deciding party's information.
+
+\paragraph{Interactive agent evaluation.}
+Terminal-Bench verifies final environment state and supplies human-written
+solutions \citep{merrill2026terminalbench}. AppWorld combines an application
+engine with state-based evaluation, including collateral-change checks
+\citep{trivedi2024appworld}. τ²-bench lets agent and user act on shared
+state \citep{barres2025tau2}.
+
+\paragraph{Economic decisions and negotiation.}
+EconEvals covers procurement, scheduling, pricing and economic choice
+\citep{fish2025econevals}. NegotiationArena studies bargaining tactics
+\citep{bianchi2024negotiationarena}; SidConArena combines negotiation,
+production and auctions \citep{feng2026sidconarena}. AgenticPay evaluates
+buyer--seller bargaining under private reservation values, scoring
+agreement, surplus allocation and speed \citep{liu2026agenticpay}.
+TERMS-Bench specifies counterpart types, policies and payoffs to diagnose
+negotiation through oracle-reference gaps \citep{zhang2026termsbench}; our
+case specifications follow its decomposition into environment, protocol
+and counterpart policy (Appendix~A), and Section 5.3 reimplements three of
+its counterpart families on AERead's runtime.
+AERead retains case-specific payoff units and distinguishes full-information
+bounds from information-constrained policy references, with QC of world
+distributions and measurement paths.
+
+\paragraph{Shared environments and evaluation quality.}
+OpenSpiel and PettingZoo provide common interfaces for games and
+multi-agent environments \citep{lanctot2019openspiel,terry2021pettingzoo}.
+AERead similarly separates shared execution from case semantics
+(Appendix H). Terminal-Bench combines executable reference solutions,
+automated checks, human review and adversarial exploit testing
+\citep{merrill2026terminalbench}. The Agentic Benchmark Checklist
+identifies task and reward defects that distort performance
+\citep{zhu2025abc}. Our QC analysis tests whether prompts, controls and
+counterpart assignments support valid comparisons across distributions
+of economic worlds.
+
+\section{Task design and construction}
+\label{sec:task-design}
+
+Three of AERead's properties are fixed when a case is designed: the
+reference and the information it may use, the counterpart seats, and the
+world generator with its admission rule.
+
+\subsection{Cases, worlds and seats}
+\label{sec:task-formulation}
+
+A \emph{case} defines an economic decision problem; a \emph{world} is
+one instance of that design, with particular valuations, private types,
+costs and deadlines. A \emph{seat} is a party's position in the
+interaction, with its own objective, information and permitted actions.
+A policy occupies a seat and chooses actions from its observations and
+available history. The family implementation supplies the environment,
+observation rules, legal actions, transitions and verifier.
+
+For example, Housing places a tenant among four listings with hidden
+quality. The tenant can inspect, make offers and decide whether to sign;
+landlord replies and outside demand affect the opportunities that remain.
+Inspection changes both information and cost. The verifier therefore
+needs to distinguish a legal action, a favorable realized outcome and a
+good decision given the tenant's information.
+
+In a controlled comparison, the evaluated policy occupies one seat and
+counterparts follow fixed policies. Cross-play and self-play change those
+assignments and answer different questions. Each comparison names the
+seat, counterpart configuration and world distribution to which it
+applies. Appendices A--D give the case specifications, counterpart
+policies, references and measures.
+
+\subsection{Selecting economic decisions}
+
+We organize coverage around activities in which a party's choices affect
+the value of a transaction \citep{li2026activities}. A candidate case
+needs a consequential decision, a counterpart with its own interests and
+information, and an outcome that can be evaluated inside the world.
+The intended coverage spans business purchases, labour contracts, capital
+and corporate transactions, household purchases, and public purchases.
+Contractual terms, risk allocation and disputes enter as decisions within
+these transactions.
+
+The four examples cover business and household purchases. They were
+selected to exercise different references and counterpart configurations;
+they are not a representative sample of economic activity. Economic
+stakes motivate which decisions to study, but the reported scores are
+case-specific quantities, without a cross-family aggregate or an estimate
+of economy-wide gains.
+
+\subsection{Constructing and qualifying a case}
+\label{sec:case-construction}
+
+A contribution begins with a decision and an interpretation of success.
+The author specifies the principal's objective and constraints, what each
+seat can observe, which actions commit resources, and how counterpart
+policies respond. The brief must expose the rules needed to make the
+decision while preserving the intended private information. These
+choices define the mechanism that a score is meant to test.
+
+The author then provides a world generator or fixed pack, an admission
+rule, and a reference whose information access is explicit. Admission
+screens each candidate world before any agent plays and before hidden
+types are drawn. Computing exactly from the public world and the declared
+prior, it keeps a world only if simple shortcuts, such as accepting the
+default terms or ignoring private information, fall short of the reference
+by a stated margin. Whether the reference can be reached is a separate
+check: executable controls play it through the actual environment and
+verifier on every admitted world, alongside simple policies that reveal
+shortcuts or ceiling effects that admission missed. The pack must also be
+valid, free of duplicates, and split into disjoint development and holdout
+ranges. A full-information bound is labelled separately from a policy
+the evaluated seat could execute. The case declares score units,
+direction and treatment of invalid actions and incomplete episodes.
+
+Before a confirmatory comparison, the campaign freezes the worlds,
+seat assignments, prompts, agent settings, budgets and analysis. Its
+evidence package should connect each reported measure to the retained
+actions and outcomes, the scoring implementation, and a command that
+reproduces it. Section 4 describes the shared execution path; Appendix H
+records where the current drivers and headline analyses extend beyond
+the receipt's coverage.
+
+This is the contribution and qualification standard. Implementation
+support and completed checks vary across the four examples, as Section 6
+and Appendix F document. Cases can be useful for development before
+qualification, provided their reports identify missing checks, preserve
+failed attempts, and distinguish analyses declared before execution from
+later corrections. The current examples demonstrate the workflow and
+its failure modes; they do not establish successful adoption by external
+contributors.
