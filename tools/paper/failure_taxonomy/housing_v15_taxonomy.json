@@ -22,6 +22,88 @@
      "worse_terms": 63
     },
     "no_lease_cells": 43,
+    "paper_counts": {
+     "known_lemon_at_its_counter_vs_sound_at_floor": {
+      "counter_below_sound_floor_usd": {
+       "max": 1000.0,
+       "mean": 999.85,
+       "min": 995.27
+      },
+      "equal_exactly": 187,
+      "max_abs_difference_usd": 4.73,
+      "worlds": 200
+     },
+     "leaky_arm_favourite_lemon": {
+      "of_those_offered_on_it_after_learning": 0,
+      "of_those_signed_it": 0,
+      "of_which_by_inspection": 137,
+      "reference_signs_the_favourite_as_a_known_lemon": 200,
+      "seat0_learned_the_favourite_is_a_lemon": 146,
+      "signed_it_without_an_offer_after_learning": 5,
+      "worlds": 200
+     },
+     "leaky_arm_lemon_proving_replies": {
+      "signed above the lemon's value": 24,
+      "signed at or below the lemon's value": 3,
+      "total": 64,
+      "total (acceptance)": 63,
+      "total (counter)": 1,
+      "walked": 37
+     },
+     "pooled_arm_reference_leases_nothing": {
+      "seat0_leased_by_rule": {
+       "signed a listing whose quality its information did not settle": {
+        "cells": 19,
+        "usd_per_world": 1.040635
+       },
+       "terms: leased where the reference did not": {
+        "cells": 39,
+        "usd_per_world": -18.593615
+       }
+      },
+      "seat0_leased_cells": 58,
+      "seat0_leased_usd_per_world": -17.552981,
+      "worlds": 77
+     },
+     "worse_terms_by_rule_arm_and_lease_quality": {
+      "terms: a better lease than the reference's (negative) | pooled | reference sound | seat 0 sound": {
+       "cells": 18,
+       "usd_per_world": -4.623346
+      },
+      "terms: a better lease than the reference's (negative) | true_cost | reference lemon | seat 0 sound": {
+       "cells": 6,
+       "usd_per_world": -0.068635
+      },
+      "terms: a listing worth less, net of rent, than the reference's | pooled | reference sound | seat 0 sound": {
+       "cells": 15,
+       "usd_per_world": 2.796423
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference lemon | seat 0 lemon": {
+       "cells": 2,
+       "usd_per_world": 2.1615
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference lemon | seat 0 sound": {
+       "cells": 151,
+       "usd_per_world": 56.628885
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference sound | seat 0 lemon": {
+       "cells": 1,
+       "usd_per_world": 0.824385
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference sound | seat 0 sound": {
+       "cells": 5,
+       "usd_per_world": 0.855962
+      },
+      "terms: leased where the reference did not | pooled | reference no lease | seat 0 sound": {
+       "cells": 39,
+       "usd_per_world": -18.593615
+      },
+      "terms: the reference's listing at a higher rent | pooled | reference sound | seat 0 sound": {
+       "cells": 7,
+       "usd_per_world": 0.134865
+      }
+     }
+    },
     "rules_fired_main": {
      "ended with no lease where the reference leased: no hold worth signing": 4,
      "ended with no lease where the reference leased: walked from a hold worth its rent": 6,
@@ -9805,6 +9887,88 @@
      "worse_terms": 57
     },
     "no_lease_cells": 24,
+    "paper_counts": {
+     "known_lemon_at_its_counter_vs_sound_at_floor": {
+      "counter_below_sound_floor_usd": {
+       "max": 1000.0,
+       "mean": 999.85,
+       "min": 995.27
+      },
+      "equal_exactly": 187,
+      "max_abs_difference_usd": 4.73,
+      "worlds": 200
+     },
+     "leaky_arm_favourite_lemon": {
+      "of_those_offered_on_it_after_learning": 7,
+      "of_those_signed_it": 7,
+      "of_which_by_inspection": 196,
+      "reference_signs_the_favourite_as_a_known_lemon": 200,
+      "seat0_learned_the_favourite_is_a_lemon": 197,
+      "signed_it_without_an_offer_after_learning": 0,
+      "worlds": 200
+     },
+     "leaky_arm_lemon_proving_replies": {
+      "signed above the lemon's value": 11,
+      "signed at or below the lemon's value": 20,
+      "total": 89,
+      "total (acceptance)": 85,
+      "total (counter)": 4,
+      "walked": 58
+     },
+     "pooled_arm_reference_leases_nothing": {
+      "seat0_leased_by_rule": {
+       "signed a listing whose quality its information did not settle": {
+        "cells": 22,
+        "usd_per_world": -2.823981
+       },
+       "terms: leased where the reference did not": {
+        "cells": 43,
+        "usd_per_world": -16.925904
+       }
+      },
+      "seat0_leased_cells": 65,
+      "seat0_leased_usd_per_world": -19.749885,
+      "worlds": 77
+     },
+     "worse_terms_by_rule_arm_and_lease_quality": {
+      "terms: a better lease than the reference's (negative) | pooled | reference sound | seat 0 sound": {
+       "cells": 9,
+       "usd_per_world": -1.764731
+      },
+      "terms: a better lease than the reference's (negative) | true_cost | reference lemon | seat 0 sound": {
+       "cells": 6,
+       "usd_per_world": -0.033981
+      },
+      "terms: a listing worth less, net of rent, than the reference's | pooled | reference sound | seat 0 sound": {
+       "cells": 6,
+       "usd_per_world": 1.032269
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference lemon | seat 0 lemon": {
+       "cells": 13,
+       "usd_per_world": 9.497154
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference lemon | seat 0 sound": {
+       "cells": 154,
+       "usd_per_world": 57.742904
+      },
+      "terms: leased where the reference did not | pooled | reference no lease | seat 0 sound": {
+       "cells": 43,
+       "usd_per_world": -16.925904
+      },
+      "terms: the reference's listing at a higher rent | pooled | reference sound | seat 0 sound": {
+       "cells": 6,
+       "usd_per_world": 0.456308
+      },
+      "terms: the reference's listing at a higher rent | true_cost | reference lemon | seat 0 lemon": {
+       "cells": 6,
+       "usd_per_world": 3.884692
+      },
+      "terms: the reference's listing at a higher rent | true_cost | reference sound | seat 0 sound": {
+       "cells": 6,
+       "usd_per_world": 0.442712
+      }
+     }
+    },
     "rules_fired_main": {
      "ended with no lease where the reference leased: no hold worth signing": 8,
      "ended with no lease where the reference leased: walked from a hold worth its rent": 4,
@@ -19552,6 +19716,83 @@
      "worse_terms": 74
     },
     "no_lease_cells": 31,
+    "paper_counts": {
+     "known_lemon_at_its_counter_vs_sound_at_floor": {
+      "counter_below_sound_floor_usd": {
+       "max": 1000.0,
+       "mean": 999.85,
+       "min": 995.27
+      },
+      "equal_exactly": 187,
+      "max_abs_difference_usd": 4.73,
+      "worlds": 200
+     },
+     "leaky_arm_favourite_lemon": {
+      "of_those_offered_on_it_after_learning": 4,
+      "of_those_signed_it": 4,
+      "of_which_by_inspection": 200,
+      "reference_signs_the_favourite_as_a_known_lemon": 200,
+      "seat0_learned_the_favourite_is_a_lemon": 200,
+      "signed_it_without_an_offer_after_learning": 0,
+      "worlds": 200
+     },
+     "leaky_arm_lemon_proving_replies": {
+      "signed above the lemon's value": 1,
+      "signed at or below the lemon's value": 9,
+      "total": 74,
+      "total (acceptance)": 74,
+      "walked": 64
+     },
+     "pooled_arm_reference_leases_nothing": {
+      "seat0_leased_by_rule": {
+       "signed a listing whose quality its information did not settle": {
+        "cells": 2,
+        "usd_per_world": -0.283885
+       },
+       "terms: leased where the reference did not": {
+        "cells": 56,
+        "usd_per_world": -26.202865
+       }
+      },
+      "seat0_leased_cells": 58,
+      "seat0_leased_usd_per_world": -26.48675,
+      "worlds": 77
+     },
+     "worse_terms_by_rule_arm_and_lease_quality": {
+      "terms: a better lease than the reference's (negative) | pooled | reference sound | seat 0 sound": {
+       "cells": 17,
+       "usd_per_world": -4.999327
+      },
+      "terms: a better lease than the reference's (negative) | true_cost | reference lemon | seat 0 sound": {
+       "cells": 7,
+       "usd_per_world": 0.101615
+      },
+      "terms: a listing worth less, net of rent, than the reference's | pooled | reference sound | seat 0 sound": {
+       "cells": 2,
+       "usd_per_world": 0.047923
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference lemon | seat 0 lemon": {
+       "cells": 5,
+       "usd_per_world": 4.063923
+      },
+      "terms: a listing worth less, net of rent, than the reference's | true_cost | reference lemon | seat 0 sound": {
+       "cells": 172,
+       "usd_per_world": 65.024481
+      },
+      "terms: leased where the reference did not | pooled | reference no lease | seat 0 sound": {
+       "cells": 56,
+       "usd_per_world": -26.202865
+      },
+      "terms: the reference's listing at a higher rent | pooled | reference sound | seat 0 sound": {
+       "cells": 1,
+       "usd_per_world": 0.000308
+      },
+      "terms: the reference's listing at a higher rent | true_cost | reference lemon | seat 0 lemon": {
+       "cells": 4,
+       "usd_per_world": 2.682442
+      }
+     }
+    },
     "rules_fired_main": {
      "ended with no lease where the reference leased: no hold worth signing": 11,
      "ended with no lease where the reference leased: walked from a hold worth its rent": 1,

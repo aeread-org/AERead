@@ -52,7 +52,8 @@ PACK = WT / "evidence/housing/housing_lemons_price_pack_v2/reports/pack.json"
 ANALYSIS = WT / "evidence/housing/housing_lemons_price_v15_analysis/reports/analysis.json"
 ADDENDUM_ANALYSIS = WT / "evidence/housing/housing_lemons_price_v15_glm_addendum_analysis/reports/analysis.json"
 
-from aeread_families.housing import lemons, price_controls, price_endpoint as pe, price_reference as pr  # noqa: E402
+from aeread_families.housing import lemons, lemons_design, price_controls, price_endpoint as pe  # noqa: E402
+from aeread_families.housing import price_outside_demand, price_reference as pr  # noqa: E402
 from aeread_families.housing import price_reply_posterior as posterior  # noqa: E402
 
 # campaign id -> (name, bundle, whether it is in v15's declared pair). GLM is addendum A, reported apart.
@@ -65,6 +66,7 @@ PRIORITY = ("procedure_and_format", "contrary_to_information_held", "information
             "worse_terms", "interaction_cost")
 TOL = 0.005
 SEAT = pr.FOCAL_SEAT
+LEAKY = posterior.LEAKY  # the arm whose lemon landlords reserve on a lemon's own cost
 
 
 @lru_cache(maxsize=None)
@@ -94,13 +96,32 @@ def reference_view(seed: int, arm: str) -> dict[str, Any]:
 
 def seat0_block(cell_json: Path) -> tuple[dict[str, Any], posterior.Trajectory]:
     """The family outcome's seat-0 block (what the receipt scored) and the trajectory read from the events."""
-    ev_root = cell_json.with_name(cell_json.stem + "_evidence")
-    (events,) = glob.glob(str(ev_root / "runplan_*/tasks/*/attempts/*/events.jsonl"))
-    from_events, outcome = posterior.trajectory_from_events(Path(events), SEAT)
+    from_events, outcome = posterior.trajectory_from_events(events_path(cell_json), SEAT)
     seat0 = outcome["seat0"]
     recorded = posterior.Trajectory.from_row(seat0["trajectory"])
     assert recorded.inspections == from_events.inspections and recorded.replies == from_events.replies, cell_json
     return seat0, recorded
+
+
+def events_path(cell_json: Path) -> Path:
+    ev_root = cell_json.with_name(cell_json.stem + "_evidence")
+    (events,) = glob.glob(str(ev_root / "runplan_*/tasks/*/attempts/*/events.jsonl"))
+    return Path(events)
+
+
+def seat0_offers(cell_json: Path) -> list[tuple[int, int, float]]:
+    """Every offer seat 0 made, as (round, listing, rent), from the last sealed state's history.
+
+    The trajectory keeps only offers a landlord answered; an offer on a listing outside demand took is here too.
+    """
+    path = events_path(cell_json)
+    state = None
+    for line in path.read_text().splitlines():
+        event = json.loads(line)
+        if event["event_type"] == "transition_applied":
+            state = json.loads((path.parent / event["payload_ref"]).read_text())["transition"]["state"]
+    return [(int(h["round_index"]), int(h["listing_id"]), float(h["rent"]))
+            for h in state["history"] if h.get("tenant_id") == SEAT and h["event"] == "offer"]
 
 
 def analyse_cell(row: dict[str, Any], cid: str) -> dict[str, Any]:
@@ -153,7 +174,9 @@ def analyse_cell(row: dict[str, Any], cid: str) -> dict[str, Any]:
     cls, rule = classify(lease, ref, spend, invalid, gap, walks)
     out = {"world_seed": seed, "arm": arm, "population": "main", "stratum": strata()[seed], "reference": ref,
            "spend": spend, "invalid_actions": invalid, "walks": walks,
-           "corrected": {"primary": scored["primary_v2"], "gap": gap, "lease": lease, "class": cls, "rule": rule}}
+           "corrected": {"primary": scored["primary_v2"], "gap": gap, "lease": lease, "class": cls, "rule": rule},
+           # kept in memory for the paper counts only; never written per cell
+           "_world": world, "_trajectory": trajectory, "_decisions": decisions, "_offers": seat0_offers(cell_json)}
     if lease is not None:
         # for the reading only (not classes): gap = listing choice at the landlord's floor + rent above that floor
         # + inspection spend above the reference's
@@ -294,8 +317,124 @@ def run() -> dict[str, Any]:
                                   "total": round(statistics.fmean(cells[(s, a)]["corrected"]["gap"] for a in ("true_cost", "pooled")), 6)}
                                  for s in sorted({s for s, _ in cells})]
         subj["diagnostics"] = diagnostics(cells)
+        subj["diagnostics"]["paper_counts"] = paper_counts(cells)
         result["subjects"][name] = subj
     return result
+
+
+def paper_counts(cells) -> dict[str, Any]:
+    """The counts §5.2's Housing paragraphs cite, from the same sealed trajectories. No class or amount changes.
+
+    1. Leaky arm (``true_cost``), favourite a lemon (``lemons_design.seat_favourite``, seat 0's own favourite, the
+       v15 stratum's rule): worlds where seat 0 learned the favourite is a lemon, by inspection or by a reply or
+       elimination, and of those the worlds where it then offered on it. An offer counts once seat 0 knows: from the
+       round of the inspection (contact follows inspection inside a round), or from the round after a reply that
+       proved it.
+    2. Worse-terms cells and $ a world by (rule, arm, the reference's lease quality, seat 0's lease quality).
+    3. Pooled arm: worlds where the reference leases nothing, and seat 0's leases in them.
+    4. Leaky-arm replies that prove a lemon (a binding rent below the sound floor for an offer below it), and seat 0's
+       commit decision on that listing in that round.
+    5. Leaky arm, favourite a lemon: the reference's lease (the favourite signed as a known lemon at its landlord's
+       counter) against the favourite's surplus if sound at its sound floor, and the counter's distance below that
+       floor. World-level facts, the same for every subject.
+    """
+    n_worlds = len({s for s, _ in cells})
+    leaky_lemon = sorted(s for s, a in cells if a == LEAKY and strata()[s] == "favourite_is_lemon")
+    learned, by_inspection, offered, signed_it, rule_listing_is_favourite = [], [], [], [], 0
+    gaps, discounts = [], []
+    for s in leaky_lemon:
+        c = cells[(s, LEAKY)]
+        world, traj = c["_world"], c["_trajectory"]
+        fav = lemons_design.seat_favourite(world)
+        assert world.quality[fav] == lemons.LEMON
+        ref = c["reference"]
+        rule_listing_is_favourite += ref["leased"] and ref["listing"] == fav and ref["quality"] == "lemon"
+        if ref["leased"] and ref["listing"] == fav:  # world-level: the same for every subject
+            as_sound = float(world.values_if_sound[SEAT][fav]) - pe.sound_floor(world, fav)
+            gaps.append(round(ref["surplus"] - as_sound, 2))
+            discounts.append(round(pe.sound_floor(world, fav) - ref["rent"], 2))
+        known_from = []
+        if fav in traj.inspections:
+            known_from.append(traj.inspections[fav])
+            by_inspection.append(s)
+        for r in range(price_outside_demand.ROUNDS):
+            inspected, revealed = posterior.knowledge(world, r, traj)
+            if revealed.get(fav) == lemons.QUALITY_LABEL[lemons.LEMON] and fav not in inspected:
+                known_from.append(r + 1)  # a reply is read at commit; the next offer is a later round
+                break
+        if not known_from:
+            continue
+        learned.append(s)
+        first = min(known_from)
+        if any(listing == fav and r >= first for r, listing, _ in c["_offers"]):
+            offered.append(s)
+        signed = [d for d in c["_decisions"] if d["decision"] == "sign"]
+        if signed and int(signed[0]["listing_id"]) == fav:
+            signed_it.append(s)
+    worse: dict[str, dict[str, float]] = {}
+    for (s, a), c in cells.items():
+        m = c["corrected"]
+        if m["class"] != "worse_terms":
+            continue
+        ref, lease = c["reference"], m["lease"]
+        key = " | ".join((m["rule"], a, f"reference {ref.get('quality', 'no lease')}", f"seat 0 {lease['quality']}"))
+        row = worse.setdefault(key, {"cells": 0, "usd_per_world": 0.0})
+        row["cells"] += 1
+        row["usd_per_world"] += m["gap"] / 2.0 / n_worlds
+    pooled_none = sorted(s for s, a in cells if a == "pooled" and not cells[(s, a)]["reference"]["leased"])
+    pooled_seat = [cells[(s, "pooled")] for s in pooled_none if cells[(s, "pooled")]["corrected"]["lease"] is not None]
+    replies = Counter()
+    for (s, a), c in cells.items():
+        if a != LEAKY:
+            continue
+        world = c["_world"]
+        for reply in c["_trajectory"].replies:
+            if posterior.reply_quality(world, reply) != lemons.QUALITY_LABEL[lemons.LEMON]:
+                continue
+            kind = "acceptance" if abs(reply.hold - reply.offer) < 0.005 else "counter"
+            replies[f"total ({kind})"] += 1
+            replies["total"] += 1
+            decision = [d for d in c["_decisions"]
+                        if int(d["round_index"]) == reply.round_index and int(d["listing_id"]) == reply.listing_id]
+            lemon_value = float(world.values_if_sound[SEAT][reply.listing_id]) - float(world.lemon_loss)
+            if not decision:
+                replies["no decision"] += 1
+            elif decision[0]["decision"] == "walk":
+                replies["walked"] += 1
+            elif float(decision[0]["rent"]) > lemon_value + TOL:
+                replies["signed above the lemon's value"] += 1
+            else:
+                replies["signed at or below the lemon's value"] += 1
+    return {
+        "leaky_arm_favourite_lemon": {
+            "worlds": len(leaky_lemon),
+            "reference_signs_the_favourite_as_a_known_lemon": rule_listing_is_favourite,
+            "seat0_learned_the_favourite_is_a_lemon": len(learned),
+            "of_which_by_inspection": len([s for s in learned if s in by_inspection]),
+            "of_those_offered_on_it_after_learning": len(offered),
+            "of_those_signed_it": len([s for s in offered if s in signed_it]),
+            "signed_it_without_an_offer_after_learning": len([s for s in signed_it if s not in offered]),
+        },
+        "worse_terms_by_rule_arm_and_lease_quality": {
+            k: {"cells": v["cells"], "usd_per_world": round(v["usd_per_world"], 6)} for k, v in sorted(worse.items())},
+        "pooled_arm_reference_leases_nothing": {
+            "worlds": len(pooled_none), "seat0_leased_cells": len(pooled_seat),
+            "seat0_leased_usd_per_world": round(sum(c["corrected"]["gap"] for c in pooled_seat) / 2.0 / n_worlds, 6),
+            "seat0_leased_by_rule": {
+                rule: {"cells": sum(c["corrected"]["rule"] == rule for c in pooled_seat),
+                       "usd_per_world": round(sum(c["corrected"]["gap"] for c in pooled_seat
+                                                  if c["corrected"]["rule"] == rule) / 2.0 / n_worlds, 6)}
+                for rule in sorted({c["corrected"]["rule"] for c in pooled_seat})},
+        },
+        "leaky_arm_lemon_proving_replies": dict(sorted(replies.items())),
+        "known_lemon_at_its_counter_vs_sound_at_floor": {
+            "worlds": len(gaps),
+            "equal_exactly": sum(abs(g) < 0.005 for g in gaps),
+            "max_abs_difference_usd": max((abs(g) for g in gaps), default=None),
+            "counter_below_sound_floor_usd": {"min": min(discounts, default=None), "max": max(discounts, default=None),
+                                              "mean": round(statistics.fmean(discounts), 2) if discounts else None},
+        },
+    }
 
 
 def diagnostics(cells) -> dict[str, Any]:
