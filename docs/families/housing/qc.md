@@ -1152,6 +1152,11 @@ the cells it affects. Written 2026-10-19 after the run; results in
 Selection note: pack v2 is screened toward worlds where inspecting pays, so its levels are not comparable with v14's
 without that qualifier.
 
+Next-pack requirement (2026-10-21, HL-D-10): if a claim on the next Housing pack is to be about deciding rather than
+carrying out a known procedure, its admission screen must also require every admitted world's best-informed tenant to
+beat `inspect_lowball` by a declared margin; on pack v2 that rule comes within $25 of the reference in 229 of 260 main
+worlds and equals it in all 60 sound-favourite worlds.
+
 Addendum A (GLM 5.3 Flash on Near AI fp8, `housing_lemons_price_v15_glm53_flash_nearai`), declared after v15's
 analysis and before any of its cells, is reported apart and leaves the table above unchanged: Section 7's admission
 ran both parts this time (the one-call probe and the one-world trajectory; Novita refused at the parameter filter,
