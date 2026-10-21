@@ -170,6 +170,7 @@ Directory `tau3-retail/`, package `tau3_retail`.
 
 Directory `termsbench/`, package `termsbench`.
 
+- [QC profile](termsbench/qc.md) (the reproduction, `termsbench_repro_v1`)
 - [Adapter specification](termsbench/adapter_spec.md)
 - [Adapter status](termsbench/adapter_status.md)
 - [TERMS-Bench live campaign (#92): what is done, and the blocker](termsbench/campaign_scoping.md)
