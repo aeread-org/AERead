@@ -302,7 +302,7 @@ evidence. It is generated from the tree and the plugin registry
 
 22 families, 26 case directories, 115 published bundles. A registered identity is a `family_id@version` in the kernel's trusted plugin keys.
 
-Registered with no family package on this tree: `datacenter_risk_allocation_v1@0.1.0`, `kernel_contract_reference_v1@1.0.0`, `kernel_contract_sequential_v1@1.0.0`.
+Registered with no family package on this tree: `datacenter_agreement_v1@0.1.0`, `datacenter_risk_allocation_v1@0.1.0`, `kernel_contract_reference_v1@1.0.0`, `kernel_contract_sequential_v1@1.0.0`.
 
 <!-- family-catalog:end -->
 
