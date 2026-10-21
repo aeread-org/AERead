@@ -9,6 +9,7 @@ runs/
 submissions/
 sweeps/
 work/
+.aeread-telemetry/
 
 # local editor settings
 .vscode/

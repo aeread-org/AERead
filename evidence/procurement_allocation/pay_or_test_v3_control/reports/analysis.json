@@ -1,0 +1,599 @@
+{
+ "plan": "docs/families/procurement-allocation/pay_or_test_v3_control_plan.md",
+ "phase_a": {
+  "candidates": {
+   "gpt6_luna_high": {
+    "campaign_id": "procurement_allocation_pay_or_test_v3_pilot_v3_control_gpt6_luna_high_v1",
+    "plays": 12,
+    "failed": 0,
+    "plays_touching_a_newcomer": 5,
+    "qualifies": true
+   },
+   "gemini38_flash_high": {
+    "campaign_id": "procurement_allocation_pay_or_test_v3_pilot_v3_control_gemini38_flash_high_v1",
+    "plays": 12,
+    "failed": 0,
+    "plays_touching_a_newcomer": 0,
+    "qualifies": false
+   }
+  },
+  "control": "gpt6_luna_high",
+  "rule": "touches a newcomer in at least 4 of 12 plays with at most 1 failed cell; the qualifying candidate with more such plays, ties to the first in order"
+ },
+ "phase_b": {
+  "campaign_id": "procurement_allocation_pay_or_test_v3_confirm_v3_control_gpt6_luna_high_v1",
+  "plays": 60,
+  "failed": [],
+  "control_gap_closed_mean": -0.3351,
+  "plays_touching_a_newcomer": 26,
+  "degenerate_worlds": [
+   "myopic_pays__2",
+   "myopic_pays__3",
+   "myopic_pays__5"
+  ],
+  "trivial_worlds": [
+   "myopic_pays__1",
+   "myopic_pays__2",
+   "myopic_pays__3",
+   "myopic_pays__4",
+   "myopic_pays__5",
+   "myopic_pays__6",
+   "myopic_pays__7",
+   "myopic_pays__8",
+   "myopic_pays__9",
+   "myopic_pays__10",
+   "myopic_pays__11",
+   "myopic_pays__12",
+   "myopic_pays__13",
+   "myopic_pays__14",
+   "myopic_pays__15",
+   "myopic_pays__16",
+   "myopic_pays__17",
+   "myopic_pays__18"
+  ],
+  "worlds_meeting_the_ground": 2,
+  "gate_1_measured_headroom": "partial",
+  "per_world": {
+   "myopic_pays__1": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0001,
+     0.5776,
+     -0.0001
+    ],
+    "within_world_sd": 0.3335,
+    "decision_loss_by_seed": [
+     45.92,
+     19.4,
+     45.92
+    ],
+    "control_best_value_usd": 348.78,
+    "screened_rule_best_value_usd": 356.18,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 356.18,
+     "two_step_value": 359.35
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.9118,
+     0.9118
+    ]
+   },
+   "myopic_pays__2": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0001,
+     -0.0001,
+     -0.0001
+    ],
+    "within_world_sd": 0.0,
+    "decision_loss_by_seed": [
+     53.57,
+     53.57,
+     53.57
+    ],
+    "control_best_value_usd": 509.56,
+    "screened_rule_best_value_usd": 545.35,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 545.35,
+     "two_step_value": 549.83
+    },
+    "degenerate": true,
+    "trivial": true,
+    "sol_gap_closed": [
+     -0.0001,
+     -0.0001
+    ]
+   },
+   "myopic_pays__3": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0,
+     -0.0,
+     -0.0
+    ],
+    "within_world_sd": 0.0,
+    "decision_loss_by_seed": [
+     57.07,
+     57.07,
+     57.07
+    ],
+    "control_best_value_usd": 482.8,
+    "screened_rule_best_value_usd": 482.8,
+    "screened_rule_best": "one_step_value",
+    "beside": {
+     "probe_same_kind_first": 536.6,
+     "two_step_value": 539.78
+    },
+    "degenerate": true,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.0991,
+     0.7405
+    ]
+   },
+   "myopic_pays__4": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.3407,
+     -1.4783,
+     0.0001
+    ],
+    "within_world_sd": 0.7741,
+    "decision_loss_by_seed": [
+     66.34,
+     122.63,
+     49.48
+    ],
+    "control_best_value_usd": 386.47,
+    "screened_rule_best_value_usd": 411.09,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 411.09,
+     "two_step_value": 418.04
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.0001,
+     0.0001
+    ]
+   },
+   "myopic_pays__5": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.0001,
+     0.0001,
+     0.0001
+    ],
+    "within_world_sd": 0.0,
+    "decision_loss_by_seed": [
+     46.01,
+     46.01,
+     46.01
+    ],
+    "control_best_value_usd": 431.96,
+    "screened_rule_best_value_usd": 466.36,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 466.36,
+     "two_step_value": 474.43
+    },
+    "degenerate": true,
+    "trivial": true,
+    "sol_gap_closed": [
+     -0.0434,
+     -0.1303
+    ]
+   },
+   "myopic_pays__6": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0,
+     0.0551,
+     0.3683
+    ],
+    "within_world_sd": 0.1987,
+    "decision_loss_by_seed": [
+     38.3,
+     36.19,
+     24.19
+    ],
+    "control_best_value_usd": 347.07,
+    "screened_rule_best_value_usd": 350.9,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 350.9,
+     "two_step_value": 356.44
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.2768,
+     0.3683
+    ]
+   },
+   "myopic_pays__7": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.1564,
+     0.0001,
+     -0.4142
+    ],
+    "within_world_sd": 0.2948,
+    "decision_loss_by_seed": [
+     38.3,
+     45.4,
+     64.2
+    ],
+    "control_best_value_usd": 414.98,
+    "screened_rule_best_value_usd": 442.74,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 442.74,
+     "two_step_value": 448.57
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.4118,
+     0.0971
+    ]
+   },
+   "myopic_pays__8": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -1.4337,
+     -1.0063,
+     -1.1186
+    ],
+    "within_world_sd": 0.2216,
+    "decision_loss_by_seed": [
+     140.57,
+     115.88,
+     122.37
+    ],
+    "control_best_value_usd": 320.33,
+    "screened_rule_best_value_usd": 420.34,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 420.34,
+     "two_step_value": 429.04
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.8564,
+     0.8564
+    ]
+   },
+   "myopic_pays__9": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.0001,
+     -1.7471,
+     -0.5043
+    ],
+    "within_world_sd": 0.8992,
+    "decision_loss_by_seed": [
+     57.65,
+     158.37,
+     86.72
+    ],
+    "control_best_value_usd": 386.47,
+    "screened_rule_best_value_usd": 386.47,
+    "screened_rule_best": "one_step_value",
+    "beside": {
+     "probe_same_kind_first": 440.42,
+     "two_step_value": 443.68
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.9634,
+     0.7528
+    ]
+   },
+   "myopic_pays__10": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.0001,
+     -0.8456,
+     -0.8456
+    ],
+    "within_world_sd": 0.4883,
+    "decision_loss_by_seed": [
+     61.53,
+     113.58,
+     113.58
+    ],
+    "control_best_value_usd": 501.54,
+    "screened_rule_best_value_usd": 552.58,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 552.58,
+     "two_step_value": 558.11
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.9949,
+     0.9163
+    ]
+   },
+   "myopic_pays__11": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -1.4798,
+     0.0,
+     0.0
+    ],
+    "within_world_sd": 0.8544,
+    "decision_loss_by_seed": [
+     83.17,
+     33.54,
+     33.54
+    ],
+    "control_best_value_usd": 327.61,
+    "screened_rule_best_value_usd": 332.7,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 332.7,
+     "two_step_value": 343.04
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.0,
+     0.0
+    ]
+   },
+   "myopic_pays__12": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0002,
+     -0.0002,
+     -0.4374
+    ],
+    "within_world_sd": 0.2524,
+    "decision_loss_by_seed": [
+     39.69,
+     39.69,
+     57.04
+    ],
+    "control_best_value_usd": 391.82,
+    "screened_rule_best_value_usd": 418.72,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 418.72,
+     "two_step_value": 422.57
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.8165,
+     1.0
+    ]
+   },
+   "myopic_pays__13": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.2178,
+     0.0,
+     -0.3714
+    ],
+    "within_world_sd": 0.298,
+    "decision_loss_by_seed": [
+     62.65,
+     80.1,
+     109.85
+    ],
+    "control_best_value_usd": 545.74,
+    "screened_rule_best_value_usd": 592.84,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 592.84,
+     "two_step_value": 595.35
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.0,
+     0.79
+    ]
+   },
+   "myopic_pays__14": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0333,
+     -0.0001,
+     -0.3444
+    ],
+    "within_world_sd": 0.1899,
+    "decision_loss_by_seed": [
+     62.29,
+     60.29,
+     81.04
+    ],
+    "control_best_value_usd": 429.28,
+    "screened_rule_best_value_usd": 475.85,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 475.85,
+     "two_step_value": 487.52
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     -0.0664,
+     0.9707
+    ]
+   },
+   "myopic_pays__15": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0869,
+     0.0,
+     -0.038
+    ],
+    "within_world_sd": 0.0436,
+    "decision_loss_by_seed": [
+     44.48,
+     40.92,
+     42.48
+    ],
+    "control_best_value_usd": 389.15,
+    "screened_rule_best_value_usd": 407.7,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 407.7,
+     "two_step_value": 412.17
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.121,
+     0.5681
+    ]
+   },
+   "myopic_pays__16": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.0202,
+     0.0,
+     -3.1961
+    ],
+    "within_world_sd": 1.8395,
+    "decision_loss_by_seed": [
+     59.88,
+     58.69,
+     246.27
+    ],
+    "control_best_value_usd": 343.66,
+    "screened_rule_best_value_usd": 343.66,
+    "screened_rule_best": "one_step_value",
+    "beside": {
+     "probe_same_kind_first": 398.27,
+     "two_step_value": 400.71
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.0,
+     0.0
+    ]
+   },
+   "myopic_pays__17": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -1.6836,
+     -2.1915,
+     -1.701
+    ],
+    "within_world_sd": 0.2884,
+    "decision_loss_by_seed": [
+     118.86,
+     141.35,
+     119.63
+    ],
+    "control_best_value_usd": 365.42,
+    "screened_rule_best_value_usd": 439.99,
+    "screened_rule_best": "one_step_value",
+    "beside": {
+     "probe_same_kind_first": 477.99,
+     "two_step_value": 480.48
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.5623,
+     -0.0
+    ]
+   },
+   "myopic_pays__18": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     -0.4977,
+     0.0,
+     0.0
+    ],
+    "within_world_sd": 0.2874,
+    "decision_loss_by_seed": [
+     85.86,
+     57.33,
+     57.33
+    ],
+    "control_best_value_usd": 514.91,
+    "screened_rule_best_value_usd": 559.39,
+    "screened_rule_best": "cheapest_sample_first",
+    "beside": {
+     "probe_same_kind_first": 559.39,
+     "two_step_value": 567.81
+    },
+    "degenerate": false,
+    "trivial": true,
+    "sol_gap_closed": [
+     0.0,
+     0.0
+    ]
+   },
+   "myopic_pays__19": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.1362,
+     0.0002,
+     -0.4265
+    ],
+    "within_world_sd": 0.2936,
+    "decision_loss_by_seed": [
+     40.05,
+     46.36,
+     66.14
+    ],
+    "control_best_value_usd": 467.71,
+    "screened_rule_best_value_usd": 461.39,
+    "screened_rule_best": "one_step_value",
+    "beside": {
+     "probe_same_kind_first": 492.4,
+     "two_step_value": 499.49
+    },
+    "degenerate": false,
+    "trivial": false,
+    "sol_gap_closed": [
+     0.0908,
+     0.0002
+    ]
+   },
+   "myopic_pays__20": {
+    "plays": 3,
+    "gap_closed_by_seed": [
+     0.4425,
+     0.183,
+     -0.0
+    ],
+    "within_world_sd": 0.2224,
+    "decision_loss_by_seed": [
+     28.44,
+     41.68,
+     51.02
+    ],
+    "control_best_value_usd": 467.92,
+    "screened_rule_best_value_usd": 445.34,
+    "screened_rule_best": "one_step_value",
+    "beside": {
+     "probe_same_kind_first": 475.49,
+     "two_step_value": 482.79
+    },
+    "degenerate": false,
+    "trivial": false,
+    "sol_gap_closed": [
+     0.2962,
+     -0.0
+    ]
+   }
+  }
+ }
+}

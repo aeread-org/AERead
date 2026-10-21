@@ -530,3 +530,71 @@ python -m aeread_families.procurement_allocation.information_case_matrix --surfa
 `confirmatory_v2/` is the twelve-world held-out panel for the pre-award check,
 generated after that prompt was frozen and its development result read.
 
+
+`inference_v2/` is an eighteen-world panel on whom to verify. One of the two
+components carries a public marketplace record on every listing and the other
+has none. One listing attribute separates good from bad sellers on both
+components; the other two are crossed with quality, so the cheapest unrecorded
+listing is good in nine worlds and bad in nine. Five actions buy one verified
+supplier per component, and an award on a bad supplier costs about 60 percent of
+the bound, not all of it. It is played under `inference_v2_prompt.NEUTRAL_PROMPT`,
+which states the marketplace and prescribes no procedure. A policy that reads
+the record and carries it to the unrecorded component solves 18 of 18; the
+record plus any fixed listing rule solves 8 to 10 (`pack.json`). It exists
+because the two halves of `inference_v1` were its prompt's cost ranking being
+right or wrong (incident row P-D-15). Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.inference_v2_case_matrix --write
+```
+
+
+`pay_or_test_v1/` is a twenty-four-world panel on one decision: pay the premium
+to the one supplier with a record, or spend money and days testing a cheaper
+one without. Each new listing states the odds for sellers of its kind (how many
+proved unreliable on delivery, how many failed inspection). A quote shows
+lateness, a sample shows yield, and both cost money and days; supplying nothing
+costs the shortfall penalty on all fifty kits. Six cells of four worlds: paying
+is right on the money, paying is right because a failed test would leave no
+time for the recorded supplier, and testing is right with the cheapest or with
+another newcomer as the one to test, each on a tight and a loose clock. Worlds
+are admitted on what a buyer can see; the suppliers' types are drawn afterwards
+on their own stream. It is played under `pay_or_test_prompt.PAY_OR_TEST_PROMPT`,
+which states how the order is counted and what each request shows and
+prescribes no procedure.
+
+`pay_or_test_reference.py` computes the best informed policy by backward
+induction, values scripted rules exactly, and prices a trajectory one action at
+a time against the best action available then, so a score does not move with
+how a tested supplier turned out. Against that policy, always paying loses
+$75 a world, cheapest-first $81 and searching until one qualifies $146
+(`pack.json`). Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.pay_or_test_case_matrix --write
+```
+
+`pay_or_test_v2/` is the same decision with one fact added: new listings of one
+seller kind may share a source, with a chance the case states
+(`policy.newcomer_sourcing.same_source_probability`, 0.8 to 0.95), and when they
+do they are all sound, all late or all failing inspection. Each listing's own
+odds are still its cohort record. A cheap sample on a listing nobody would buy
+from can then be worth taking for what it says about a much cheaper listing of
+the same kind whose sample is dear, and no rule that looks one test ahead sees
+that. Twenty-four worlds in four cells of six: the one-step rule pays the
+premium or tests a newcomer directly, each on a tight and a loose clock. A
+world is admitted only if the one-step rule, version 1's one-step comparison,
+every fixed rule and a kind-blind shortcut each give up at least $10 against
+the best informed policy, with the source never shared the one-step rule is
+within $5 of it, and information is worth at least $10; the pack's mean
+one-step loss must be at least $15 (it is $30.09). Admission reads only what a
+buyer sees; types are drawn afterwards, under the stated law, on their own
+stream. It is played under `pay_or_test_v2_prompt.PAY_OR_TEST_V2_PROMPT`: brief
+v2 and the shared source stated. Regenerate with:
+
+```bash
+python -m aeread_families.procurement_allocation.pay_or_test_v2_case_matrix --write
+```
+
+The scan takes about six minutes; `tests/test_procurement_pay_or_test_v2.py`
+checks it world by world.

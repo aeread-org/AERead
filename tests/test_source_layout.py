@@ -77,6 +77,7 @@ def test_housing_family_owns_its_complete_execution_surface() -> None:
 def test_cli_verb_modules_use_the_organized_package_paths() -> None:
     kernel_verbs = {
         "export-tables": "aeread.shared_runner.analysis.research",
+        "provider-failures": "aeread.shared_runner.run.provider_failures",
         "publish-trajectories": "aeread.shared_runner.run.publish_trajectories",
         "seal-manifest": "aeread.shared_runner.run.seal_manifest",
         "source-commit": "aeread.shared_runner.run.provenance",

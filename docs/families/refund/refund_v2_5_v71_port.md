@@ -90,8 +90,9 @@ paid calls and does not authorize resuming the stopped calibration.
 
 This extension is included in the update prepared for draft
 [PR #269](https://github.com/aeread-org/AERead/pull/269); it is not a claim of
-merge into GitHub main. The base branch is not silently rebased over the
-previously prepared changes.
+merge into GitHub main. Current main was subsequently merged into the PR branch
+without rebasing or overwriting the previously prepared changes. The sole
+conflict was the generated README catalog and was resolved by regeneration.
 
 At this review, current GitHub main is
 `1dd48cf5a443c94eccdd0597144fbf1c0e693525`. Its shared-runner tree differs from
@@ -118,6 +119,12 @@ tests family interoperability with that kernel, not a full merged-tree CI run.
   Catalog tests are therefore qualified in the native PR checkout, not claimed
   as passing in that mixed tree. This is another reason not to describe the
   overlay check as merged-tree integration CI.
+- The subsequent main merge preserves the V2.5 family source bytes and leaves
+  no PR-specific changes under `src/aeread`. Duplicate-class-member checks on
+  the merged tree passed all 1,458 checks.
+- The actual merged-tree family and catalog regression run passed **271/271**
+  tests, superseding the mixed-tree registry mismatch. Full GitHub CI is still
+  separate from this selected regression suite.
 
 Full repository integration CI must rerun on the updated PR. Scripted
 conformance is not model-performance evidence. Full publication QC remains
