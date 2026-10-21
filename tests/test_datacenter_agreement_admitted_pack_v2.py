@@ -108,3 +108,21 @@ def test_the_v2_packs_share_no_world_with_v1_and_use_their_own_type_stream() -> 
         seeds = {w["world_seed"] for w in v2.load(spec)[0]["worlds"]}
         assert not seeds & v1_worlds and min(seeds) >= spec.base_seed
         assert spec.type_stream.startswith(spec.pack + "/")
+
+
+def _rows(spec) -> tuple:
+    manifest, cases, _ = v2.load(spec)
+    return tuple((row, cases[row["case_id"]]["payload"]) for row in manifest["worlds"])
+
+
+def test_through_the_environment_the_full_information_pair_loses_nothing_in_every_v2_world_and_the_draft_its_midpoint() -> None:
+    """Gate 2 on every world of the v2 confirmatory pack (the v1 admitted pack's check, extended; 2026-10-20): the
+    full-information pair loses 0, signs c* where a deal is worth signing and walks otherwise, and the draft pair loses
+    exactly what signing the draft at its midpoint predicts."""
+    from tests.test_datacenter_agreement_oracle_run import draft_failures, oracle_failures, records
+
+    rows = _rows(v2.SPECS[v2.ADMITTED.pack])
+    assert len(rows) == 80
+    assert oracle_failures(records(rows, "oracle")) == []
+    failures, _ = draft_failures(records(rows, "draft"))
+    assert failures == []
