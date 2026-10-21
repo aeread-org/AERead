@@ -1,6 +1,7 @@
+Binary files aeread_working_draft_20261018_v14/.DS_Store and aeread_working_draft_20261018_v15/.DS_Store differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-21 13:05:31
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -21,8 +22,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -  "abstract_words": 189,
 -  "discussion_words": 350
 +  "runtime_words": 2026,
-+  "abstract_words": 276,
-+  "discussion_words": 952
++  "abstract_words": 278,
++  "discussion_words": 958
  }
 Binary files aeread_working_draft_20261018_v14/__pycache__/export_latex.cpython-311.pyc and aeread_working_draft_20261018_v15/__pycache__/export_latex.cpython-311.pyc differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/build.py aeread_working_draft_20261018_v15/build.py
@@ -238,7 +239,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      stamped.replace(OUT)
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/export_latex.py aeread_working_draft_20261018_v15/export_latex.py
 --- aeread_working_draft_20261018_v14/export_latex.py	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/export_latex.py	2026-10-21 12:25:10
++++ aeread_working_draft_20261018_v15/export_latex.py	2026-10-21 13:05:07
 @@ -0,0 +1,243 @@
 +"""Export the working draft as a LaTeX project (``latex/``) from the same sources ``build.py`` reads.
 +
@@ -433,7 +434,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +            latex = re.sub(r"(\\section\{[^\n]*\}(\\label\{[^}]*\})?)", lambda m: m.group(1) + f"\\label{{{labels[name]}}}", latex, count=1)
 +        (OUT / "sections" / f"{name}.tex").write_text(subscripts(latex))
 +
-+    author_line = " \\and ".join(authors) + r"\\ \small contact@aeread.org"
++    author_line = r" \hspace{3em} ".join(authors) + r" \\[3pt] {\small contact@aeread.org}"  # one block, so the address centres under both names
 +    main_tex = PREAMBLE + (
 +        f"\\title{{{TITLE}}}\n\\author{{{author_line}}}\n"
 +        f"\\date{{Research working paper, version {version['version']}, {version['date']}. Preliminary results; "
@@ -485,7 +486,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    compile_pdf()
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-21 13:00:48
++++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-21 13:05:14
 @@ -2,11 +2,11 @@
    "figure": "Figure 4.1",
    "scope": "Conceptual architecture; applied coverage varies by campaign",
@@ -495,7 +496,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -    "source/app_runtime.tex": "fc010ddd08529976b22bda6a19ee7d9f9c4df2a4623a944313e7da4adfd57b14",
 -    "source/paper_qc_design.md": "68ab88b489f3274f447fc0776fc9b20b5df0cfa29b45f42ff2402c58325d1cbd",
 -    "source/tab_case_paths.tex": "84ab99d48a11cea83d46db16ede96715012ef86525e7a4a4ebbf329529c41bb3"
-+    "source/sec_opening.tex": "1abf73faf610b724fc743fc9a7659ea871151653c360584a0cfa510d079159fc",
++    "source/sec_opening.tex": "5520e7388353ffa556a602f913616addc035c49663ccf4bda05a35be17268fb8",
 +    "source/sec_runtime.tex": "c2c2c0849df69cbe58b5dae6c3a50afc43716f7004b793b0a9eb7f65495c63cd",
 +    "source/app_runtime.tex": "b0646fdd7ed29f6f16903bfcb34b6495e4297fad2bda66bf2ec67bd4024fe096",
 +    "source/paper_qc_design.md": "76467bf42be9a4934fdc6d1e4f5fe4af7c19cce29e504a4cbb20601cccbda511",
@@ -1488,7 +1489,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/main.tex aeread_working_draft_20261018_v15/latex/main.tex
 --- aeread_working_draft_20261018_v14/latex/main.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-21 13:01:07
++++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-21 13:05:33
 @@ -0,0 +1,50 @@
 +\documentclass[10pt]{article}
 +\usepackage[margin=0.9in]{geometry}
@@ -1520,8 +1521,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\renewcommand{\arraystretch}{1.12}
 +\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 +\title{AERead: Evaluating Economic Decisions in Interactive Environments}
-+\author{Chenyu Li \and Zeyu Sun\\ \small contact@aeread.org}
-+\date{Research working paper, version 15.35, 21 October 2026. Preliminary results; feedback and contributions welcome.}
++\author{Chenyu Li \hspace{3em} Zeyu Sun \\[3pt] {\small contact@aeread.org}}
++\date{Research working paper, version 15.36, 21 October 2026. Preliminary results; feedback and contributions welcome.}
 +
 +\begin{document}
 +\maketitle
@@ -1758,7 +1759,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/abstract.tex aeread_working_draft_20261018_v15/latex/sections/abstract.tex
 --- aeread_working_draft_20261018_v14/latex/sections/abstract.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-21 13:05:31
 @@ -0,0 +1,25 @@
 +\section*{Abstract}
 +
@@ -1780,14 +1781,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +counterpart. Shortfalls are broken down by stratum and by action
 +class; in housing, nearly all of the gap to the reference falls in worlds
 +where the tenant's favourite listing is a lemon. Of 25 defects selected from
-+our quality-control record, 14 were invisible in any one world. Housing now
-+passes four of the five quality-control gates and no case passes all five,
++our quality-control record, 14 were invisible in any one world. Housing and
++Procurement now pass four of the five quality-control gates and no case passes all five,
 +so the results compare named agents on stated worlds rather than rank models. AERead's code is open source: a
 +new case supplies its economic rules, worlds and reference, and inherits
 +the runtime, replay and the quality-control standard.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-21 13:01:07
++++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-21 13:05:32
 @@ -0,0 +1,827 @@
 +\section{Case specifications}\label{case-specifications}
 +
@@ -2618,7 +2619,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\texttt{agreement\_\allowbreak{}pack.\allowbreak{}py}:31--55.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_details.tex aeread_working_draft_20261018_v15/latex/sections/app_details.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_details.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-21 13:01:07
++++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-21 13:05:33
 @@ -0,0 +1,1476 @@
 +\section{Case details}\label{case-details}
 +
@@ -4098,7 +4099,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +corrections are supplied as a documentation patch; no frozen driver or analysis code was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-21 13:05:31
 @@ -0,0 +1,181 @@
 +% Condensed paper appendix; full prior technical reference preserved in the supplement.
 +\section{Runtime contract and experimental coverage}
@@ -4283,7 +4284,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and later checks or repairs do not retroactively qualify earlier runs.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-21 13:05:32
 @@ -0,0 +1,447 @@
 +\section{Case studies}\label{case-studies}\label{sec:cases}
 +
@@ -4734,8 +4735,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +support for the scripted seat this family uses is now on the main branch.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-21 13:01:06
-@@ -0,0 +1,108 @@
++++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-21 13:05:31
+@@ -0,0 +1,109 @@
 +\section{Discussion and conclusion}
 +\label{sec:discussion}
 +
@@ -4782,9 +4783,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contracting, but their parameters are set by the authors; calibration to
 +field data and transfer to field settings remain to be established.
 +Coverage is limited to two transaction classes and a small set of agent
-+configurations, with no human policy baseline. Housing v15 passes four of
-+the five qualification gates and no case passes all five: several checks on
-+the other cases were added after their runs, and hosted-model and CLI
++configurations, with no human policy baseline. Housing v15 and Procurement's
++declared pack pass four of the five qualification gates and no case passes
++all five: several checks were added after the runs they qualify, and hosted-model and CLI
 +behavior limits attribution from declared settings.
 +Versioned reanalyses now regenerate the corrected Housing measures and
 +Procurement decision losses from sealed records, which strengthens their
@@ -4828,7 +4829,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +What is ready and what is not: the runtime, its sealed evidence and
 +replay, and the case layout are in use, and Housing, Procurement and Data
 +center each have a world generator, references and scripted counterparts.
-+No case is yet fully qualified: Housing v15 passes four of the five gates.
++No case is yet fully qualified: Housing v15 and Procurement's declared pack
++pass four of the five gates.
 +Section~\ref{sec:qc} gives every gate verdict and
 +Appendix~F each campaign's open checks, so a contributor can see what a
 +case still needs before its results can rank agents.
@@ -4846,7 +4848,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-21 13:05:31
 @@ -0,0 +1,256 @@
 +% Sections 1--3, drafting pass 16 October 2026.
 +% Empirical scope follows the merged Sections 4--6 review snapshot.
@@ -4939,8 +4941,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +with the same evidence and checks as the existing ones.
 +Sections 3 and 4 describe the case design and the runtime, Section 5 the
 +cases, and Section 6 the quality control. The cases are maintainer-built
-+worked examples; Housing passes four of the five qualification gates and
-+none passes all five; Section 7
++worked examples; Housing and Procurement pass four of the five qualification
++gates and none passes all five; Section 7
 +states what their results do and do not establish.
 +
 +\section{Related work}
@@ -5106,7 +5108,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contributors.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-21 13:01:07
++++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-21 13:05:32
 @@ -0,0 +1,79 @@
 +\section{Quality control}\label{quality-control}\label{sec:qc}
 +
@@ -5189,7 +5191,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +statements while this paper was written.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-21 13:05:31
 @@ -0,0 +1,74 @@
 +% Revision 10. Concise main text; technical contract retained in appendix.
 +% Runtime baseline: dec1a40f. Evidence review dated 2026-10-14.
@@ -5267,7 +5269,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +path applied and the versions behind each reported panel.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-21 13:05:31
 @@ -0,0 +1,46 @@
 +\begingroup
 +\small
@@ -5317,7 +5319,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\endgroup
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-21 13:01:06
++++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-21 13:05:31
 @@ -0,0 +1,16 @@
 +\begin{longtable}{@{}P{1.25in}P{2.6in}P{2.6in}@{}}
 +\caption{CLI controls applied in the reviewed panels. These describe
@@ -5403,7 +5405,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +.contact a { color:#367dad; text-decoration:none; }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/abstract.tex aeread_working_draft_20261018_v15/source/abstract.tex
 --- aeread_working_draft_20261018_v14/source/abstract.tex	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/abstract.tex	2026-10-19 13:04:14
++++ aeread_working_draft_20261018_v15/source/abstract.tex	2026-10-21 13:05:07
 @@ -1,22 +1,25 @@
  \section*{Abstract}
  
@@ -5445,8 +5447,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +counterpart. Shortfalls are broken down by stratum and by action
 +class; in housing, nearly all of the gap to the reference falls in worlds
 +where the tenant's favourite listing is a lemon. Of 25 defects selected from
-+our quality-control record, 14 were invisible in any one world. Housing now
-+passes four of the five quality-control gates and no case passes all five,
++our quality-control record, 14 were invisible in any one world. Housing and
++Procurement now pass four of the five quality-control gates and no case passes all five,
 +so the results compare named agents on stated worlds rather than rank models. AERead's code is open source: a
 +new case supplies its economic rules, worlds and reference, and inherits
 +the runtime, replay and the quality-control standard.
@@ -7442,8 +7444,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_discussion.tex aeread_working_draft_20261018_v15/source/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/source/sec_discussion.tex	2026-10-17 20:33:40
-+++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-19 13:04:14
-@@ -1,48 +1,108 @@
++++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-21 13:05:07
+@@ -1,48 +1,109 @@
  \section{Discussion and conclusion}
  \label{sec:discussion}
  
@@ -7531,9 +7533,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contracting, but their parameters are set by the authors; calibration to
 +field data and transfer to field settings remain to be established.
 +Coverage is limited to two transaction classes and a small set of agent
-+configurations, with no human policy baseline. Housing v15 passes four of
-+the five qualification gates and no case passes all five: several checks on
-+the other cases were added after their runs, and hosted-model and CLI
++configurations, with no human policy baseline. Housing v15 and Procurement's
++declared pack pass four of the five qualification gates and no case passes
++all five: several checks were added after the runs they qualify, and hosted-model and CLI
 +behavior limits attribution from declared settings.
 +Versioned reanalyses now regenerate the corrected Housing measures and
 +Procurement decision losses from sealed records, which strengthens their
@@ -7577,7 +7579,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +What is ready and what is not: the runtime, its sealed evidence and
 +replay, and the case layout are in use, and Housing, Procurement and Data
 +center each have a world generator, references and scripted counterparts.
-+No case is yet fully qualified: Housing v15 passes four of the five gates.
++No case is yet fully qualified: Housing v15 and Procurement's declared pack
++pass four of the five gates.
 +Section~\ref{sec:qc} gives every gate verdict and
 +Appendix~F each campaign's open checks, so a contributor can see what a
 +case still needs before its results can rank agents.
@@ -7595,7 +7598,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_opening.tex aeread_working_draft_20261018_v15/source/sec_opening.tex
 --- aeread_working_draft_20261018_v14/source/sec_opening.tex	2026-10-17 19:49:36
-+++ aeread_working_draft_20261018_v15/source/sec_opening.tex	2026-10-20 16:56:29
++++ aeread_working_draft_20261018_v15/source/sec_opening.tex	2026-10-21 13:05:07
 @@ -32,24 +32,70 @@
  under the deciding seat's information, or a labelled full-information
  upper bound. Results retain their native units and reference types.
@@ -7665,8 +7668,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +with the same evidence and checks as the existing ones.
 +Sections 3 and 4 describe the case design and the runtime, Section 5 the
 +cases, and Section 6 the quality control. The cases are maintainer-built
-+worked examples; Housing passes four of the five qualification gates and
-+none passes all five; Section 7
++worked examples; Housing and Procurement pass four of the five qualification
++gates and none passes all five; Section 7
 +states what their results do and do not establish.
  
  \section{Related work}
@@ -7803,10 +7806,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-10-21 13:00:47
++++ aeread_working_draft_20261018_v15/source/version.json	2026-10-21 13:05:07
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.35",
++  "version": "15.36",
 +  "date": "21 October 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}

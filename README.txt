@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.35 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.36 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -339,3 +339,6 @@ current one saturated"):
   still passes, with the inspect_lowball flag (within $25 of the reference in 229 of 260 worlds); the data-center v2
   pack stays partial (lower-bound reference; a shortcut within 25 in 12 of 80 worlds). Section 6 and Appendices E.4
   and F.1 updated to match; Section 6's v2 oracle sentence corrected (all 80 worlds, checked after the runs).
+- Version 15.36 (2026-10-21): the abstract, Section 1 and Section 7 said only Housing passes four of the five gates;
+  after 15.35's Gate 1 re-read Procurement's declared pack does too. LaTeX export: the contact address centres under
+  both authors instead of sitting under the second.

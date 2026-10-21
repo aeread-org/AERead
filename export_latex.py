@@ -191,7 +191,7 @@ def main() -> None:
             latex = re.sub(r"(\\section\{[^\n]*\}(\\label\{[^}]*\})?)", lambda m: m.group(1) + f"\\label{{{labels[name]}}}", latex, count=1)
         (OUT / "sections" / f"{name}.tex").write_text(subscripts(latex))
 
-    author_line = " \\and ".join(authors) + r"\\ \small contact@aeread.org"
+    author_line = r" \hspace{3em} ".join(authors) + r" \\[3pt] {\small contact@aeread.org}"  # one block, so the address centres under both names
     main_tex = PREAMBLE + (
         f"\\title{{{TITLE}}}\n\\author{{{author_line}}}\n"
         f"\\date{{Research working paper, version {version['version']}, {version['date']}. Preliminary results; "
