@@ -61,7 +61,7 @@ PREAMBLE = r"""\documentclass[10pt]{article}
 \usepackage[round,authoryear]{natbib}
 \usepackage[hidelinks]{hyperref}
 \setcounter{secnumdepth}{2}
-\captionsetup{font=small,labelfont=bf}
+\captionsetup{font=small,labelfont=bf,labelsep=period}
 % pandoc's helpers
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \makeatletter
@@ -124,7 +124,7 @@ def comparison_table() -> str:
     head = "Benchmark & " + " & ".join(str(i) for i in range(1, len(PROPERTIES) + 1)) + r" \\"
     legend = "; ".join(f"{i}. {p}" for i, p in enumerate(PROPERTIES, 1))
     note = spec["note"].replace("%", r"\%").replace("&", r"\&")
-    return (r"\begin{table}[htbp]\centering\small" "\n"
+    return (r"\begin{table}[htbp]\centering\small\renewcommand{\thetable}{2.1}" "\n"
             r"\caption{\textbf{The seven properties in related benchmarks,} read from each paper's description of its "
             r"own method: $\bullet$ present, $\circ$ partly present, -- absent. Columns: " + legend + ". " + note + "}\n"
             r"\label{tab:comparison}" "\n" r"\begin{tabular}{l" + "c" * len(PROPERTIES) + "}\n\\toprule\n" + head +
@@ -153,9 +153,44 @@ def breakable_code(text: str) -> str:
     return re.sub(r"\\texttt\{([^{}]*)\}", inner, text)
 
 
-def figure(path: str, caption: str, label: str, width: str = r"\linewidth") -> str:
-    return (f"\\begin{{figure}}[htbp]\\centering\n\\includegraphics[width={width}]{{{path}}}\n"
-            f"\\caption{{{caption}}}\n\\label{{{label}}}\n\\end{{figure}}\n")
+def figure(path: str, caption: str, label: str, number: str, width: str = r"\linewidth") -> str:
+    return (f"\\begin{{figure}}[htbp]\\centering\\renewcommand{{\\thefigure}}{{{number}}}\n"
+            f"\\includegraphics[width={width}]{{{path}}}\n\\caption{{{caption}}}\n\\label{{{label}}}\n\\end{{figure}}\n")
+
+
+TABLE_CAPTION = re.compile(r"\\textbf\{Table ([A-Z0-9]+(?:\.[0-9]+)*)\. ")
+FIGURE_CAPTION = re.compile(r"\\textbf\{Figure ([A-Z0-9]+(?:\.[0-9]+)*)\. ")
+IMAGE = re.compile(r"^\\pandocbounded\{\\includegraphics\[keepaspectratio\]\{([^}]+)\}\}$")
+
+
+def real_captions(latex: str) -> tuple[str, int, int]:
+    """Turn the Markdown's bold caption paragraphs into LaTeX captions numbered as the paper numbers them.
+
+    A table caption is the bold paragraph right before a longtable; a figure caption is the bold paragraph right after
+    an image. Anything else (a caption over several panel tables, say) stays a bold paragraph.
+    """
+    blocks = latex.split("\n\n")
+    tables = figures = 0
+    for i, block in enumerate(blocks):
+        table = TABLE_CAPTION.match(block)
+        if table and i + 1 < len(blocks) and blocks[i + 1].lstrip().startswith(r"\begin{longtable}"):
+            number = table.group(1)
+            caption = block.replace(f"\\textbf{{Table {number}. ", "\\textbf{", 1)
+            head = blocks[i + 1]
+            at = head.index(r"\toprule")
+            # longtable's \caption must open its row, so the number is set just before the table
+            blocks[i + 1] = (f"\\renewcommand{{\\thetable}}{{{number}}}\n" + head[:at] + f"\\caption{{{caption}}}"
+                             f"\\label{{tab:{number}}}\\tabularnewline\n" + head[at:])
+            blocks[i] = ""
+            tables += 1
+        image = IMAGE.match(block.strip())
+        if image and i + 1 < len(blocks) and FIGURE_CAPTION.match(blocks[i + 1]):
+            number = FIGURE_CAPTION.match(blocks[i + 1]).group(1)
+            caption = blocks[i + 1].replace(f"\\textbf{{Figure {number}. ", "\\textbf{", 1)
+            blocks[i] = figure(image.group(1), caption, f"fig:{number}", number).rstrip("\n")
+            blocks[i + 1] = ""
+            figures += 1
+    return "\n\n".join(b for b in blocks if b), tables, figures
 
 
 def main() -> None:
@@ -172,23 +207,28 @@ def main() -> None:
     tex = {name: prepare_tex((SOURCE / f"{name}.tex").read_text()) for name in
            ("abstract", "sec_opening", "sec_runtime", "sec_discussion", "app_runtime", "tab_cli_controls", "tab_case_paths")}
     tex["sec_opening"] = (tex["sec_opening"]
-                          .replace("CASEFIGUREPLACEHOLDER", figure("figures/evaluation_levels.png", CASE_CAPTION, "fig:case"))
+                          .replace("CASEFIGUREPLACEHOLDER", figure("figures/evaluation_levels.png", CASE_CAPTION, "fig:case", "1.1"))
                           .replace("COMPARISONTABLEPLACEHOLDER", comparison_table()))
     tex["sec_runtime"] = tex["sec_runtime"].replace(
-        "ARCHITECTUREFIGUREPLACEHOLDER", figure("figures/architecture_overview.png", ARCH_CAPTION, "fig:architecture"))
-    tex["app_runtime"] = (tex["app_runtime"].replace("RUNTIMEFIGUREPLACEHOLDER", RUNTIME_TIKZ)
+        "ARCHITECTUREFIGUREPLACEHOLDER", figure("figures/architecture_overview.png", ARCH_CAPTION, "fig:architecture", "4.1"))
+    tex["app_runtime"] = (tex["app_runtime"].replace("RUNTIMEFIGUREPLACEHOLDER", r"\renewcommand{\thefigure}{H.1}" + RUNTIME_TIKZ)
                           .replace(r"\input{tab_cli_controls}", r"\input{sections/tab_cli_controls}")
                           .replace(r"\input{tab_case_paths}", r"\input{sections/tab_case_paths}"))
+    for name, number in (("tab_cli_controls", "H.1"), ("tab_case_paths", "H.2")):  # the order the appendix inputs them
+        tex[name] = f"\\renewcommand{{\\thetable}}{{{number}}}\n" + tex[name]
     for name, body in tex.items():
         (OUT / "sections" / f"{name}.tex").write_text(subscripts(body))
 
     md = {"sec_cases": "paper_case_studies.md", "sec_qc": "paper_qc_design.md",
           "app_case_specs": "paper_appendix_case_specs.md", "app_details": "paper_appendix_details.md"}
     labels = {"sec_cases": "sec:cases", "sec_qc": "sec:qc"}
+    captions = {}
     for name, source in md.items():
         latex = pandoc_md(renumber(markdown_body(source)))
         if name in labels:  # the first section heading carries the label the LaTeX sections cite
             latex = re.sub(r"(\\section\{[^\n]*\}(\\label\{[^}]*\})?)", lambda m: m.group(1) + f"\\label{{{labels[name]}}}", latex, count=1)
+        latex, tables, figures = real_captions(latex)
+        captions[name] = (tables, figures)
         (OUT / "sections" / f"{name}.tex").write_text(subscripts(latex))
 
     author_line = r" \hspace{3em} ".join(authors) + r" \\[3pt] {\small contact@aeread.org}"  # one block, so the address centres under both names
@@ -211,13 +251,15 @@ def main() -> None:
         "- sections/abstract, sec_opening, sec_runtime, sec_discussion, app_runtime, tab_*: the paper's own LaTeX,\n"
         "  copied; Figure 1.1, Table 2.1, Figure 4.1 and Figure H.1 replace the HTML build's placeholders.\n"
         "- sections/sec_cases (Section 5), sec_qc (Section 6), app_case_specs (Appendices A-D) and app_details\n"
-        "  (Appendices E-G): converted from the Markdown sources by pandoc. Their tables are longtables, their table\n"
-        "  and figure captions are bold paragraphs that carry their own numbers (Table 5.3, Figure 5.2...), and\n"
-        "  cross-references in the text are literal numbers, as in the PDF. Section and appendix numbers come from\n"
-        "  LaTeX and follow the same order. The per-section sources tables are not in the paper, as in the PDF.\n"
+        "  (Appendices E-G): converted from the Markdown sources by pandoc. Table and figure captions are LaTeX\n"
+        "  captions numbered as the paper numbers them (\\thetable / \\thefigure set per float; labels tab:5.2,\n"
+        "  fig:5.1, ...). A caption over several panel tables (Table E.10) stays a bold paragraph. Cross-references in\n"
+        "  the text are literal numbers that match the captions. Section and appendix numbers come from LaTeX and follow\n"
+        "  the same order. The per-section sources tables are not in the paper, as in the PDF.\n"
         "- figures/: the PNGs the PDF build draws (Figures 1.1, 4.1, 5.1, 5.2).\n"
-        "Known rough edges to integrate by hand: the widest tables (Tables 5.2, E.5, E.10) may need \\small or\n"
-        "landscape; symbols such as C_I are written as text with an underscore, as in the Markdown.\n")
+        "Known rough edges to integrate by hand: a few wide tables run slightly past the margin and may need\n"
+        "\\small or landscape; symbols such as C_I are written as text with an underscore, as in the Markdown.\n")
+    print(json.dumps({"captions": captions}))
 
 
 def compile_pdf() -> None:

@@ -32,7 +32,7 @@ scores an economic interpretation: a feasible policy, an optimal policy
 under the deciding seat's information, or a labelled full-information
 upper bound. Results retain their native units and reference types.
 
-\begin{figure}[htbp]\centering
+\begin{figure}[htbp]\centering\renewcommand{\thefigure}{1.1}
 \includegraphics[width=\linewidth]{figures/evaluation_levels.png}
 \caption{\textbf{The three levels of an AERead evaluation,} with the Data-center agreement as the example. The runtime hosts several case families (left). A case draws a population of worlds and admits those where the decision matters; quality control runs over that population (centre). In one world, the agent holds a seat, a counterpart holds another, and the score is compared with the case reference and split into shortfall classes (right). Dashed lines mean ``contains'', not a sequence. Each panel lists the properties of Section~1 that belong to its level. The dot pattern and the score bar are schematic.}
 \label{fig:case}
@@ -99,7 +99,7 @@ states what their results do and do not establish.
 Table~2.1 compares the closest benchmarks on the seven properties of
 Section~\ref{sec:introduction}; the paragraphs below discuss them by theme.
 
-\begin{table}[htbp]\centering\small
+\begin{table}[htbp]\centering\small\renewcommand{\thetable}{2.1}
 \caption{\textbf{The seven properties in related benchmarks,} read from each paper's description of its own method: $\bullet$ present, $\circ$ partly present, -- absent. Columns: 1. Value against a reference with stated information; 2. Counterpart is part of the case; 3. Typed shortfall; 4. World generator with admission; 5. Quality control over populations of worlds; 6. Scores recomputed from sealed evidence; 7. Several economic activities on one runtime. Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here; Housing v15 passes four of the five qualification gates and none passes all five (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in three of its cases, an admission rule that screens shortcuts.}
 \label{tab:comparison}
 \begin{tabular}{lccccccc}

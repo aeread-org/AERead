@@ -20,14 +20,14 @@ The four examples sit in two of the five transaction classes introduced in §3
 (business and household purchases); they were chosen to span the kinds of verifier and
 counterpart, not sampled from a representative distribution.
 
-\textbf{Table 5.1. The four cases. Each is scored in its own units against the reference in the last column.}
-
+\renewcommand{\thetable}{5.1}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\caption{\textbf{The four cases. Each is scored in its own units against the reference in the last column.}}\label{tab:5.1}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Case
@@ -86,14 +86,14 @@ states how landlords price, the corrected measure is primary from the start, and
 deciding tenant. Its holdout of 40 worlds changes one mechanism, outside demand at 0.3 a round, and its brief
 says so.
 
-\textbf{Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds (\$307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95\% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13. Sol 6.1 and Opus 5.5 played the same worlds through their command-line tools in a declared addendum, outside v15's contrasts.}
-
+\renewcommand{\thetable}{5.2}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
+\caption{\textbf{Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds (\$307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95\% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13. Sol 6.1 and Opus 5.5 played the same worlds through their command-line tools in a declared addendum, outside v15's contrasts.}}\label{tab:5.2}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -169,13 +169,13 @@ quote comes back clean, it samples the dear one, looks both up, and only then pa
 It earns 11.8\% more than paying the premium. Every action is charged what it gave up against the exact
 best informed policy at that point.
 
-\textbf{Table 5.3. Procurement, the 20 worlds of the declared test, two plays each: the share of the gap between paying the premium and the best policy each subject closes (a mean over worlds, each world the mean of its plays, with 95\% t intervals), the loss per world below the best policy, and how many plays touched a newcomer. The worlds were drawn, and the test on Sol declared, before any play. In every one of them a rule that plans one newcomer's test exactly pays the premium and closes none of the gap.}
-
+\renewcommand{\thetable}{5.3}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}@{}}
+\caption{\textbf{Procurement, the 20 worlds of the declared test, two plays each: the share of the gap between paying the premium and the best policy each subject closes (a mean over worlds, each world the mean of its plays, with 95\% t intervals), the loss per world below the best policy, and how many plays touched a newcomer. The worlds were drawn, and the test on Sol declared, before any play. In every one of them a rule that plans one newcomer's test exactly pays the premium and closes none of the gap.}}\label{tab:5.3}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -199,13 +199,15 @@ Shortcut: sample the newcomer with the cheapest sample first, ignoring seller ki
 A rule that may test two newcomers & 82\% & \$8.38 & \\
 \end{longtable}
 
-\pandocbounded{\includegraphics[keepaspectratio]{figures/procurement_v3_gap_closed.png}}
-
-\textbf{Figure 5.1. Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.} Each dot is
+\begin{figure}[htbp]\centering\renewcommand{\thefigure}{5.1}
+\includegraphics[width=\linewidth]{figures/procurement_v3_gap_closed.png}
+\caption{\textbf{Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.} Each dot is
 one world, the mean of its two plays; diamonds are means and bars are 95\% t intervals. Paying the premium, and a rule
 that plans one newcomer's test exactly, sit at 0\% in every world. Opus and Gemini close none of the gap in any world;
 Luna's orders of 50 units where 55 was best leave it below paying the premium. The gray rows are exact rules: the shortcut that
-ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.
+ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.}
+\label{fig:5.1}
+\end{figure}
 
 Sol 6.1 closed 35\% of the gap (95\% t interval 18--52\%, p = 0.0003), where a rule that plans one newcomer's
 test exactly closes none. This was the one test we declared before any play, and the claim holds; it concerns
@@ -253,13 +255,13 @@ states its walk-away point, and a world is admitted only if the integrator has a
 price-only rule. An earlier declared comparison (v1) did none of these three; it is in Appendix E.4 (Table E.16),
 and development results remain in Tables E.3 and E.7.
 
-\textbf{Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, \$309k a world); intervals are 95\%, with Holm correction across the four primaries. Gate 3 passes for the integrator seat; Gates 0, 1, 2, 4 and 5 are partial (Section 5.1).}
-
+\renewcommand{\thetable}{5.4}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2143}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2143}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}@{}}
+\caption{\textbf{Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, \$309k a world); intervals are 95\%, with Holm correction across the four primaries. Gate 3 passes for the integrator seat; Gates 0, 1, 2, 4 and 5 are partial (Section 5.1).}}\label{tab:5.4}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Primary contrast
@@ -302,9 +304,9 @@ the total under a stated priority order; they describe what happened, not its ca
 uses its own reference and units. Appendix E.5 gives the rules and full subject tables; E.7 gives
 the current Data-center breakdown and uncertainty. Table E.10 retains the exact panel values.
 
-\pandocbounded{\includegraphics[keepaspectratio]{figures/shortfall_by_case.png}}
-
-\textbf{Figure 5.2. Shortfall to each case's reference.} Segments account for observed actions;
+\begin{figure}[htbp]\centering\renewcommand{\thefigure}{5.2}
+\includegraphics[width=\linewidth]{figures/shortfall_by_case.png}
+\caption{\textbf{Shortfall to each case's reference.} Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
 v15's two declared models and the three addendum subjects (A: GLM; B: Sol and Opus through their command-line tools) on the 260 main worlds of Table 5.2, below the reachable scripted
 rule (\texttt{inspect\_\allowbreak{}lowball}, as in Table 5.2's fourth row); the few negative amounts, at most
@@ -312,7 +314,9 @@ rule (\texttt{inspect\_\allowbreak{}lowball}, as in Table 5.2's fourth row); the
 against the full-information bound with the firm counterparts at \$25k per paid redline, across all 80 worlds of
 Table 5.4 with both seats averaged. In Procurement, \$6.33 a world of Luna's information-not-acquired segment is the
 worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
-there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
+there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.}
+\label{fig:5.2}
+\end{figure}
 
 The labels name what happened; the mechanism behind each large segment is as follows.
 
@@ -399,19 +403,19 @@ reference and the gap measures built on it, the urgency regime, type-belief erro
 three families; counterpart messages are templates. The corpus has 30 cases, 15 with a zone of
 agreement and 15 without, each played once.
 
-\textbf{Table 5.5. TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases, scripted
-counterpart and settings. Agreement and surplus are over the cases with a zone of agreement: 15 for
-GPT-4o-mini and 12 for GLM-5.1, whose three malformed moves removed those episodes. Paper values:
-surplus efficiency from its Table 16 (overlap regime, mean of the three families played here);
-agreement and conditional surplus efficiency from its Table 2, which pools six families and three
-regimes.}
-
+\renewcommand{\thetable}{5.5}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
+\caption{\textbf{TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases, scripted
+counterpart and settings. Agreement and surplus are over the cases with a zone of agreement: 15 for
+GPT-4o-mini and 12 for GLM-5.1, whose three malformed moves removed those episodes. Paper values:
+surplus efficiency from its Table 16 (overlap regime, mean of the three families played here);
+agreement and conditional surplus efficiency from its Table 2, which pools six families and three
+regimes.}}\label{tab:5.5}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft

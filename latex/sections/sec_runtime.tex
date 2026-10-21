@@ -11,7 +11,7 @@ Section~\ref{sec:task-design}. Families supply the economic rules;
 the kernel schedules play and records the evidence used for evaluation
 (Figure~\ref{fig:architecture}).
 
-\begin{figure}[htbp]\centering
+\begin{figure}[htbp]\centering\renewcommand{\thefigure}{4.1}
 \includegraphics[width=\linewidth]{figures/architecture_overview.png}
 \caption{\textbf{AERead architecture.} Families define the economic world and reference; the runtime coordinates seat policies and retains execution evidence. Agents receive only their seat observations, while scoring uses explicitly declared reference access. Replay checks receipt consistency; separate headline derivations require their own verification. Applied coverage and QC verdicts vary by campaign (Appendices F and H).}
 \label{fig:architecture}

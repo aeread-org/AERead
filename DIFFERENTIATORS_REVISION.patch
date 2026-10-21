@@ -1,7 +1,7 @@
 Binary files aeread_working_draft_20261018_v14/.DS_Store and aeread_working_draft_20261018_v15/.DS_Store differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-21 13:39:17
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -239,8 +239,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      stamped.replace(OUT)
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/export_latex.py aeread_working_draft_20261018_v15/export_latex.py
 --- aeread_working_draft_20261018_v14/export_latex.py	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/export_latex.py	2026-10-21 13:05:07
-@@ -0,0 +1,243 @@
++++ aeread_working_draft_20261018_v15/export_latex.py	2026-10-21 13:38:14
+@@ -0,0 +1,285 @@
 +"""Export the working draft as a LaTeX project (``latex/``) from the same sources ``build.py`` reads.
 +
 +    python export_latex.py            # writes latex/ and compiles latex/main.pdf with lualatex + bibtex
@@ -304,7 +304,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\usepackage[round,authoryear]{natbib}
 +\usepackage[hidelinks]{hyperref}
 +\setcounter{secnumdepth}{2}
-+\captionsetup{font=small,labelfont=bf}
++\captionsetup{font=small,labelfont=bf,labelsep=period}
 +% pandoc's helpers
 +\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 +\makeatletter
@@ -367,7 +367,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    head = "Benchmark & " + " & ".join(str(i) for i in range(1, len(PROPERTIES) + 1)) + r" \\"
 +    legend = "; ".join(f"{i}. {p}" for i, p in enumerate(PROPERTIES, 1))
 +    note = spec["note"].replace("%", r"\%").replace("&", r"\&")
-+    return (r"\begin{table}[htbp]\centering\small" "\n"
++    return (r"\begin{table}[htbp]\centering\small\renewcommand{\thetable}{2.1}" "\n"
 +            r"\caption{\textbf{The seven properties in related benchmarks,} read from each paper's description of its "
 +            r"own method: $\bullet$ present, $\circ$ partly present, -- absent. Columns: " + legend + ". " + note + "}\n"
 +            r"\label{tab:comparison}" "\n" r"\begin{tabular}{l" + "c" * len(PROPERTIES) + "}\n\\toprule\n" + head +
@@ -396,9 +396,44 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    return re.sub(r"\\texttt\{([^{}]*)\}", inner, text)
 +
 +
-+def figure(path: str, caption: str, label: str, width: str = r"\linewidth") -> str:
-+    return (f"\\begin{{figure}}[htbp]\\centering\n\\includegraphics[width={width}]{{{path}}}\n"
-+            f"\\caption{{{caption}}}\n\\label{{{label}}}\n\\end{{figure}}\n")
++def figure(path: str, caption: str, label: str, number: str, width: str = r"\linewidth") -> str:
++    return (f"\\begin{{figure}}[htbp]\\centering\\renewcommand{{\\thefigure}}{{{number}}}\n"
++            f"\\includegraphics[width={width}]{{{path}}}\n\\caption{{{caption}}}\n\\label{{{label}}}\n\\end{{figure}}\n")
++
++
++TABLE_CAPTION = re.compile(r"\\textbf\{Table ([A-Z0-9]+(?:\.[0-9]+)*)\. ")
++FIGURE_CAPTION = re.compile(r"\\textbf\{Figure ([A-Z0-9]+(?:\.[0-9]+)*)\. ")
++IMAGE = re.compile(r"^\\pandocbounded\{\\includegraphics\[keepaspectratio\]\{([^}]+)\}\}$")
++
++
++def real_captions(latex: str) -> tuple[str, int, int]:
++    """Turn the Markdown's bold caption paragraphs into LaTeX captions numbered as the paper numbers them.
++
++    A table caption is the bold paragraph right before a longtable; a figure caption is the bold paragraph right after
++    an image. Anything else (a caption over several panel tables, say) stays a bold paragraph.
++    """
++    blocks = latex.split("\n\n")
++    tables = figures = 0
++    for i, block in enumerate(blocks):
++        table = TABLE_CAPTION.match(block)
++        if table and i + 1 < len(blocks) and blocks[i + 1].lstrip().startswith(r"\begin{longtable}"):
++            number = table.group(1)
++            caption = block.replace(f"\\textbf{{Table {number}. ", "\\textbf{", 1)
++            head = blocks[i + 1]
++            at = head.index(r"\toprule")
++            # longtable's \caption must open its row, so the number is set just before the table
++            blocks[i + 1] = (f"\\renewcommand{{\\thetable}}{{{number}}}\n" + head[:at] + f"\\caption{{{caption}}}"
++                             f"\\label{{tab:{number}}}\\tabularnewline\n" + head[at:])
++            blocks[i] = ""
++            tables += 1
++        image = IMAGE.match(block.strip())
++        if image and i + 1 < len(blocks) and FIGURE_CAPTION.match(blocks[i + 1]):
++            number = FIGURE_CAPTION.match(blocks[i + 1]).group(1)
++            caption = blocks[i + 1].replace(f"\\textbf{{Figure {number}. ", "\\textbf{", 1)
++            blocks[i] = figure(image.group(1), caption, f"fig:{number}", number).rstrip("\n")
++            blocks[i + 1] = ""
++            figures += 1
++    return "\n\n".join(b for b in blocks if b), tables, figures
 +
 +
 +def main() -> None:
@@ -415,23 +450,28 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    tex = {name: prepare_tex((SOURCE / f"{name}.tex").read_text()) for name in
 +           ("abstract", "sec_opening", "sec_runtime", "sec_discussion", "app_runtime", "tab_cli_controls", "tab_case_paths")}
 +    tex["sec_opening"] = (tex["sec_opening"]
-+                          .replace("CASEFIGUREPLACEHOLDER", figure("figures/evaluation_levels.png", CASE_CAPTION, "fig:case"))
++                          .replace("CASEFIGUREPLACEHOLDER", figure("figures/evaluation_levels.png", CASE_CAPTION, "fig:case", "1.1"))
 +                          .replace("COMPARISONTABLEPLACEHOLDER", comparison_table()))
 +    tex["sec_runtime"] = tex["sec_runtime"].replace(
-+        "ARCHITECTUREFIGUREPLACEHOLDER", figure("figures/architecture_overview.png", ARCH_CAPTION, "fig:architecture"))
-+    tex["app_runtime"] = (tex["app_runtime"].replace("RUNTIMEFIGUREPLACEHOLDER", RUNTIME_TIKZ)
++        "ARCHITECTUREFIGUREPLACEHOLDER", figure("figures/architecture_overview.png", ARCH_CAPTION, "fig:architecture", "4.1"))
++    tex["app_runtime"] = (tex["app_runtime"].replace("RUNTIMEFIGUREPLACEHOLDER", r"\renewcommand{\thefigure}{H.1}" + RUNTIME_TIKZ)
 +                          .replace(r"\input{tab_cli_controls}", r"\input{sections/tab_cli_controls}")
 +                          .replace(r"\input{tab_case_paths}", r"\input{sections/tab_case_paths}"))
++    for name, number in (("tab_cli_controls", "H.1"), ("tab_case_paths", "H.2")):  # the order the appendix inputs them
++        tex[name] = f"\\renewcommand{{\\thetable}}{{{number}}}\n" + tex[name]
 +    for name, body in tex.items():
 +        (OUT / "sections" / f"{name}.tex").write_text(subscripts(body))
 +
 +    md = {"sec_cases": "paper_case_studies.md", "sec_qc": "paper_qc_design.md",
 +          "app_case_specs": "paper_appendix_case_specs.md", "app_details": "paper_appendix_details.md"}
 +    labels = {"sec_cases": "sec:cases", "sec_qc": "sec:qc"}
++    captions = {}
 +    for name, source in md.items():
 +        latex = pandoc_md(renumber(markdown_body(source)))
 +        if name in labels:  # the first section heading carries the label the LaTeX sections cite
 +            latex = re.sub(r"(\\section\{[^\n]*\}(\\label\{[^}]*\})?)", lambda m: m.group(1) + f"\\label{{{labels[name]}}}", latex, count=1)
++        latex, tables, figures = real_captions(latex)
++        captions[name] = (tables, figures)
 +        (OUT / "sections" / f"{name}.tex").write_text(subscripts(latex))
 +
 +    author_line = r" \hspace{3em} ".join(authors) + r" \\[3pt] {\small contact@aeread.org}"  # one block, so the address centres under both names
@@ -454,13 +494,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +        "- sections/abstract, sec_opening, sec_runtime, sec_discussion, app_runtime, tab_*: the paper's own LaTeX,\n"
 +        "  copied; Figure 1.1, Table 2.1, Figure 4.1 and Figure H.1 replace the HTML build's placeholders.\n"
 +        "- sections/sec_cases (Section 5), sec_qc (Section 6), app_case_specs (Appendices A-D) and app_details\n"
-+        "  (Appendices E-G): converted from the Markdown sources by pandoc. Their tables are longtables, their table\n"
-+        "  and figure captions are bold paragraphs that carry their own numbers (Table 5.3, Figure 5.2...), and\n"
-+        "  cross-references in the text are literal numbers, as in the PDF. Section and appendix numbers come from\n"
-+        "  LaTeX and follow the same order. The per-section sources tables are not in the paper, as in the PDF.\n"
++        "  (Appendices E-G): converted from the Markdown sources by pandoc. Table and figure captions are LaTeX\n"
++        "  captions numbered as the paper numbers them (\\thetable / \\thefigure set per float; labels tab:5.2,\n"
++        "  fig:5.1, ...). A caption over several panel tables (Table E.10) stays a bold paragraph. Cross-references in\n"
++        "  the text are literal numbers that match the captions. Section and appendix numbers come from LaTeX and follow\n"
++        "  the same order. The per-section sources tables are not in the paper, as in the PDF.\n"
 +        "- figures/: the PNGs the PDF build draws (Figures 1.1, 4.1, 5.1, 5.2).\n"
-+        "Known rough edges to integrate by hand: the widest tables (Tables 5.2, E.5, E.10) may need \\small or\n"
-+        "landscape; symbols such as C_I are written as text with an underscore, as in the Markdown.\n")
++        "Known rough edges to integrate by hand: a few wide tables run slightly past the margin and may need\n"
++        "\\small or landscape; symbols such as C_I are written as text with an underscore, as in the Markdown.\n")
++    print(json.dumps({"captions": captions}))
 +
 +
 +def compile_pdf() -> None:
@@ -1551,7 +1593,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/main.tex aeread_working_draft_20261018_v15/latex/main.tex
 --- aeread_working_draft_20261018_v14/latex/main.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-21 13:22:34
++++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-21 13:39:19
 @@ -0,0 +1,50 @@
 +\documentclass[10pt]{article}
 +\usepackage[margin=0.9in]{geometry}
@@ -1569,7 +1611,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\usepackage[round,authoryear]{natbib}
 +\usepackage[hidelinks]{hyperref}
 +\setcounter{secnumdepth}{2}
-+\captionsetup{font=small,labelfont=bf}
++\captionsetup{font=small,labelfont=bf,labelsep=period}
 +% pandoc's helpers
 +\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 +\makeatletter
@@ -1584,7 +1626,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 +\title{AERead: Evaluating Economic Decisions in Interactive Environments}
 +\author{Chenyu Li \hspace{3em} Zeyu Sun \\[3pt] {\small contact@aeread.org}}
-+\date{Research working paper, version 15.37, 21 October 2026. Preliminary results; feedback and contributions welcome.}
++\date{Research working paper, version 15.38, 21 October 2026. Preliminary results; feedback and contributions welcome.}
 +
 +\begin{document}
 +\maketitle
@@ -1821,7 +1863,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/abstract.tex aeread_working_draft_20261018_v15/latex/sections/abstract.tex
 --- aeread_working_draft_20261018_v14/latex/sections/abstract.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-21 13:39:17
 @@ -0,0 +1,25 @@
 +\section*{Abstract}
 +
@@ -1850,7 +1892,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +the runtime, replay and the quality-control standard.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-21 13:22:34
++++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-21 13:39:18
 @@ -0,0 +1,827 @@
 +\section{Case specifications}\label{case-specifications}
 +
@@ -1902,12 +1944,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +listing is a lemon. A \emph{pooled} landlord prices every listing as if it were sound, so its replies say nothing about
 +quality. Each world is played once under each kind.
 +
-+\textbf{Table A.1. Housing parameters.}
-+
++\renewcommand{\thetable}{A.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
++\caption{\textbf{Housing parameters.}}\label{tab:A.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Symbol
@@ -1974,11 +2016,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +kind (a\textsubscript{i} of 40 tracked sellers unreliable on delivery, b\textsubscript{i} failed inspection). That gives 3³ = 27
 +type profiles, each with positive weight; γ ranges from 0.2 to 0.7.
 +
-+\textbf{Table A.2. Procurement parameters.}
-+
++\renewcommand{\thetable}{A.2}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
++\caption{\textbf{Procurement parameters.}}\label{tab:A.2}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Quantity
@@ -2038,12 +2080,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\textbf{Protocol.} One action at a time until a terminal action, the action budget, or an invalid
 +action; the last three are worth D − I.
 +
-+\textbf{Table A.3. Procurement actions.}
-+
++\renewcommand{\thetable}{A.3}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
++\caption{\textbf{Procurement actions.}}\label{tab:A.3}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Action
@@ -2085,12 +2127,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Section 5.1 reports a harder pack; the pack above (Table E.14) is its predecessor. The payoff, the
 +three types, the kits owed, the action budget and the order sizes are unchanged. What changes:
 +
-+\textbf{Table A.6. What the harder Procurement pack changes.}
-+
++\renewcommand{\thetable}{A.6}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
++\caption{\textbf{What the harder Procurement pack changes.}}\label{tab:A.6}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Quantity
@@ -2128,11 +2170,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\textbf{Outcomes.} X = (C × ℝ₊) ∪ \{∅\}: a clause vector c with an all-in price p, or no deal.
 +
-+\textbf{Table A.4. The eight clauses.}
-+
++\renewcommand{\thetable}{A.4}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
++\caption{\textbf{The eight clauses.}}\label{tab:A.4}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Clause
@@ -2164,14 +2206,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +ρ\_C ∈ \{0.15, 0.75, 1.55\}, declared prior one third each; in the packs ρ\_C is fixed by the world's
 +cell (one of eleven outside-option situations, Appendix E.2) rather than drawn.
 +
-+\textbf{Table A.5. Data-center symbols.} Money in \$ thousands; ranges are the generator's uniform draws
-+on the base pack (some cells widen them), public to both sides unless marked private.
-+
++\renewcommand{\thetable}{A.5}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
++\caption{\textbf{Data-center symbols.} Money in \$ thousands; ranges are the generator's uniform draws
++on the base pack (some cells widen them), public to both sides unless marked private.}\label{tab:A.5}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Symbol
@@ -2358,8 +2400,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  otherwise it walks. It never reads or writes a note.
 +\end{enumerate}
 +
-+\textbf{Table B.1. Counterpart styles of the data-center case.} (Defaults r = 1, α = 0.8, s\_min = 0.)
-+
++\renewcommand{\thetable}{B.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
@@ -2369,6 +2410,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}@{}}
++\caption{\textbf{Counterpart styles of the data-center case.} (Defaults r = 1, α = 0.8, s\_min = 0.)}\label{tab:B.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Style
@@ -2485,12 +2527,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  taken by outside demand.
 +\end{itemize}
 +
-+\textbf{Table C.1. Symbols of the best informed tenant.}
-+
++\renewcommand{\thetable}{C.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
++\caption{\textbf{Symbols of the best informed tenant.}}\label{tab:C.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Symbol
@@ -2557,12 +2599,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\textbf{Fixed rules.} Expected loss is the equal-weight mean over the 24 worlds of V* − V\^{}rule.
 +
-+\textbf{Table C.2. Procurement fixed rules.}
-+
++\renewcommand{\thetable}{C.2}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3000}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4000}}@{}}
++\caption{\textbf{Procurement fixed rules.}}\label{tab:C.2}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Rule
@@ -2681,20 +2723,20 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\texttt{agreement\_\allowbreak{}pack.\allowbreak{}py}:31--55.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_details.tex aeread_working_draft_20261018_v15/latex/sections/app_details.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_details.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-21 13:22:34
++++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-21 13:39:19
 @@ -0,0 +1,1498 @@
 +\section{Case details}\label{case-details}
 +
 +\subsection{Every reported check}\label{every-reported-check}
 +
-+\textbf{Table E.1. Every reported check in the four cases.}
-+
++\renewcommand{\thetable}{E.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
++\caption{\textbf{Every reported check in the four cases.}}\label{tab:E.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case
@@ -2788,8 +2830,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\subsection{What was run}\label{what-was-run}
 +
-+\textbf{Table E.2. What was run.}
-+
++\renewcommand{\thetable}{E.2}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1429}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1429}}
@@ -2798,6 +2839,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1429}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1429}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1429}}@{}}
++\caption{\textbf{What was run.}}\label{tab:E.2}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case
@@ -2850,13 +2892,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +in either model, and realized nets of \$244.0 (Gemini) and \$194.2 (Luna) beside the corrected-measure values.
 +The rest of this subsection is v14, the earlier comparison of three models (Table E.13).
 +
-+\textbf{Table E.13. Housing v14, main pack; dollars per world, 95\% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.}
-+
++\renewcommand{\thetable}{E.13}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}@{}}
++\caption{\textbf{Housing v14, main pack; dollars per world, 95\% intervals over worlds. The corrected block is a post-run reanalysis, reproduced from sealed records on 16 October; the declared measure remains visible.}}\label{tab:E.13}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -2930,14 +2972,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +which all four subjects played, has 24 worlds in six kinds; its quotes always arrive, its recorded
 +supplier always charges a premium, and its newcomers never share a source (Appendix A.2).
 +
-+\textbf{Table E.14. The earlier Procurement pack, 24 worlds per subject; the share of the best policy's value (it earns \$451 a world) each subject gives up and keeps, with 95\% intervals over worlds. Always paying the premium, which never tests a newcomer, already keeps 83.3\% (it gives up \$75.19 a world), so the last row reports the decision itself: the share of the gap between that rule and the best policy each subject closes. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.}
-+
++\renewcommand{\thetable}{E.14}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
++\caption{\textbf{The earlier Procurement pack, 24 worlds per subject; the share of the best policy's value (it earns \$451 a world) each subject gives up and keeps, with 95\% intervals over worlds. Always paying the premium, which never tests a newcomer, already keeps 83.3\% (it gives up \$75.19 a world), so the last row reports the decision itself: the share of the gap between that rule and the best policy each subject closes. All 96 losses and these intervals were reproduced on 16 October by a source-pinned derivation from replay-audited sealed actions; decision loss is separate from the original receipt scores.}}\label{tab:E.14}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -2970,14 +3012,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\textbf{Further runs on the harder pack (Table E.15).} Section 5.1 reports the 20 declared worlds. The runs below were a
 +development pilot and three diagnostics, each declared before its plays; none tests a claim.
 +
-+\textbf{Table E.15. Procurement's harder pack: runs beyond Table 5.3. Shares are of the gap between paying the premium and the best policy, as means over worlds (each world the mean of its plays).}
-+
++\renewcommand{\thetable}{E.15}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
++\caption{\textbf{Procurement's harder pack: runs beyond Table 5.3. Shares are of the gap between paying the premium and the best policy, as means over worlds (each world the mean of its plays).}}\label{tab:E.15}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Run
@@ -3037,12 +3079,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Sol is ahead of Opus in 51 of 52 worlds in each seat head to head. Table E.3 gives every
 +counterpart; Appendix B gives each style's rule and parameters.
 +
-+\textbf{Table E.3. Development results: Sol 6.1 minus Opus 5.5 in the same seat, by counterpart (\$ thousands per world, 52 deal worlds).}
-+
++\renewcommand{\thetable}{E.3}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2727}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3636}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3636}}@{}}
++\caption{\textbf{Development results: Sol 6.1 minus Opus 5.5 in the same seat, by counterpart (\$ thousands per world, 52 deal worlds).}}\label{tab:E.3}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Counterpart
@@ -3116,13 +3158,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +equally isolated, the client's brief did not state its walk-away point, and worlds were not screened for the
 +integrator's room over a price-only rule. v1 and v2 are not pooled.
 +
-+\textbf{Table E.16. Data center v1 (14 October): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 45 deal worlds, in percentage points of the value available in a deal (\$322k a world); intervals are 95\%, with Holm correction across the campaign's primaries. Eight documented departures and a partial Gate 5 verdict (Appendix F.5).}
-+
++\renewcommand{\thetable}{E.16}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}@{}}
++\caption{\textbf{Data center v1 (14 October): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 45 deal worlds, in percentage points of the value available in a deal (\$322k a world); intervals are 95\%, with Holm correction across the campaign's primaries. Eight documented departures and a partial Gate 5 verdict (Appendix F.5).}}\label{tab:E.16}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Primary contrast
@@ -3153,8 +3195,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +worlds where no agreement beats both outside options, it signed anyway. Table E.17 gives v1's joint loss by
 +pairing, and Appendix E.9 its replay at other fees.
 +
-+\textbf{Table E.17. Data center v1: joint loss by pairing (\$ thousands per world, all 60 worlds).}
-+
++\renewcommand{\thetable}{E.17}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1304}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
@@ -3162,6 +3203,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}@{}}
++\caption{\textbf{Data center v1: joint loss by pairing (\$ thousands per world, all 60 worlds).}}\label{tab:E.17}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Integrator / client
@@ -3190,11 +3232,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\subsection{Failure classes: rules and full tables}\label{failure-classes-rules-and-full-tables}
 +
-+\textbf{Table E.4. The shared classes.}
-+
++\renewcommand{\thetable}{E.4}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
++\caption{\textbf{The shared classes.}}\label{tab:E.4}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Class
@@ -3245,8 +3287,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
 +adaptation would require new model runs under declared fee settings.
 +
-+\textbf{Table E.5. Housing and Procurement, every subject (\$ per world; Housing v15 on the 260 main worlds of Table 5.2, GLM, Sol and Opus from their declared addenda; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).}
-+
++\renewcommand{\thetable}{E.5}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 18\tabcolsep) * \real{0.0769}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 18\tabcolsep) * \real{0.1026}}
@@ -3258,6 +3299,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 18\tabcolsep) * \real{0.1026}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 18\tabcolsep) * \real{0.1026}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 18\tabcolsep) * \real{0.1026}}@{}}
++\caption{\textbf{Housing and Procurement, every subject (\$ per world; Housing v15 on the 260 main worlds of Table 5.2, GLM, Sol and Opus from their declared addenda; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).}}\label{tab:E.5}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Class
@@ -3295,8 +3337,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +Housing's totals reproduce the published v15 differences from \texttt{inspect\_\allowbreak{}lowball} (51.13 and 99.92 \$ a world; GLM's addendum row R3, 127.32; Sol's and Opus's addendum row R, 15.34 and 46.07), and every one of the 520 main cells per subject completed, so no world is excluded. Main-world means average both landlord arms within a world. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
 +
-+\textbf{Table E.6. Data center development (\$k joint value lost per deal world) and Refund (points of cells unresolved).}
-+
++\renewcommand{\thetable}{E.6}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.0857}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}
@@ -3307,6 +3348,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}@{}}
++\caption{\textbf{Data center development (\$k joint value lost per deal world) and Refund (points of cells unresolved).}}\label{tab:E.6}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Class
@@ -3347,8 +3389,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\subsection{Two frontier agents across three cases}\label{two-frontier-agents-across-three-cases}
 +
-+\textbf{Table E.7. Development comparisons of Opus 5.5 and Sol 6.1 on the three cases both played; Data-center confirmatory results are in Table 5.4 (v2) and Table E.16 (v1).}
-+
++\renewcommand{\thetable}{E.7}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1429}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1429}}
@@ -3356,6 +3397,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1905}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1905}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1429}}@{}}
++\caption{\textbf{Development comparisons of Opus 5.5 and Sol 6.1 on the three cases both played; Data-center confirmatory results are in Table 5.4 (v2) and Table E.16 (v1).}}\label{tab:E.7}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case (worlds)
@@ -3393,8 +3435,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Table E.6 preserves the earlier development decomposition on its 52 deal worlds, and Table E.17
 +v1's by pairing.
 +
-+\textbf{Table E.8. Data-center joint loss by pairing in v2 (\$ thousands per world, all 80 worlds; the integrator's two plays against the firm client averaged within each world).}
-+
++\renewcommand{\thetable}{E.8}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1304}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
@@ -3402,6 +3443,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}@{}}
++\caption{\textbf{Data-center joint loss by pairing in v2 (\$ thousands per world, all 80 worlds; the integrator's two plays against the firm client averaged within each world).}}\label{tab:E.8}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Integrator / client
@@ -3428,14 +3470,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Firm / Sol & 12.4 & 0.0 & 53.6 & 92.8 & 158.8 \\
 +\end{longtable}
 +
-+\textbf{Table E.9. Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).}
-+
++\renewcommand{\thetable}{E.9}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}@{}}
++\caption{\textbf{Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).}}\label{tab:E.9}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case / subject
@@ -3639,13 +3681,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +it does not select only signed contracts. Means first average both focal seats within a world,
 +then worlds. The independent unit is the world, not each correlated seat observation.
 +
-+\textbf{Table E.11. Fee sensitivity on the 45 deal-feasible worlds (\$ thousands per world; fixed actions). Sol earnings lead is Sol minus Opus against the firm population. Lower joint loss is better; a positive earnings lead favors Sol.}
-+
++\renewcommand{\thetable}{E.11}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}@{}}
++\caption{\textbf{Fee sensitivity on the 45 deal-feasible worlds (\$ thousands per world; fixed actions). Sol earnings lead is Sol minus Opus against the firm population. Lower joint loss is better; a positive earnings lead favors Sol.}}\label{tab:E.11}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Fee per redline
@@ -3674,12 +3716,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +per redline. This threshold describes the recorded actions, not an optimal fee or how either
 +agent would respond to a changed fee.
 +
-+\textbf{Table E.12. Joint-loss sensitivity across all 60 worlds (\$ thousands per world; fixed actions). This is v1's full population, including 15 worlds without positive available joint surplus.}
-+
++\renewcommand{\thetable}{E.12}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2727}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3636}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3636}}@{}}
++\caption{\textbf{Joint-loss sensitivity across all 60 worlds (\$ thousands per world; fixed actions). This is v1's full population, including 15 worlds without positive available joint surplus.}}\label{tab:E.12}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Fee per redline
@@ -3785,13 +3827,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +The identity rule was applied: Housing's 36 refused cells ran later under their own
 +identity, and Procurement's corrected schema ran under new identities.
 +
-+\textbf{Table F.1. Benchmark QC gates.}
-+
++\renewcommand{\thetable}{F.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
++\caption{\textbf{Benchmark QC gates.}}\label{tab:F.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Gate
@@ -3816,12 +3858,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\subsection{Checks applied to the four cases}\label{checks-applied-to-the-four-cases}
 +
-+\textbf{Table F.2. What each kind of verifier must be shown to do, and how the four cases show it.}
-+
++\renewcommand{\thetable}{F.2}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
++\caption{\textbf{What each kind of verifier must be shown to do, and how the four cases show it.}}\label{tab:F.2}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Kind
@@ -3989,8 +4031,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +bundle. The agreement family's registry change has had no review by anyone other than its author,
 +and eight earlier changes to the shared runner were accepted without one under a one-time exception.
 +
-+\textbf{Table F.3. Incident-log entries about each case and its predecessors, by category (as of 16 October 2026).}
-+
++\renewcommand{\thetable}{F.3}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1304}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
@@ -3998,6 +4039,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}@{}}
++\caption{\textbf{Incident-log entries about each case and its predecessors, by category (as of 16 October 2026).}}\label{tab:F.3}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case
@@ -4027,14 +4069,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\subsection{What quality control found}\label{what-quality-control-found}
 +
-+\textbf{Table F.4. Twenty-five selected defects, the level at which each was visible, and what changed (dispositions as of 16 October 2026).}
-+
++\renewcommand{\thetable}{F.4}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
++\caption{\textbf{Twenty-five selected defects, the level at which each was visible, and what changed (dispositions as of 16 October 2026).}}\label{tab:F.4}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case
@@ -4090,12 +4132,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +that applies is the one for a quality measure, since no case is scored by string matching, unit
 +tests or a judge model.
 +
-+\textbf{Table F.5. The four cases against the checklist.}
-+
++\renewcommand{\thetable}{F.5}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
++\caption{\textbf{The four cases against the checklist.}}\label{tab:F.5}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Item
@@ -4183,7 +4225,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +corrections are supplied as a documentation patch; no frozen driver or analysis code was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-21 13:39:17
 @@ -0,0 +1,181 @@
 +% Condensed paper appendix; full prior technical reference preserved in the supplement.
 +\section{Runtime contract and experimental coverage}
@@ -4212,7 +4254,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\begin{figure}[htbp]
 +\centering
-+\begin{tikzpicture}[box/.style={draw=black!70, fill=black!3, rounded corners=1pt, minimum width=4.2cm,
++\renewcommand{\thefigure}{H.1}\begin{tikzpicture}[box/.style={draw=black!70, fill=black!3, rounded corners=1pt, minimum width=4.2cm,
 +  minimum height=1.05cm, align=center, font=\footnotesize}, >=Stealth]
 +\node[box] (a) at (0,0) {World, block, profiles, seeds\\Resolved plan};
 +\node[box] (b) at (4.7,0) {Freeze observations\\Act, then transition};
@@ -4368,8 +4410,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and later checks or repairs do not retroactively qualify earlier runs.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-21 13:22:33
-@@ -0,0 +1,452 @@
++++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-21 13:39:18
+@@ -0,0 +1,456 @@
 +\section{Case studies}\label{case-studies}\label{sec:cases}
 +
 +We present four cases built by the maintainers (Table 5.1). They are worked examples of the
@@ -4392,14 +4434,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +(business and household purchases); they were chosen to span the kinds of verifier and
 +counterpart, not sampled from a representative distribution.
 +
-+\textbf{Table 5.1. The four cases. Each is scored in its own units against the reference in the last column.}
-+
++\renewcommand{\thetable}{5.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2000}}@{}}
++\caption{\textbf{The four cases. Each is scored in its own units against the reference in the last column.}}\label{tab:5.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case
@@ -4458,14 +4500,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +deciding tenant. Its holdout of 40 worlds changes one mechanism, outside demand at 0.3 a round, and its brief
 +says so.
 +
-+\textbf{Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds (\$307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95\% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13. Sol 6.1 and Opus 5.5 played the same worlds through their command-line tools in a declared addendum, outside v15's contrasts.}
-+
++\renewcommand{\thetable}{5.2}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
++\caption{\textbf{Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds (\$307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95\% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13. Sol 6.1 and Opus 5.5 played the same worlds through their command-line tools in a declared addendum, outside v15's contrasts.}}\label{tab:5.2}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -4541,13 +4583,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +It earns 11.8\% more than paying the premium. Every action is charged what it gave up against the exact
 +best informed policy at that point.
 +
-+\textbf{Table 5.3. Procurement, the 20 worlds of the declared test, two plays each: the share of the gap between paying the premium and the best policy each subject closes (a mean over worlds, each world the mean of its plays, with 95\% t intervals), the loss per world below the best policy, and how many plays touched a newcomer. The worlds were drawn, and the test on Sol declared, before any play. In every one of them a rule that plans one newcomer's test exactly pays the premium and closes none of the gap.}
-+
++\renewcommand{\thetable}{5.3}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}@{}}
++\caption{\textbf{Procurement, the 20 worlds of the declared test, two plays each: the share of the gap between paying the premium and the best policy each subject closes (a mean over worlds, each world the mean of its plays, with 95\% t intervals), the loss per world below the best policy, and how many plays touched a newcomer. The worlds were drawn, and the test on Sol declared, before any play. In every one of them a rule that plans one newcomer's test exactly pays the premium and closes none of the gap.}}\label{tab:5.3}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -4571,13 +4613,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +A rule that may test two newcomers & 82\% & \$8.38 & \\
 +\end{longtable}
 +
-+\pandocbounded{\includegraphics[keepaspectratio]{figures/procurement_v3_gap_closed.png}}
-+
-+\textbf{Figure 5.1. Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.} Each dot is
++\begin{figure}[htbp]\centering\renewcommand{\thefigure}{5.1}
++\includegraphics[width=\linewidth]{figures/procurement_v3_gap_closed.png}
++\caption{\textbf{Procurement, the 20 declared worlds: the share of the gap between paying the premium and the best policy closed, world by world.} Each dot is
 +one world, the mean of its two plays; diamonds are means and bars are 95\% t intervals. Paying the premium, and a rule
 +that plans one newcomer's test exactly, sit at 0\% in every world. Opus and Gemini close none of the gap in any world;
 +Luna's orders of 50 units where 55 was best leave it below paying the premium. The gray rows are exact rules: the shortcut that
-+ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.
++ignores seller kinds and samples the newcomer whose sample is cheapest first, and a rule allowed to test two newcomers.}
++\label{fig:5.1}
++\end{figure}
 +
 +Sol 6.1 closed 35\% of the gap (95\% t interval 18--52\%, p = 0.0003), where a rule that plans one newcomer's
 +test exactly closes none. This was the one test we declared before any play, and the claim holds; it concerns
@@ -4625,13 +4669,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +price-only rule. An earlier declared comparison (v1) did none of these three; it is in Appendix E.4 (Table E.16),
 +and development results remain in Tables E.3 and E.7.
 +
-+\textbf{Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, \$309k a world); intervals are 95\%, with Holm correction across the four primaries. Gate 3 passes for the integrator seat; Gates 0, 1, 2, 4 and 5 are partial (Section 5.1).}
-+
++\renewcommand{\thetable}{5.4}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2857}}@{}}
++\caption{\textbf{Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, \$309k a world); intervals are 95\%, with Holm correction across the four primaries. Gate 3 passes for the integrator seat; Gates 0, 1, 2, 4 and 5 are partial (Section 5.1).}}\label{tab:5.4}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Primary contrast
@@ -4674,9 +4718,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +uses its own reference and units. Appendix E.5 gives the rules and full subject tables; E.7 gives
 +the current Data-center breakdown and uncertainty. Table E.10 retains the exact panel values.
 +
-+\pandocbounded{\includegraphics[keepaspectratio]{figures/shortfall_by_case.png}}
-+
-+\textbf{Figure 5.2. Shortfall to each case's reference.} Segments account for observed actions;
++\begin{figure}[htbp]\centering\renewcommand{\thefigure}{5.2}
++\includegraphics[width=\linewidth]{figures/shortfall_by_case.png}
++\caption{\textbf{Shortfall to each case's reference.} Segments account for observed actions;
 +labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
 +v15's two declared models and the three addendum subjects (A: GLM; B: Sol and Opus through their command-line tools) on the 260 main worlds of Table 5.2, below the reachable scripted
 +rule (\texttt{inspect\_\allowbreak{}lowball}, as in Table 5.2's fourth row); the few negative amounts, at most
@@ -4684,7 +4728,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +against the full-information bound with the firm counterparts at \$25k per paid redline, across all 80 worlds of
 +Table 5.4 with both seats averaged. In Procurement, \$6.33 a world of Luna's information-not-acquired segment is the
 +worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
-+there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
++there (Table E.10). Intervals and exact values appear in Tables 5.3, E.9 and E.10.}
++\label{fig:5.2}
++\end{figure}
 +
 +The labels name what happened; the mechanism behind each large segment is as follows.
 +
@@ -4771,19 +4817,19 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +three families; counterpart messages are templates. The corpus has 30 cases, 15 with a zone of
 +agreement and 15 without, each played once.
 +
-+\textbf{Table 5.5. TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases, scripted
-+counterpart and settings. Agreement and surplus are over the cases with a zone of agreement: 15 for
-+GPT-4o-mini and 12 for GLM-5.1, whose three malformed moves removed those episodes. Paper values:
-+surplus efficiency from its Table 16 (overlap regime, mean of the three families played here);
-+agreement and conditional surplus efficiency from its Table 2, which pools six families and three
-+regimes.}
-+
++\renewcommand{\thetable}{5.5}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1579}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2105}}@{}}
++\caption{\textbf{TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases, scripted
++counterpart and settings. Agreement and surplus are over the cases with a zone of agreement: 15 for
++GPT-4o-mini and 12 for GLM-5.1, whose three malformed moves removed those episodes. Paper values:
++surplus efficiency from its Table 16 (overlap regime, mean of the three families played here);
++agreement and conditional surplus efficiency from its Table 2, which pools six families and three
++regimes.}}\label{tab:5.5}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
@@ -4824,7 +4870,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +support for the scripted seat this family uses is now on the main branch.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-21 13:39:17
 @@ -0,0 +1,109 @@
 +\section{Discussion and conclusion}
 +\label{sec:discussion}
@@ -4937,7 +4983,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-21 13:39:17
 @@ -0,0 +1,256 @@
 +% Sections 1--3, drafting pass 16 October 2026.
 +% Empirical scope follows the merged Sections 4--6 review snapshot.
@@ -4973,7 +5019,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +under the deciding seat's information, or a labelled full-information
 +upper bound. Results retain their native units and reference types.
 +
-+\begin{figure}[htbp]\centering
++\begin{figure}[htbp]\centering\renewcommand{\thefigure}{1.1}
 +\includegraphics[width=\linewidth]{figures/evaluation_levels.png}
 +\caption{\textbf{The three levels of an AERead evaluation,} with the Data-center agreement as the example. The runtime hosts several case families (left). A case draws a population of worlds and admits those where the decision matters; quality control runs over that population (centre). In one world, the agent holds a seat, a counterpart holds another, and the score is compared with the case reference and split into shortfall classes (right). Dashed lines mean ``contains'', not a sequence. Each panel lists the properties of Section~1 that belong to its level. The dot pattern and the score bar are schematic.}
 +\label{fig:case}
@@ -5040,7 +5086,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Table~2.1 compares the closest benchmarks on the seven properties of
 +Section~\ref{sec:introduction}; the paragraphs below discuss them by theme.
 +
-+\begin{table}[htbp]\centering\small
++\begin{table}[htbp]\centering\small\renewcommand{\thetable}{2.1}
 +\caption{\textbf{The seven properties in related benchmarks,} read from each paper's description of its own method: $\bullet$ present, $\circ$ partly present, -- absent. Columns: 1. Value against a reference with stated information; 2. Counterpart is part of the case; 3. Typed shortfall; 4. World generator with admission; 5. Quality control over populations of worlds; 6. Scores recomputed from sealed evidence; 7. Several economic activities on one runtime. Each cell was read against a written definition, and the lower mark was chosen where a reading was borderline; page references for every cell are kept with the source. AERead's row describes the cases reported here; Housing v15 passes four of the five qualification gates and none passes all five (Section 6). TERMS-Bench has five of the seven properties in full. AERead adds several activities on one runtime and, in three of its cases, an admission rule that screens shortcuts.}
 +\label{tab:comparison}
 +\begin{tabular}{lccccccc}
@@ -5197,7 +5243,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contributors.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-21 13:39:18
 @@ -0,0 +1,88 @@
 +\section{Quality control}\label{quality-control}\label{sec:qc}
 +
@@ -5218,9 +5264,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\texttt{partial}, \texttt{not\_run} or \texttt{not\_\allowbreak{}applicable}, and only \texttt{passed} promotes. The profiles followed the initial
 +runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 yet (Table 6.1).
 +
-+\textbf{Table 6.1. Gate status of each reported comparison,} 21 October: ● passed, ◐ partial, ✗ failed, -- not run.
-+Reasons and flags are in Appendix F.1.
-+
++\renewcommand{\thetable}{6.1}
 +\begin{longtable}[]{@{}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
 +  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
@@ -5230,6 +5274,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
 +  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}@{}}
++\caption{\textbf{Gate status of each reported comparison,} 21 October: ● passed, ◐ partial, ✗ failed, -- not run.
++Reasons and flags are in Appendix F.1.}\label{tab:6.1}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Comparison
@@ -5289,7 +5335,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +statements while this paper was written.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-21 13:22:33
++++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-21 13:39:17
 @@ -0,0 +1,74 @@
 +% Revision 10. Concise main text; technical contract retained in appendix.
 +% Runtime baseline: dec1a40f. Evidence review dated 2026-10-14.
@@ -5304,7 +5350,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +the kernel schedules play and records the evidence used for evaluation
 +(Figure~\ref{fig:architecture}).
 +
-+\begin{figure}[htbp]\centering
++\begin{figure}[htbp]\centering\renewcommand{\thefigure}{4.1}
 +\includegraphics[width=\linewidth]{figures/architecture_overview.png}
 +\caption{\textbf{AERead architecture.} Families define the economic world and reference; the runtime coordinates seat policies and retains execution evidence. Agents receive only their seat observations, while scoring uses explicitly declared reference access. Replay checks receipt consistency; separate headline derivations require their own verification. Applied coverage and QC verdicts vary by campaign (Appendices F and H).}
 +\label{fig:architecture}
@@ -5367,8 +5413,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +path applied and the versions behind each reported panel.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-21 13:22:33
-@@ -0,0 +1,46 @@
++++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-21 13:39:17
+@@ -0,0 +1,47 @@
++\renewcommand{\thetable}{H.2}
 +\begingroup
 +\small
 +\setlength{\tabcolsep}{4pt}
@@ -5417,8 +5464,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\endgroup
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-21 13:22:33
-@@ -0,0 +1,16 @@
++++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-21 13:39:17
+@@ -0,0 +1,17 @@
++\renewcommand{\thetable}{H.1}
 +\begin{longtable}{@{}P{1.25in}P{2.6in}P{2.6in}@{}}
 +\caption{CLI controls applied in the reviewed panels. These describe
 +the evaluated subjects, not all capabilities of the products.}
@@ -7928,10 +7976,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-10-21 13:10:33
++++ aeread_working_draft_20261018_v15/source/version.json	2026-10-21 13:39:10
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.37",
++  "version": "15.38",
 +  "date": "21 October 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}

@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.37 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.38 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -349,3 +349,7 @@ current one saturated"):
   Tables E.5, E.9 and E.10(a) and a short §5.2 paragraph; E.9 gains Procurement's Opus and Gemini rows; §6 says six
   declared analyses (was five) and gives the incident counts as per-case totals dated 16 October (it read as
   per-category counts). The QC rule change (PR #299) is merged into main (9d77bd5f).
+- Version 15.38 (2026-10-21): LaTeX export only. Table and figure captions in Sections 5-6 and Appendices A-G are
+  real LaTeX captions numbered as the paper numbers them (38 tables, 2 figures; Table E.10, a caption over four
+  panel tables, stays a bold paragraph); Tables 2.1, H.1, H.2 and Figures 1.1, 4.1, H.1 carry their paper numbers
+  too. No change to the paper's content.

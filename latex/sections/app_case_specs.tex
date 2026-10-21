@@ -48,12 +48,12 @@ and an offer between the two rents is accepted only by a lemon's landlord: the a
 listing is a lemon. A \emph{pooled} landlord prices every listing as if it were sound, so its replies say nothing about
 quality. Each world is played once under each kind.
 
-\textbf{Table A.1. Housing parameters.}
-
+\renewcommand{\thetable}{A.1}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{\textbf{Housing parameters.}}\label{tab:A.1}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Symbol
@@ -120,11 +120,11 @@ three newcomers N₁--N₃. Each supplier has a type θ ∈ \{G, L, P\} = \{(on-
 kind (a\textsubscript{i} of 40 tracked sellers unreliable on delivery, b\textsubscript{i} failed inspection). That gives 3³ = 27
 type profiles, each with positive weight; γ ranges from 0.2 to 0.7.
 
-\textbf{Table A.2. Procurement parameters.}
-
+\renewcommand{\thetable}{A.2}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{\textbf{Procurement parameters.}}\label{tab:A.2}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Quantity
@@ -184,12 +184,12 @@ price. For a good supplier q = 55 is optimal at every pack price and gives A(p) 
 \textbf{Protocol.} One action at a time until a terminal action, the action budget, or an invalid
 action; the last three are worth D − I.
 
-\textbf{Table A.3. Procurement actions.}
-
+\renewcommand{\thetable}{A.3}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{\textbf{Procurement actions.}}\label{tab:A.3}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Action
@@ -231,12 +231,12 @@ the recorded supplier before the deadline.
 Section 5.1 reports a harder pack; the pack above (Table E.14) is its predecessor. The payoff, the
 three types, the kits owed, the action budget and the order sizes are unchanged. What changes:
 
-\textbf{Table A.6. What the harder Procurement pack changes.}
-
+\renewcommand{\thetable}{A.6}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{\textbf{What the harder Procurement pack changes.}}\label{tab:A.6}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Quantity
@@ -274,11 +274,11 @@ term, clock and sharing chance and redraw only the cohort records.
 
 \textbf{Outcomes.} X = (C × ℝ₊) ∪ \{∅\}: a clause vector c with an all-in price p, or no deal.
 
-\textbf{Table A.4. The eight clauses.}
-
+\renewcommand{\thetable}{A.4}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{\textbf{The eight clauses.}}\label{tab:A.4}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Clause
@@ -310,14 +310,14 @@ client's prior and in 22 of the 58 development worlds (Appendix E.2) reveals the
 ρ\_C ∈ \{0.15, 0.75, 1.55\}, declared prior one third each; in the packs ρ\_C is fixed by the world's
 cell (one of eleven outside-option situations, Appendix E.2) rather than drawn.
 
-\textbf{Table A.5. Data-center symbols.} Money in \$ thousands; ranges are the generator's uniform draws
-on the base pack (some cells widen them), public to both sides unless marked private.
-
+\renewcommand{\thetable}{A.5}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
   >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\caption{\textbf{Data-center symbols.} Money in \$ thousands; ranges are the generator's uniform draws
+on the base pack (some cells widen them), public to both sides unless marked private.}\label{tab:A.5}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Symbol
@@ -504,8 +504,7 @@ On each of its moves it takes the five steps below.
   otherwise it walks. It never reads or writes a note.
 \end{enumerate}
 
-\textbf{Table B.1. Counterpart styles of the data-center case.} (Defaults r = 1, α = 0.8, s\_min = 0.)
-
+\renewcommand{\thetable}{B.1}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
   >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
@@ -515,6 +514,7 @@ On each of its moves it takes the five steps below.
   >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
   >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
   >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}@{}}
+\caption{\textbf{Counterpart styles of the data-center case.} (Defaults r = 1, α = 0.8, s\_min = 0.)}\label{tab:B.1}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Style
@@ -631,12 +631,12 @@ rounds in five functions that follow one round's phases:
   taken by outside demand.
 \end{itemize}
 
-\textbf{Table C.1. Symbols of the best informed tenant.}
-
+\renewcommand{\thetable}{C.1}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{\textbf{Symbols of the best informed tenant.}}\label{tab:C.1}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Symbol
@@ -703,12 +703,12 @@ environment's average over the 27 type profiles to within 3·10⁻¹³; its mean
 
 \textbf{Fixed rules.} Expected loss is the equal-weight mean over the 24 worlds of V* − V\^{}rule.
 
-\textbf{Table C.2. Procurement fixed rules.}
-
+\renewcommand{\thetable}{C.2}
 \begin{longtable}[]{@{}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3000}}
   >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3000}}
   >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.4000}}@{}}
+\caption{\textbf{Procurement fixed rules.}}\label{tab:C.2}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Rule
