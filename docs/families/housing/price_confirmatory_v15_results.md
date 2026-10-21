@@ -67,3 +67,9 @@ holdout. It signed blind 146 times in 600 cells (Luna 230, Gemini 114) and is th
 actions (33). 600 of 600 cells completed, $0.39 at Near AI's list price; `aeread verify-replay` on the bundle: 600
 verified, 600 scored, 0 differ, 0 missing. The route differs from v14's (NextBit fp8), so nothing here compares with
 v14's GLM except descriptively.
+
+## Addendum B results: Sol 6.1 (Codex) and Opus 5.5 (Claude Code)
+
+Declared after addendum A ([plan](price_v15_addendum_b_cli_plan.md), 5515349e), outside v15's Holm family; results in
+[price_v15_addendum_b_cli_results.md](price_v15_addendum_b_cli_results.md). Main-pack share of the best-informed value:
+Sol 90.4%, Opus 80.4%; both beat `inspect_then_sign` at 1 − 0.05/3; 600 of 600 cells each; verify-replay 1,200 of 1,200.
