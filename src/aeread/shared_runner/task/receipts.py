@@ -23,7 +23,7 @@ from ..measurement import (
     MeasurementContractError,
     ScoreEnvelope,
 )
-from ..run.resolver import ImplementationPin, canonical_json_bytes
+from ..run.resolver import ImplementationPin, canonical_json_bytes, field_default
 from ..schemas import is_exportable_id
 
 
@@ -118,7 +118,7 @@ class EvaluationReceipt:
     # rulings R1/R9/R12 apply to ``schemas.py``'s manifest fields applies
     # here too, because ``run.resolver._canonical_value`` reads this
     # ``ClassVar`` off ``type(value)`` for ANY dataclass it canonicalizes.
-    # Two receipt fields opt in.
+    # Three receipt fields opt in.
     #
     # ``deferred_leaf_ids`` (ruling R1, incident D-20): added on 2026-09-04
     # after receipts had already been sealed into published evidence, and for
@@ -134,10 +134,14 @@ class EvaluationReceipt:
     # receipt that never declares a case_conditional leaf hashes exactly as
     # it did before this field existed.
     #
+    # ``scripted_seats`` (docs/architecture/kernel_scripted_seats_design.md):
+    # added after receipts were already sealed and replayed. A receipt with no
+    # scripted seat hashes exactly as it did before this field existed.
+    #
     # ``_receipt_content_sha256`` computes the digest from the canonical
     # serialization itself, so this omission can never be bypassed there.
     _CANONICAL_OMIT_IF_DEFAULT: ClassVar[frozenset[str]] = frozenset(
-        {"deferred_leaf_ids", "inapplicable_leaf_ids"}
+        {"deferred_leaf_ids", "inapplicable_leaf_ids", "scripted_seats"}
     )
 
     spec_version: str
@@ -197,6 +201,15 @@ class EvaluationReceipt:
     # declares no case_conditional leaf at all (every family today). A plain
     # ``()`` default for the same reason as ``deferred_leaf_ids`` above.
     inapplicable_leaf_ids: tuple[str, ...] = ()
+    # Seats this cell filled from a family policy rather than a model
+    # (docs/kernel_scripted_seats_design.md), seat id -> policy id. Kept apart
+    # from agent_profile_sha256_by_seat, which names model seats only, so
+    # ruling R12's seat-set check compares like with like. A factory default
+    # (dataclasses on Python < 3.12 reject a mappingproxy as a plain default);
+    # the omit-if-default rule looks through it via ``field_default``, and
+    # that is what keeps every receipt sealed before this field existed
+    # byte-identical.
+    scripted_seats: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
     SPEC_VERSION = "aeread.receipt/0.1"
 
@@ -266,6 +279,16 @@ class EvaluationReceipt:
         self._validate_and_freeze_scores()
         self._validate_evidence()
 
+        scripted = dict(self.scripted_seats)
+        for seat_id, policy_id in scripted.items():
+            _require_id(seat_id, "scripted seat id")
+            _require_id(policy_id, f"scripted policy for seat {seat_id!r}")
+        if set(scripted) & set(self.agent_profile_sha256_by_seat):
+            raise MeasurementContractError(
+                "a seat cannot be both scripted and profiled: "
+                f"{sorted(set(scripted) & set(self.agent_profile_sha256_by_seat))}"
+            )
+        object.__setattr__(self, "scripted_seats", MappingProxyType(dict(sorted(scripted.items()))))
         deferred_leaf_ids = tuple(self.deferred_leaf_ids)
         if len(set(deferred_leaf_ids)) != len(deferred_leaf_ids):
             raise MeasurementContractError("deferred_leaf_ids must not contain duplicates")
