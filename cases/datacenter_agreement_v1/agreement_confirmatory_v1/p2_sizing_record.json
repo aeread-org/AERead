@@ -1,0 +1,325 @@
+{
+ "analysis_module_sha256": "94847c561cc15b136a9c7452f02227435ce96835b234c9b25cd7708d1055d880",
+ "contrast": "P2",
+ "deal_worlds_available": 42,
+ "deal_worlds_needed": 18,
+ "detectable_at_42": 28.29,
+ "pilot_campaign": {
+  "campaign_id": "datacenter_agreement_confirm_pilot_v1",
+  "cells": 96,
+  "list_price_usd": 5.805,
+  "missing": [],
+  "missing_by_cause": {},
+  "plan_sha256": "a27bf4fc3738a73f8bac8c88747c7fb7f1483f4e9043583789c7fe625c094a39",
+  "status": {
+   "ok": 96
+  },
+  "valid": 96,
+  "wall_minutes": [
+   22.42
+  ]
+ },
+ "pilot_pack": "agreement_admitted_pilot_v1",
+ "pilot_world_values": {
+  "3e58960e": [
+   89.406,
+   -40.619
+  ],
+  "4c1768d2": [
+   25.0,
+   50.0
+  ],
+  "6707ee78": [
+   80.763,
+   82.575
+  ],
+  "6b1dbd6f": [
+   53.862,
+   97.591
+  ],
+  "74fba85f": [
+   -6.25,
+   -40.269
+  ],
+  "7b6d7764": [
+   -84.255,
+   -5.0
+  ],
+  "84058cbf": [
+   -23.8,
+   51.675
+  ],
+  "97a78a2b": [
+   47.5,
+   -63.36
+  ],
+  "ab7f8454": [
+   137.808,
+   52.5
+  ],
+  "b282adb4": [
+   75.0,
+   46.188
+  ],
+  "ed5deeda": [
+   5.0,
+   12.5
+  ],
+  "f32dc5f4": [
+   30.0,
+   -2.5
+  ]
+ },
+ "record": {
+  "artifact_sha256": "7511fc9f7aa55415ce69d58a6d98157e92a4efede7e3e7b4726456055ba181fd",
+  "inputs": {
+   "alpha": 0.016666666666666666,
+   "attrition": 0.07,
+   "minimum_effect": 50.0,
+   "pilot_source": "datacenter_agreement_confirm_pilot_v1 (plan a27bf4fc3738): arm F on agreement_admitted_pilot_v1, two plays a world",
+   "pilot_worlds": 12,
+   "power": 0.8,
+   "sd_of_differences": 54.933
+  },
+  "method": "paired t on per-world differences: the smallest n with n >= ((t(n-1, 1-alpha/2) + z(power)) * sd / effect)^2, then n / (1 - attrition) rounded up",
+  "schema_version": "aeread.design.sizing/1",
+  "worlds": 18,
+  "worlds_before_attrition": 16
+ },
+ "sizing_module_sha256": "6a3f0794d336b92d6d5566159885d8b1dd03ff284e21d6478b2d8aba22d6a41f",
+ "variance": {
+  "development_sd": 71.9,
+  "sd_one_play": 54.933,
+  "sd_two_play_mean": 43.483,
+  "var_play": 2253.838,
+  "var_world": 763.819,
+  "worlds_complete": 12,
+  "worlds_deal": 12
+ },
+ "within_world_spread": {
+  "by_world": {
+   "3e58960e": {
+    "claude_client": [
+     80.8,
+     80.8
+    ],
+    "claude_integrator": [
+     100.05,
+     100.05
+    ],
+    "codex_client": [
+     149.6125,
+     149.6125
+    ],
+    "codex_integrator": [
+     210.05,
+     -50.0
+    ]
+   },
+   "4c1768d2": {
+    "claude_client": [
+     337.58,
+     307.58
+    ],
+    "claude_integrator": [
+     215.552,
+     215.552
+    ],
+    "codex_client": [
+     332.58,
+     337.58
+    ],
+    "codex_integrator": [
+     270.552,
+     285.552
+    ]
+   },
+   "6707ee78": {
+    "claude_client": [
+     -235.15,
+     -215.15
+    ],
+    "claude_integrator": [
+     -50.0,
+     -50.0
+    ],
+    "codex_client": [
+     -73.623,
+     -50.0
+    ],
+    "codex_integrator": [
+     -50.0,
+     -50.0
+    ]
+   },
+   "6b1dbd6f": {
+    "claude_client": [
+     -245.1825,
+     -245.1825
+    ],
+    "claude_integrator": [
+     37.458,
+     32.458
+    ],
+    "codex_client": [
+     -50.0,
+     -50.0
+    ],
+    "codex_integrator": [
+     -50.0,
+     32.458
+    ]
+   },
+   "74fba85f": {
+    "claude_client": [
+     94.848,
+     100.538
+    ],
+    "claude_integrator": [
+     162.34,
+     162.34
+    ],
+    "codex_client": [
+     107.348,
+     -50.0
+    ],
+    "codex_integrator": [
+     137.34,
+     232.34
+    ]
+   },
+   "7b6d7764": {
+    "claude_client": [
+     88.0,
+     88.0
+    ],
+    "claude_integrator": [
+     103.51,
+     103.51
+    ],
+    "codex_client": [
+     73.0,
+     83.0
+    ],
+    "codex_integrator": [
+     -50.0,
+     98.51
+    ]
+   },
+   "84058cbf": {
+    "claude_client": [
+     252.6225,
+     193.5225
+    ],
+    "claude_integrator": [
+     184.82,
+     154.82
+    ],
+    "codex_client": [
+     155.0225,
+     216.8725
+    ],
+    "codex_integrator": [
+     234.82,
+     234.82
+    ]
+   },
+   "97a78a2b": {
+    "claude_client": [
+     63.2875,
+     63.2875
+    ],
+    "claude_integrator": [
+     108.0,
+     108.0
+    ],
+    "codex_client": [
+     73.2875,
+     94.5675
+    ],
+    "codex_integrator": [
+     193.0,
+     -50.0
+    ]
+   },
+   "ab7f8454": {
+    "claude_client": [
+     1.5445,
+     31.5445
+    ],
+    "claude_integrator": [
+     204.45,
+     204.45
+    ],
+    "codex_client": [
+     187.16,
+     71.5445
+    ],
+    "codex_integrator": [
+     294.45,
+     269.45
+    ]
+   },
+   "b282adb4": {
+    "claude_client": [
+     -207.76,
+     -207.76
+    ],
+    "claude_integrator": [
+     82.624,
+     72.624
+    ],
+    "codex_client": [
+     -47.76,
+     7.24
+    ],
+    "codex_integrator": [
+     72.624,
+     -50.0
+    ]
+   },
+   "ed5deeda": {
+    "claude_client": [
+     67.31716,
+     92.31716
+    ],
+    "claude_integrator": [
+     106.6,
+     116.6
+    ],
+    "codex_client": [
+     67.31716,
+     67.31716
+    ],
+    "codex_integrator": [
+     116.6,
+     166.6
+    ]
+   },
+   "f32dc5f4": {
+    "claude_client": [
+     173.895,
+     173.895
+    ],
+    "claude_integrator": [
+     16.8,
+     16.8
+    ],
+    "codex_client": [
+     123.895,
+     123.895
+    ],
+    "codex_integrator": [
+     126.8,
+     61.8
+    ]
+   }
+  },
+  "mean_absolute_difference_between_plays": {
+   "claude_client": 14.15,
+   "claude_integrator": 4.58,
+   "codex_client": 37.48,
+   "codex_integrator": 92.22
+  }
+ }
+}

@@ -141,6 +141,7 @@ so the guard fails on a new dangling citation rather than on these.
 | `docs/exchange_economy/v1_baselines.md` | private development repository |
 | `docs/exchange_economy/v1_filter_decisions.md` | private development repository |
 | `docs/experiments/2026-07-06_oracle_carveout_spec.md` | private development repository |
+| `docs/families/datacenter/risk_allocation_case.md` | branch `codex/datacenter-agreement`: the risk-allocation cases did not come to `main` with the agreement case (their registry rows were in #224, closed 2026-10-21) |
 | `docs/govsim_migration_plan.md` | branch `zeyu/govsim-contract-migration` (35cf3d73), never merged to `main` |
 | `docs/govsim_migration_review.md` | branch `zeyu/govsim-contract-migration` (35cf3d73), never merged to `main` |
 | `docs/operations/errata.md` | open pull request #117 |

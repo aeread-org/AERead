@@ -1,0 +1,1073 @@
+{
+ "claim_status": "development worlds borrowed from the full-terms pack, both seats open; no model result is a claim",
+ "family_id": "datacenter_agreement_v1",
+ "family_version": "0.1.0",
+ "generator": {
+  "id": "datacenter_agreement_generator_v1",
+  "source_pack": "contracts_eval_v1",
+  "split": "dev",
+  "version": "0.1.0"
+ },
+ "pack": "agreement_dev_v1",
+ "worlds": [
+  {
+   "available_surplus": 152.927,
+   "best_agreement": "fix, cap 500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.db54298b",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "14eac120b0d6879d2c5a36adb96186733b522aa2273abb16762615e778e5effe",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 289.727,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.02998b5f",
+   "world_seed": 2490008
+  },
+  {
+   "available_surplus": 261.528,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.ac7761b1",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "b435999fdd1fb970c398ac1e57d5f664d1d62ad01f8799a6cadd417d71f718be",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 791.128,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.05b89667",
+   "world_seed": 2990455
+  },
+  {
+   "available_surplus": 193.5,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.4cba40fb",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "26b27b60bdbc5a28b0b702080ef65c13c6ff380af2407e5a62c2b56695ca66d2",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 258.3,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.0c612670",
+   "world_seed": 2490014
+  },
+  {
+   "available_surplus": 433.388,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.78a6b0d8",
+   "clauses_to_change": [
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "bb28e26bf3ad47c575a80f63918de0e8d786fdfdf187bb5cf7a97b2c0850603f",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 183.55,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.128c940d",
+   "world_seed": 2800007
+  },
+  {
+   "available_surplus": 566.419,
+   "best_agreement": "fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.75a45ef2",
+   "clauses_to_change": [
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "fcadc87bc48c296e660c2b80e940460e190cbf03b65ce97f49e1525db073ce26",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 118.669,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.1a655d38",
+   "world_seed": 2900001
+  },
+  {
+   "available_surplus": 399.978,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.a96d58f1",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "873e9863b64e6040d45203b8c3c88507c3003cb22680a5ab611eb3e40dc146dc",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 109.231,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.1bbfd259",
+   "world_seed": 2910001
+  },
+  {
+   "available_surplus": 255.967,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.5677b4e9",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit"
+   ],
+   "content_sha256": "52847b2dc5b644b913a72b4d3473aea90c6ee7d4a39336b2ddfb764c144d09ce",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 283.905,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.1d387cff",
+   "world_seed": 3310005
+  },
+  {
+   "available_surplus": 525.658,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.44ccdce3",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "d968578f6ab095293445698d3053fb8642e6f4b57d0fbb974a6221799abac0d4",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 668.288,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.21239697",
+   "world_seed": 2700001
+  },
+  {
+   "available_surplus": 478.108,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.a0c80812",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness"
+   ],
+   "content_sha256": "0aac77e34b2215db5a6a2c7e57779588e8298923ae75c59088c017f27f65d6c5",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 503.188,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.25222434",
+   "world_seed": 2710000
+  },
+  {
+   "available_surplus": 430.636,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.7aab73ae",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "6a5c82af237f339abd1d0c43a25dd5fe22617f051d98c498a41cc98f35625653",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 525.896,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.26369338",
+   "world_seed": 2610000
+  },
+  {
+   "available_surplus": 693.431,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.c0aa9470",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "e6a944733c715763c3292f5021c3351a450dca48c8ba273126975c6c74fd539e",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 701.371,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.334a02c3",
+   "world_seed": 3300004
+  },
+  {
+   "available_surplus": 306.765,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.4e70ce3b",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "da7af5e2c0f972aa6ae5eb96c1530c34d75fe14374a2a86aac25feba5e47ecd3",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 755.505,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.334ae5ac",
+   "world_seed": 3000056
+  },
+  {
+   "available_surplus": 0.0,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.f22e903f",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "c94b9a50dbb5d1b3463e45eee07bcdf2670488ff37c94f6d7b0955799cd6edfd",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 175.638,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.34defd49",
+   "world_seed": 3490001
+  },
+  {
+   "available_surplus": 302.12,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.3f5c043f",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "50b7e23cb0217403ffad66b8a29705a815bbf01e60b0f328ac50304dda2df8c7",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 374.74,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.39b55bf9",
+   "world_seed": 3210002
+  },
+  {
+   "available_surplus": 455.768,
+   "best_agreement": "fix_and_delay @100/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.7a772949",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "e5fb6b292c56da6e8d0e68c7f566861cae82aa796e6ad24429d5ea9f5b599011",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 1141.673,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.3a3a9fb9",
+   "world_seed": 3100000
+  },
+  {
+   "available_surplus": 466.625,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.ae140098",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "0efc29e4c6e7ad6ceb9fe076794c446497d9f652e9eece502a5a0ff54604f1f0",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 957.715,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.3aca9a9f",
+   "world_seed": 3110000
+  },
+  {
+   "available_surplus": 757.947,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.d2f3b4ec",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "bd4165b7916fc2e86c7132cd314ca0990d5b446e6f34807276395f00eda2062e",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 812.427,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.411b43c0",
+   "world_seed": 3390116
+  },
+  {
+   "available_surplus": 465.564,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.289bcf62",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "37ed1c466f0087d2ed5b2e8a89ec902299d53a8ffb530f74a8edc4dc03cbb07b",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 606.944,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.446c35fc",
+   "world_seed": 2600000
+  },
+  {
+   "available_surplus": 516.927,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.813ab48f",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "779a6598e971d8b6ebddac100abffbe70171f2ee182c64194f83afa4c8be186a",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 831.137,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.4829ec74",
+   "world_seed": 3300006
+  },
+  {
+   "available_surplus": 308.119,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.627e864c",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "ccb4a8548215ad5ad2989ed7a2cdb1c687a35c6f4beee95784259a3f17266b5d",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 193.52,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.4f8e2fc1",
+   "world_seed": 2510008
+  },
+  {
+   "available_surplus": 572.329,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.fd80a858",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "8cf4d2185ba735ef12a7b4d1ee1d10cb3d1e20ad2de31ced7974736710a08ad5",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 702.809,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.51cdba52",
+   "world_seed": 3090000
+  },
+  {
+   "available_surplus": 283.5,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.63cf7fe5",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "cb4f06b52520c28158713fbd1fffd212de58af99740d789956a3dfdb98a602f6",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 805.9,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.5420a441",
+   "world_seed": 2990021
+  },
+  {
+   "available_surplus": 355.223,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.4013eb5c",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "32084bf11d08e3912c51d22e55817ef7804604f25f7e78253acd2489daf41eba",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 903.598,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.60dbdafb",
+   "world_seed": 3110001
+  },
+  {
+   "available_surplus": 704.3,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.084a2134",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "69cebcef23e5fd7dbff1b075a03145948bd358e3c142611e7d7049933950db7d",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 697.77,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.624ca3b5",
+   "world_seed": 3400034
+  },
+  {
+   "available_surplus": 675.018,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.ce12fd1d",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "3c1a8bf2b64053e77add47547e6fb66ad01f6bf7a831eb87c6f4970ad8b84a14",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 759.738,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.666892c2",
+   "world_seed": 3390010
+  },
+  {
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.c1950607",
+   "clauses_to_change": [
+    "burn_in",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "4bc38dd0dc73d3ef6bdb72721dcadb0ca0beaee81bf6272183db37543771e089",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 185.094,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.6a0d9dc7",
+   "world_seed": 3490000
+  },
+  {
+   "available_surplus": 353.526,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.5acbba9d",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "0522f51f700088980e69277930f06ed36d2f45dfd68b14a1e566458c6b0b4b86",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 459.926,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.6a0f5814",
+   "world_seed": 3190007
+  },
+  {
+   "available_surplus": 717.498,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.e33b600b",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "88880337ed2aec1431fc3271408be363aea5ba3a8c00e32e690549f503e84247",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 751.498,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.6b789286",
+   "world_seed": 2690002
+  },
+  {
+   "available_surplus": 222.153,
+   "best_agreement": "fix_and_delay @100/wk, cap 500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.dc594430",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7f0ac791fc94196365178dcb70f6ea64ced7cf69df82e15615e3af87c459ff97",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 198.443,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.78c91e08",
+   "world_seed": 2900007
+  },
+  {
+   "available_surplus": 579.806,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.d93fae2b",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness"
+   ],
+   "content_sha256": "13c10b7b18c1383a67a3539c9b5dcb3898a805260bd0ff3b4d78351c70a21f40",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 354.176,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.7ad65cef",
+   "world_seed": 3410008
+  },
+  {
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.cb77ebca",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "b9ccfb4737874a9acf601fce8b7c2760d9affa11bf0c4c70b5f4f2a54eb9a0d8",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 169.961,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.871a38be",
+   "world_seed": 3510001
+  },
+  {
+   "available_surplus": 362.518,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.00b67c56",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "8f345957fee948c10b9026174c6a6e3531df20e98063582101c9cca4d520dfe9",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 451.488,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.8f98ee15",
+   "world_seed": 3310004
+  },
+  {
+   "available_surplus": 625.573,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.0ea5a318",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "a5df4f0abb1e045d6727bfa6688863de53ad4bc27db050c520ed987d7fff8233",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 136.505,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.90a120f2",
+   "world_seed": 2810004
+  },
+  {
+   "available_surplus": 420.922,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.eae35a1d",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness"
+   ],
+   "content_sha256": "8468790c773aebd2a3d07f3d020c6d7129465668c9aea95890a20f89cbee3bfa",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 449.277,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.9653c3cd",
+   "world_seed": 2710001
+  },
+  {
+   "available_surplus": 421.876,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.59d2985e",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "ef4e184ed7156198816543136d5bbf766ed47ef967225bef95714e0608cc1529",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 1015.596,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.995af8d7",
+   "world_seed": 3090001
+  },
+  {
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.d4262e75",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "f1979dedb7ff44d1bb53a6c57200afb25c7e0d414b5201a172e6ff88a0eef79d",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 146.8,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.9a70c3a7",
+   "world_seed": 3500001
+  },
+  {
+   "available_surplus": 539.382,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.89dc4d94",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "eb1c438c60fbf8475f1daee67c6182512803eb37568c6fff23eebb207517a248",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 680.853,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.9fadb0d1",
+   "world_seed": 3400037
+  },
+  {
+   "available_surplus": 427.42,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.8b6226b5",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "69296f23cab6adadf2276c87f7d4de6cbd433f5d0d549335f977dfc9477017bc",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 857.49,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.a02de414",
+   "world_seed": 2700000
+  },
+  {
+   "available_surplus": 168.78,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.3622c524",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "c4278bf48048df7125c1ce3663e613b4c2ea6be33f1d1893c8b6685c17d6e158",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 78.15,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.a16305f9",
+   "world_seed": 2910000
+  },
+  {
+   "available_surplus": 351.64,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.7d8481ff",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "c35aac96e0bc733cdc69db3e2882fddf8708a0f07c9788e8a34d054286c19d24",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 331.515,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.ac603602",
+   "world_seed": 2500004
+  },
+  {
+   "available_surplus": 224.172,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.11bd8e1e",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "33e66839a743f9d2064317afe3b5831ae8eaeef6b244a28a38628ae3bd7e6501",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 497.447,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.ad97dc94",
+   "world_seed": 3190006
+  },
+  {
+   "available_surplus": 247.388,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.73957b95",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness"
+   ],
+   "content_sha256": "f9b39cc7db8cc6325bef6b2991966bd13ec0a8eb6981bdb6ab5b019bfe740da8",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 164.178,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.b0dbe77b",
+   "world_seed": 3010000
+  },
+  {
+   "available_surplus": 383.02,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.a7f2fc80",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "994bfedabb0598869039154155c6d1217c160e6d1631bf44d82d14fec2710fd2",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 556.21,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.b657ba72",
+   "world_seed": 2600001
+  },
+  {
+   "available_surplus": 380.369,
+   "best_agreement": "fix_and_delay @100/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.04757558",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "fb22f1ad2f25b2bba1ccd0032343a802b6f17a9d76c755e128609fae112b1276",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 833.144,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.b688c05a",
+   "world_seed": 3100001
+  },
+  {
+   "available_surplus": 439.212,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.ea2ac7e7",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "5e6342633121ba2adbf902f329992a4dcc5f073246eccb4dcfd9117e2e2baa64",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 704.332,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.b9eaa523",
+   "world_seed": 2690001
+  },
+  {
+   "available_surplus": 514.827,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.d01975fd",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "e06bbf773c88c5cd9ecdfc090586eb68f3db881d5d3f81daee7b1cd443feab23",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 815.787,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.bbdc6a16",
+   "world_seed": 2590000
+  },
+  {
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.7a1c9398",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "c3a13f1381497a63be446e464b6ee4fa77ed29e9d762a58d427b0a7b8152e16e",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 156.534,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.c0d2d6ad",
+   "world_seed": 3510000
+  },
+  {
+   "available_surplus": 328.374,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.31c8eb58",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "8a1b7c19de081614652dc0082c69abe0e618266820963be86a991b85354e5acc",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 412.364,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.d3b8af13",
+   "world_seed": 3210000
+  },
+  {
+   "available_surplus": 471.905,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.6ea048b3",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "34f0c812b0c1f4d83b3e553e5bd1940d7baca0bd1e20e82d7011a99c219b40dd",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 86.18,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.d6dfa0a4",
+   "world_seed": 2810000
+  },
+  {
+   "available_surplus": 223.139,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.d420d62a",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "e562fc50ecf70c237fe56354fe8a3ca531a781275e91f77363ff0656a4eea4f1",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 638.869,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.dee86681",
+   "world_seed": 3000075
+  },
+  {
+   "available_surplus": 156.879,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.b5f99440",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "f40285fa93c07766efe5096ccf5dda35647163bf34e0e6394ae63cb8d2a34fa5",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 214.554,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.e1044684",
+   "world_seed": 2510001
+  },
+  {
+   "available_surplus": 432.715,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.684ee2c6",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "54e2f9b37acb4a3aa2d0289d2333ef95d9a59a1b940346a2c0acc59ba3b3901a",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 486.425,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.e88682b4",
+   "world_seed": 2610001
+  },
+  {
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.448e93a7",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7a98f2255ca55de59435849ccbf44e1d0ae6bad36ec7b48b3de77c71161c8caa",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 322.568,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.eb1f7ba4",
+   "world_seed": 3500000
+  },
+  {
+   "available_surplus": 423.545,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "case_id": "datacenter_agreement_v1.dev.5c309233",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "d407450931c646104c9af7a70341bcadcaac42af64bbd89bc8f039e1e2ed4eeb",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 658.505,
+   "playbook": "coordination",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.ebae1eb8",
+   "world_seed": 2590003
+  },
+  {
+   "available_surplus": 188.42,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.0fd41b40",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness"
+   ],
+   "content_sha256": "e79135e917b66c7634891d572e2c2bf614191945c666cebe633a7ba7d07089c1",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 138.42,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.eca11ced",
+   "world_seed": 3010002
+  },
+  {
+   "available_surplus": 589.496,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "case_id": "datacenter_agreement_v1.dev.b9d5434b",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness"
+   ],
+   "content_sha256": "b2ce715b7434e08806d5ee5221b28ae9cff6b77c1c484baefef4a97805138154",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 321.556,
+   "playbook": "turnkey",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.f2540341",
+   "world_seed": 3410001
+  },
+  {
+   "available_surplus": 550.464,
+   "best_agreement": "fix_and_delay @100/wk, cap 500, readiness integrator, consequential excluded, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.64c52a00",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "950c6f674b959801fd006224218926e0932aef34f19ead8ebbc5fc33ef752498",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "left_on_the_table_by_the_draft": 177.129,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.f6c38fdb",
+   "world_seed": 2800022
+  },
+  {
+   "available_surplus": 235.212,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "case_id": "datacenter_agreement_v1.dev.60c29876",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "4607c6a9425b82144175d93b7c0dd7f81f29ed2a5fb4cbce36c1d34d9b65e15c",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "left_on_the_table_by_the_draft": 283.012,
+   "playbook": "managed",
+   "source_case_id": "datacenter_risk_allocation_contracts_v1.eval.ff973251",
+   "world_seed": 2500034
+  }
+ ]
+}
