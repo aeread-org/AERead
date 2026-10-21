@@ -17,11 +17,14 @@ files are historical snapshots from the paper worktree; they document the
 original classification and may require their original worktrees to run.
 They are not the reproduction entry point for this revision.
 
-- Housing: retain the existing corrected priority classification; join all
-  1,764 completed cells to the packaged reply-conditioned v2 analysis using
-  campaign ID, world seed and arm. Every cell's correction matches. Average
-  both arms within complete main worlds, then worlds. Gemini has 240 complete
-  main worlds; GLM and Luna have 260. Missing arms exclude their whole world.
+- Housing: v15's 260 main worlds (Table 5.2), Gemini and Luna and GLM's declared
+  addendum, from `housing_v15_taxonomy.json` (`housing_v15.py`, 5522d543 on
+  docs/paper-case-studies-qc): v14's classes and priority order, read from v15's
+  seat-0 receipts on its primary measure, against `inspect_lowball`. Every subject
+  completed all 520 main cells; a world averages its two landlord arms. Totals match
+  the published v15 differences (51.13, 99.92) and GLM's R3 (127.32) in
+  `../housing_v15/`. v14's classification (1,764 cells joined to the reply-conditioned
+  v2 analysis) is still derived, under `housing_v14` in panels.json.
 - Procurement: the 20 declared worlds of Table 5.3, two plays each, from
   `procurement_pay_or_test_v3_taxonomy.json` (rules fixed in 51e9bfd3 before the
   flash plays; output ea9dcfdc). Every world's total for each of four subjects
@@ -30,12 +33,15 @@ They are not the reproduction entry point for this revision.
   information not acquired, including a worse quantity (P-T-23): $6.33 a world
   of Luna's. `procurement_pay_or_test.py` and its taxonomy are the earlier
   pack's (Table E.14) and are not read.
-- Data center: verify every artifact hash in the firm-population and
+- Data center: v2 (Table 5.4) from `../campaign_refresh/datacenter_v2/`: each bundle's
+  cell table, summary and manifest checked, every pairing's loss leaves matched to the
+  published analysis; the integrator's two plays a world averaged first; 80 worlds.
+  v1 (kept as `datacenter_v1` for Table E.17): verify every artifact hash in the firm-population and
   head-to-head publication manifests; read their 360 valid negotiations.
   Joint loss is allocation plus no-deal plus delay loss. Split allocation
   into inferior clauses in positive-surplus worlds and harmful agreements
-  in worlds with no positive available surplus. For Table 5.5, average the
-  two focal roles within each of the 60 worlds, then worlds. These are joint
+  in worlds with no positive available surplus. Average the two focal roles
+  within each world (80 in v2, 60 in v1), then worlds. These are joint
   outcomes, including actions by the subject and the firm counterpart.
 - Refund: map the original cell-level parts, average 20 retained cells in
   each of six fixed cases, then cases. Each subject has 120 cells and no

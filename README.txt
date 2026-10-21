@@ -269,3 +269,13 @@ current one saturated"):
   63.1 vs 42.5); v1's exploratory replay stays in E.9, labelled v1. Intro admission count is v2's (80 of 5,436
   scanned); E.2, E.3, E.7, E.10 note, F.2, F.5 and the case-paths table name v1 and v2 apart. derive_panels.py keeps
   v1 under datacenter_v1 for Table E.17. Housing follows.
+- Housing on one version (2026-10-20, same go): Section 5.2's Housing paragraphs, Figure 5.2a and Tables E.5, E.9 and
+  E.10(a) now use v15 (Table 5.2's 260 main worlds; Gemini and Luna, GLM from addendum A, labelled), not v14. Classes
+  from tools/paper/failure_taxonomy/housing_v15.py (v14's rules and priority order on v15's seat-0 receipts and
+  primary measure, against inspect_lowball; 5522d543, counts 313d70f8 on docs/paper-case-studies-qc), copied with the
+  v15 and addendum analyses to analysis_evidence/{shortfall_panels,housing_v15}/; derive_panels.py reproduces the
+  published differences (51.13, 99.92; GLM R3 127.32) and keeps v14 under housing_v14. The mechanism changed: the
+  largest loss for both models is dropping a known lemon its landlord prices about $1,000 below a sound floor (the
+  rule signs it in all 200 lemon-favourite worlds of that arm; Gemini offered on it in 4, Luna in 7); Luna's
+  reply-proved lemon fell from 60% (v14) to 22% of its shortfall. Counts checked independently from the sealed
+  trajectories (same favourite, offers, bucket splits and the 187-of-200 equality).

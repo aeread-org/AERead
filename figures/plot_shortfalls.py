@@ -33,11 +33,11 @@ COMMIT = '#995E96'
 COST = '#D5A23A'
 PROCEDURE = '#7B899B'
 PANELS = [
-    dict(case='housing', title='(a) Housing', subtitle='Corrected v14 · reachable scripted reference',
-         names=['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
-         labels=['Gemini 3.8\nFlash','GLM 5.3\nFlash','GPT-6 Luna'],
-         sample='260 complete worlds each', unit='Shortfall ($ / world)', legend_columns=3, legend_spacing=.6,
-         limit=180, ticks=[0,50,100,150],
+    dict(case='housing', title='(a) Housing', subtitle='Declared v15 · reachable scripted reference',
+         names=['Gemini 3.8 Flash','GPT-6 Luna','GLM 5.3 Flash (addendum A)'],
+         labels=['Gemini 3.8\nFlash','GPT-6 Luna','GLM 5.3 Flash\n(addendum)'],
+         sample='260 main worlds each; two landlord arms averaged', unit='Shortfall ($ / world)', legend_columns=3, legend_spacing=.6,
+         limit=150, ticks=[0,50,100,150],
          parts=[('information_not_acquired','Info not acquired',INFO,''),
                 ('contrary_to_information_held','Contrary to info',CONTRARY,''),
                 ('worse_terms','Worse terms',TERMS,''),

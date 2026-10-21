@@ -239,8 +239,9 @@ the current Data-center breakdown and uncertainty. Table E.10 retains the exact 
 
 **Figure 5.2. Shortfall to each case's reference.** Segments account for observed actions;
 labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
-v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
-and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
+v15's two declared models and GLM's addendum on the 260 main worlds of Table 5.2, below the reachable scripted
+rule (`inspect_lowball`, as in Table 5.2's fourth row); the few negative amounts, at most
+$0.3 a world, are in Table E.10 and are not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
 against the full-information bound with the firm counterparts at $25k per paid redline, across all 80 worlds of
 Table 5.4 with both seats averaged. In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
 worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
@@ -257,25 +258,28 @@ have tested, it lost $17.5 a world. Where it did test, it often first quoted and
 supplier, spending days and actions before the newcomer test the stated odds and clock made best ($8.9 a
 world), or awarded while a newcomer test it had begun was still worth finishing ($3.2).
 
-**Housing (v14), Gemini: it signs leases it understood, on worse terms.** 72% of its shortfall
-against the reachable rule comes from leases whose quality it had settled, by inspecting or because
-the landlord's reply proved the listing sound. It then signed on terms worse than the rule's in
-three ways. It chose a listing worth less than the rule's choice even at the landlord's floor (52%
-of this class). It paid rent above the landlord's floor (31%): a landlord accepts any offer at or
-above its floor, so an opening offer near the ask is accepted as made, whereas the rule opens at $0,
-which always draws a counter at the floor. And it inspected more than the rule (17%). It seldom
-signs blind or against what it knows.
+**Housing, Gemini: it drops a known lemon even where the lemon is the better lease.** Worse terms are 80% of
+its shortfall against the reachable rule ($40.7 of $51.1 a world), and nearly all of it is one move. Under the
+landlord kind that prices a lemon off its own lower cost, a lemon's landlord counters about $1,000 below a sound
+listing's floor ($995 to $1,000 in these worlds), so a known lemon signed at that counter is worth what the listing
+would be worth sound at a sound floor: exactly so in 187 of the 200 worlds whose favourite is a lemon, and within $5
+in the rest. The rule inspects the favourite, finds the lemon, offers $0 and signs the counter, in all 200. Gemini
+also inspected the favourite and found the lemon in all 200, but made an offer on it in only 4; in 172 cells it
+leased a sound listing that left it less ($65.0 a world). Under the other landlord kind the rule leases nothing in
+77 worlds, and Gemini's leases there offset $26.5 a world. Gemini reads landlords' replies: of 74 that proved a
+lemon, it walked away from 64 and signed above the lemon's value once. Ending with no lease where the rule leased
+costs another $8.9 (12 of 520 cells).
 
-**Housing (v14), Luna: it signs a lemon that the landlord's reply had identified.** This is 60% of
-its shortfall. Under the leaky landlord kind a lemon costs its landlord $1,000 less, so its floor
-sits about $1,000 below a sound listing's. An offer between the two floors is countered by a sound
-landlord at its floor but accepted by a lemon's landlord, so an acceptance there marks the listing
-a lemon. In Appendix A.1's example an offer of $2,000 against a sound floor of $2,375 is accepted,
-and signing it pays the lemon's value less the rent, −$400. Luna signed such a hold in 56 of its
-520 cells, losing about $800 a cell against the rule. The rule inspects first and signs a lemon only
-at a rent its lemon value covers (+$225 in the example). The v14 brief did not state how landlords
-price, so these signings show that Luna did not act on what the acceptance implied, not that it
-knew what the acceptance implied; v15's brief states the rule (Table 5.2).
+**Housing, Luna: it drops the lemons worth taking and signs ones that cost it.** Its shortfall against the
+reachable rule is $99.9 a world. Worse terms (54%, $54.3) follow Gemini's pattern: in the same 200 worlds Luna found
+the lemon favourite in 197 and made an offer on it in 7, and in 154 cells it leased a sound listing that left it
+less ($57.7 a world). Signing a listing a landlord's reply had proved a lemon is 22% ($22.2, 11 cells): the landlord
+accepted Luna's offer at a rent no sound landlord would take, which by the stated pricing rule proves a lemon, and
+Luna signed at that rent, above the lemon's value. Of 89 such replies it walked away from 58 and signed 20 at or
+below the lemon's value. Another 15% ($14.9, 64 cells) is signing without settling quality under the landlord kind
+whose replies reveal nothing, where an inspection was worth its $25 fee every time; 21 of those listings were
+lemons. Ending with no lease where the rule leased costs $8.6. In v14, whose brief did not state how landlords
+price, the reply-proved lemon was 60% of Luna's shortfall.
 
 **Refund, Gemini 2.5 Flash Lite: the case ends before it decides.** In 81% of its cells it asked
 again for a fact it had already been given; the environment rejects a repeated request and the
@@ -379,7 +383,7 @@ support for a scripted seat that this family uses is still in development.
 | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
 | Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
+| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
 | Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 | Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 | Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |

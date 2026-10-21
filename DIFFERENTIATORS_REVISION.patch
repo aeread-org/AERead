@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 16:57:59
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 17:12:24
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -26,7 +26,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/build.py aeread_working_draft_20261018_v15/build.py
 --- aeread_working_draft_20261018_v14/build.py	2026-10-18 13:44:30
-+++ aeread_working_draft_20261018_v15/build.py	2026-10-20 16:05:40
++++ aeread_working_draft_20261018_v15/build.py	2026-10-20 17:02:25
 @@ -18,7 +18,7 @@
  
  ROOT = Path(__file__).resolve().parent
@@ -182,7 +182,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    PROCUREMENT_KEYS = json.loads((ROOT/'figures/FIGURE_CHECKS.json').read_text())['procurement_table_keys']
      displayed_panels = [
 -        ('housing', ['Gemini 3.8 Flash','GPT-6 Luna'],
-+        ('housing', ['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
++        ('housing', ['Gemini 3.8 Flash','GPT-6 Luna','GLM 5.3 Flash (addendum A)'],
           ['information_not_acquired','contrary_to_information_held','worse_terms',
 -          'commitment_error','interaction_cost','total']),
 -        ('procurement', ['Sol 6.1 (Codex CLI)','Opus 5.5 (Claude Code, brief v2)',
@@ -246,13 +246,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    "png_sha256": "f1fe4263b2402093050fc6db7983ac673170ee793bb17adc167c8f747f178e94"
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json	2026-10-17 21:13:27
-+++ aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json	2026-10-20 16:54:29
-@@ -1,40 +1,83 @@
++++ aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json	2026-10-20 17:12:03
+@@ -1,134 +1,169 @@
  {
    "source": "analysis_evidence/shortfall_panels/panels.json",
 -  "source_sha256": "dd9d769ad4f8071d82cdf2bbdab45a637249153b8f5aee645e4d685971de1786",
 -  "figure": "Figure 5.1",
-+  "source_sha256": "a14778185947e428a97e10891d535db9f0bacf73d75472f2f1adaf82e5a7ba2f",
++  "source_sha256": "42bcbd843bc649e659d3672ea62331d9b04582e4f49719f65d81e46006cdb9c2",
 +  "figure": "Figure 5.2",
    "table": "Table E.10",
 -  "component_sums_checked": 10,
@@ -269,27 +269,27 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
        "case": "housing",
        "subject": "Gemini 3.8 Flash",
 -      "total": 78.91066666666667,
-+      "total": 78.87017307692307,
++      "total": 51.13076923076923,
        "components": [
          {
            "key": "information_not_acquired",
 -          "value": 3.9423958333333338
-+          "value": 3.6391346153846156
++          "value": -0.1623653846153846
          },
          {
            "key": "contrary_to_information_held",
 -          "value": 11.171812499999998
-+          "value": 10.312442307692306
++          "value": 1.94775
          },
          {
            "key": "worse_terms",
 -          "value": 55.112625
-+          "value": 56.435346153846154
++          "value": 40.7185
          },
          {
            "key": "commitment_error",
 -          "value": 8.4755
-+          "value": 8.242865384615385
++          "value": 8.915346153846155
          },
          {
 +          "key": "procedure_and_format",
@@ -298,50 +298,37 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +        {
            "key": "interaction_cost",
 -          "value": 0.20833333333333334
-+          "value": 0.2403846153846154
++          "value": -0.28846153846153844
          }
        ],
-       "axis_limit": 180
+-      "axis_limit": 180
++      "axis_limit": 150
      },
      {
        "case": "housing",
-+      "subject": "GLM 5.3 Flash",
-+      "total": 142.2703269230769,
-+      "components": [
-+        {
-+          "key": "information_not_acquired",
-+          "value": 9.222576923076923
-+        },
-+        {
-+          "key": "contrary_to_information_held",
-+          "value": 73.60886538461538
-+        },
-+        {
-+          "key": "worse_terms",
-+          "value": 42.206346153846155
-+        },
-+        {
-+          "key": "commitment_error",
-+          "value": 12.389057692307693
-+        },
-+        {
-+          "key": "procedure_and_format",
-+          "value": 5.083865384615385
-+        },
-+        {
-+          "key": "interaction_cost",
-+          "value": -0.2403846153846154
-+        }
-+      ],
-+      "axis_limit": 180
-+    },
-+    {
-+      "case": "housing",
        "subject": "GPT-6 Luna",
-       "total": 144.32753846153844,
+-      "total": 144.32753846153844,
++      "total": 99.91561538461539,
        "components": [
-@@ -55,6 +98,10 @@
-           "value": 2.852269230769231
+         {
+           "key": "information_not_acquired",
+-          "value": 10.100692307692308
++          "value": 14.907942307692306
+         },
+         {
+           "key": "contrary_to_information_held",
+-          "value": 86.40713461538462
++          "value": 22.150115384615383
+         },
+         {
+           "key": "worse_terms",
+-          "value": 44.00590384615384
++          "value": 54.33142307692308
+         },
+         {
+           "key": "commitment_error",
+-          "value": 2.852269230769231
++          "value": 8.622288461538462
          },
          {
 +          "key": "procedure_and_format",
@@ -349,25 +336,67 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +        },
 +        {
            "key": "interaction_cost",
-           "value": 0.9615384615384616
+-          "value": 0.9615384615384616
++          "value": -0.09615384615384616
          }
-@@ -63,72 +110,84 @@
+       ],
+-      "axis_limit": 180
++      "axis_limit": 150
+     },
+     {
+-      "case": "procurement",
+-      "subject": "Sol 6.1 (Codex CLI)",
+-      "total": 1.0226034409218936,
++      "case": "housing",
++      "subject": "GLM 5.3 Flash (addendum A)",
++      "total": 127.31726923076923,
+       "components": [
+         {
+           "key": "information_not_acquired",
+-          "value": 0.0
++          "value": 18.900384615384613
+         },
+         {
+           "key": "contrary_to_information_held",
+-          "value": 1.0226034409218936
++          "value": 49.60326923076923
+         },
+         {
+           "key": "worse_terms",
+-          "value": 0.0
++          "value": 40.11642307692308
++        },
++        {
++          "key": "commitment_error",
++          "value": 7.1895
++        },
++        {
++          "key": "procedure_and_format",
++          "value": 11.748076923076923
++        },
++        {
++          "key": "interaction_cost",
++          "value": -0.2403846153846154
+         }
+       ],
+-      "axis_limit": 90
++      "axis_limit": 150
      },
      {
        "case": "procurement",
--      "subject": "Sol 6.1 (Codex CLI)",
--      "total": 1.0226034409218936,
+-      "subject": "Opus 5.5 (Claude Code, brief v2)",
+-      "total": 5.38899537443335,
 +      "subject": "Sol 6.1 (Codex)",
 +      "total": 32.5143625889,
        "components": [
          {
            "key": "information_not_acquired",
--          "value": 0.0
+-          "value": 2.6243060440333346
 +          "value": 17.47416169825
          },
          {
            "key": "contrary_to_information_held",
--          "value": 1.0226034409218936
+-          "value": 2.764689330400015
 +          "value": 13.937006258
          },
          {
@@ -384,44 +413,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      },
      {
        "case": "procurement",
--      "subject": "Opus 5.5 (Claude Code, brief v2)",
--      "total": 5.38899537443335,
+-      "subject": "GPT-6 Luna",
+-      "total": 74.37530025107752,
 +      "subject": "Opus 5.5 (Claude Code)",
 +      "total": 51.245789277250005,
        "components": [
          {
            "key": "information_not_acquired",
--          "value": 2.6243060440333346
-+          "value": 51.01079169875
-         },
-         {
-           "key": "contrary_to_information_held",
--          "value": 2.764689330400015
-+          "value": 0.0
-         },
-         {
-           "key": "worse_terms",
-           "value": 0.0
-+        },
-+        {
-+          "key": "interaction_cost",
-+          "value": 0.23499757849999997
-         }
-       ],
--      "axis_limit": 90
-+      "axis_limit": 66
-     },
-     {
-       "case": "procurement",
--      "subject": "GPT-6 Luna",
--      "total": 74.37530025107752,
-+      "subject": "Gemini 3.8 Flash",
-+      "total": 51.245789277250005,
-       "components": [
-         {
-           "key": "information_not_acquired",
 -          "value": 71.83759388387669
-+          "value": 49.35045707045
++          "value": 51.01079169875
          },
          {
            "key": "contrary_to_information_held",
@@ -435,7 +435,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +        },
 +        {
 +          "key": "interaction_cost",
-+          "value": 1.89533220685
++          "value": 0.23499757849999997
          }
        ],
 -      "axis_limit": 90
@@ -443,34 +443,55 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      },
      {
        "case": "procurement",
--      "subject": "Gemini 3.8 Flash",
+       "subject": "Gemini 3.8 Flash",
 -      "total": 75.19089995211503,
-+      "subject": "GPT-6 Luna",
-+      "total": 58.09782677725,
++      "total": 51.245789277250005,
        "components": [
          {
            "key": "information_not_acquired",
 -          "value": 75.19089995211503
-+          "value": 55.4158043458
++          "value": 49.35045707045
          },
          {
            "key": "contrary_to_information_held",
-@@ -136,58 +195,62 @@
-         },
+@@ -137,57 +172,85 @@
          {
            "key": "worse_terms",
--          "value": 0.0
-+          "value": 0.5188312500000001
+           "value": 0.0
 +        },
 +        {
 +          "key": "interaction_cost",
-+          "value": 2.1631911814500002
++          "value": 1.89533220685
          }
        ],
 -      "axis_limit": 90
 +      "axis_limit": 66
      },
      {
++      "case": "procurement",
++      "subject": "GPT-6 Luna",
++      "total": 58.09782677725,
++      "components": [
++        {
++          "key": "information_not_acquired",
++          "value": 55.4158043458
++        },
++        {
++          "key": "contrary_to_information_held",
++          "value": 0.0
++        },
++        {
++          "key": "worse_terms",
++          "value": 0.5188312500000001
++        },
++        {
++          "key": "interaction_cost",
++          "value": 2.1631911814500002
++        }
++      ],
++      "axis_limit": 66
++    },
++    {
        "case": "datacenter",
        "subject": "Opus 5.5",
 -      "total": 70.83393583333333,
@@ -541,8 +562,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    "uncertainty": "Point estimates; descriptive intervals in Table E.9",
 -  "svg_sha256": "2476cb155f4599ab7e8b1823036c828789f3649786690421e060bb1390897c9f",
 -  "png_sha256": "09f339598a6a6842d4906a66b54d96d566142567255d3553a1dcaa191dd3fc46"
-+  "svg_sha256": "72a0f333709411846b843264086fffa98a3372ab5c198d2be680014ae5239f37",
-+  "png_sha256": "eb1fadb06cf6ab7a17c1284f4bd009b1835b61cc4d22deb68b3a7ed91d2ddb88"
++  "svg_sha256": "830bddcad4d6bcf9b1b64252524309e4844e8c0807309222c15da2206b6e7ee4",
++  "png_sha256": "53359e6fe8981618056f15e94069e381249de3d4733932919b35466fbc2a51b7"
  }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/LEVELS_FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/LEVELS_FIGURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/LEVELS_FIGURE_CHECKS.json	1969-12-31 16:00:00
@@ -1107,24 +1128,27 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    main()
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/plot_shortfalls.py aeread_working_draft_20261018_v15/figures/plot_shortfalls.py
 --- aeread_working_draft_20261018_v14/figures/plot_shortfalls.py	2026-10-17 21:13:26
-+++ aeread_working_draft_20261018_v15/figures/plot_shortfalls.py	2026-10-20 16:54:19
++++ aeread_working_draft_20261018_v15/figures/plot_shortfalls.py	2026-10-20 17:02:25
 @@ -1,4 +1,4 @@
 -"""Plot the checked Table E.10 accounting as Figure 5.1, with native units.
 +"""Plot the checked Table E.10 accounting as Figure 5.2, with native units.
  
  Run from the draft directory: uv run --with matplotlib python figures/plot_shortfalls.py
  Point estimates only; descriptive intervals remain in Table E.9.
-@@ -34,28 +34,29 @@
+@@ -33,29 +33,30 @@
+ COST = '#D5A23A'
  PROCEDURE = '#7B899B'
  PANELS = [
-     dict(case='housing', title='(a) Housing', subtitle='Corrected v14 · reachable scripted reference',
+-    dict(case='housing', title='(a) Housing', subtitle='Corrected v14 · reachable scripted reference',
 -         names=['Gemini 3.8 Flash','GPT-6 Luna'],
 -         labels=['Gemini 3.8\nFlash','GPT-6 Luna'],
 -         sample='240 / 260 complete worlds', unit='Shortfall ($ / world)',
-+         names=['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
-+         labels=['Gemini 3.8\nFlash','GLM 5.3\nFlash','GPT-6 Luna'],
-+         sample='260 complete worlds each', unit='Shortfall ($ / world)', legend_columns=3, legend_spacing=.6,
-          limit=180, ticks=[0,50,100,150],
+-         limit=180, ticks=[0,50,100,150],
++    dict(case='housing', title='(a) Housing', subtitle='Declared v15 · reachable scripted reference',
++         names=['Gemini 3.8 Flash','GPT-6 Luna','GLM 5.3 Flash (addendum A)'],
++         labels=['Gemini 3.8\nFlash','GPT-6 Luna','GLM 5.3 Flash\n(addendum)'],
++         sample='260 main worlds each; two landlord arms averaged', unit='Shortfall ($ / world)', legend_columns=3, legend_spacing=.6,
++         limit=150, ticks=[0,50,100,150],
           parts=[('information_not_acquired','Info not acquired',INFO,''),
                  ('contrary_to_information_held','Contrary to info',CONTRARY,''),
                  ('worse_terms','Worse terms',TERMS,''),
@@ -1801,7 +1825,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 16:57:20
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 17:04:26
 @@ -42,14 +42,28 @@
  (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
  each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
@@ -2041,7 +2065,24 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### E.5 Failure classes: rules and full tables
  
  **Table E.4. The shared classes.**
-@@ -226,7 +358,7 @@
+@@ -215,18 +347,21 @@
+ The priority order makes the decomposition an accounting identity, not a causal attribution.
+ 
+ **Rules per case.** *Housing:* the unit is the cell (one world, one landlord kind), the shortfall is
+-the reachable reference's net minus the tenant's at the corrected reply-conditioned measure (the original measure is retained in Table E.5), and the rules apply in
++the reachable reference's net minus the tenant's at v15's primary measure (the reply-conditioned measure), and the rules apply in
+ the order procedure, contrary to information held, not acquired, commitment, worse terms,
+ interaction cost. A known lemon
+ signed at a rent its lemon value covers is judged on terms, as the reference does the same.
+-Revealed-lemon signings count as contrary to information held although the v14 prompt did not
+-state how landlords price; moving that class to not acquired instead would move $73.6 per world for GLM, without changing its total. *Procurement:*
++Revealed-lemon signings count as contrary to information held; v15's brief states how landlords
++price, so the acceptance that reveals a lemon follows from a stated rule. The rules are v14's
++(`housing_v15.py`, 5522d543); each reads seat 0's decisions from v15's seat-0 receipts, the reference is
++`inspect_lowball` scored as v15's scorer scores it, and every cell's gap reproduces the published
++v15 analysis. v14's classes (Gemini 78.9, GLM 142.3, Luna 144.3 $ a world) stay in the source package. *Procurement:*
+ the unit is the action, and each action's loss against the best policy (which sums to the decision
+ loss) goes to a class by what the action did; a request to the recorded supplier counts as not
  acquired only when the episode never tests a newcomer, and as contrary to information held
  otherwise. *Data center:* the
  unit is each part of a negotiation's grade: no deal is a commitment error (labelled by the side that
@@ -2050,35 +2091,37 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  (deciding before a required fact to not acquired, a wrong decision to contrary to information held, re-asked or unknown
  facts and the null-method format to procedure).
  
-@@ -240,19 +372,19 @@
+@@ -240,19 +375,19 @@
  scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
  adaptation would require new model runs under declared fee settings.
  
 -**Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed).**
-+**Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
++**Table E.5. Housing and Procurement, every subject ($ per world; Housing v15 on the 260 main worlds of Table 5.2, GLM from its declared addendum; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
  
- | Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
+-| Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
++| Class | Housing Gemini | Housing Luna | Housing GLM (addendum) | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
  |---|---:|---:|---:|---:|---:|---:|---:|
 -| Information not acquired | 3.9 (6.6) | 9.2 (28.1) | 10.1 (32.4) | 0 | 2.6 | 75.2 | 71.8 |
 -| Acted contrary to information held | 11.2 | 73.6 | 86.4 | 1.0 | 2.8 | 0 | 1.9 |
 -| Worse terms | 55.1 (54.6) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.7 |
 -| Commitment error | 8.5 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
 -| Interaction cost | 0.2 | −0.2 | 1.0 | 0 | 0 | 0 | 0 |
-+| Information not acquired | 3.6 (6.1) | 9.2 (28.1) | 10.1 (32.4) | 17.5 | 51.0 | 49.4 | 55.4 |
-+| Acted contrary to information held | 10.3 | 73.6 | 86.4 | 13.9 | 0 | 0 | 0 |
-+| Worse terms | 56.4 (55.9) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.5 |
-+| Commitment error | 8.2 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
-+| Interaction cost | 0.2 | −0.2 | 1.0 | 1.1 | 0.2 | 1.9 | 2.2 |
- | Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
+-| Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
 -| Total | 78.9 (81.0) | 142.3 (155.1) | 144.3 (161.6) | 1.0 | 5.4 | 75.2 | 74.4 |
-+| Total | 78.9 (80.8) | 142.3 (155.1) | 144.3 (161.6) | 32.5 | 51.2 | 51.2 | 58.1 |
++| Information not acquired | −0.2 | 14.9 | 18.9 | 17.5 | 51.0 | 49.4 | 55.4 |
++| Acted contrary to information held | 1.9 | 22.2 | 49.6 | 13.9 | 0 | 0 | 0 |
++| Worse terms | 40.7 | 54.3 | 40.1 | 0 | 0 | 0 | 0.5 |
++| Commitment error | 8.9 | 8.6 | 7.2 | 0 | 0 | 0 | 0 |
++| Interaction cost | −0.3 | −0.1 | −0.2 | 1.1 | 0.2 | 1.9 | 2.2 |
++| Procedure and format | 0 | 0 | 11.7 | 0 | 0 | 0 | 0 |
++| Total | 51.1 | 99.9 | 127.3 | 32.5 | 51.2 | 51.2 | 58.1 |
  
 -Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: Gemini has 240 complete worlds, GLM and Luna 260 each. Gemini's 30 missing main-pack cells remove 20 worlds, including 10 completed cells whose paired arm is missing. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
-+Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: every subject has 260 complete worlds. Gemini's 36 refused cells, 30 of them in the main pack, where they would have removed 20 worlds, come from the declared fill. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
++Housing's totals reproduce the published v15 differences from `inspect_lowball` (51.13 and 99.92 $ a world; GLM's addendum row R3, 127.32), and every one of the 520 main cells per subject completed, so no world is excluded. Main-world means average both landlord arms within a world. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
  
  **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
  
-@@ -273,7 +405,7 @@
+@@ -273,7 +408,7 @@
  
  ### E.6 Two frontier agents across three cases
  
@@ -2087,7 +2130,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
  |---|---|---:|---:|---:|---|
-@@ -286,34 +418,36 @@
+@@ -286,34 +421,37 @@
  
  ### E.7 Current shortfall panels: scope and uncertainty
  
@@ -2130,12 +2173,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
  |---|---:|---|---|---|
 -| Housing: Gemini 3.8 Flash | 240 | 78.9 [63.3, 94.6] | 48.5 [0.0, 155.2] | 34 / 44 |
-+| Housing: Gemini 3.8 Flash | 260 | 78.9 [63.7, 94.0] | 50.5 [0.0, 155.1] | 34 / 48 |
- | Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
+-| Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
 -| Procurement: Opus 5.5 | 24 | 5.4 [0.2, 10.6] | 0.0 [0.0, 1.1] | 16 / 0 |
 -| Procurement: Gemini 3.8 Flash | 24 | 75.2 [46.9, 103.5] | 81.8 [0.0, 127.4] | 8 / 0 |
 -| Data center: Opus 5.5 | 60 | 70.8 [55.3, 86.4] | 53.0 [36.6, 95.1] | 0 / 0 |
 -| Data center: Sol 6.1 | 60 | 103.4 [84.2, 122.6] | 87.5 [61.2, 129.4] | 5 / 0 |
++| Housing: Gemini 3.8 Flash | 260 | 51.1 [38.3, 63.9] | 29.9 [0.0, 98.3] | 60 / 45 |
++| Housing: GPT-6 Luna | 260 | 99.9 [83.8, 116.0] | 72.1 [0.0, 167.6] | 46 / 32 |
++| Housing: GLM 5.3 Flash (addendum) | 260 | 127.3 [105.2, 149.4] | 79.9 [0.0, 212.8] | 36 / 39 |
 +| Procurement: Sol 6.1 | 20 | 32.5 [23.8, 41.3] | 33.3 [21.5, 48.7] | 0 / 0 |
 +| Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
 +| Data center: Opus 5.5 | 80 | 83.6 [68.8, 98.4] | 57.2 [27.8, 137.3] | 0 / 0 |
@@ -2143,7 +2188,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
  | Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
  
-@@ -329,54 +463,56 @@
+@@ -329,54 +467,56 @@
  component-level intervals, distributions, per-world amounts and input digests in
  `analysis_evidence/shortfall_panels/panels.json`, with a provider-free reproduction script.
  
@@ -2154,11 +2199,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  classification rules; the figure adds no new analysis or cross-case aggregate.
  
 -**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses the confirmatory pack. Procurement and Refund retain their development panels.**
-+**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
++**Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
  
  **(a) Housing**
  
- $ per main world below the reachable scripted reference; corrected v14.
+-$ per main world below the reachable scripted reference; corrected v14.
++$ per main world below the reachable scripted reference (`inspect_lowball`); v15, measure v2.
  
 -| Component | Gemini 3.8 Flash | GPT-6 Luna |
 -|---|---:|---:|
@@ -2168,18 +2214,18 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -| Lease commitment error | 8.5 | 2.9 |
 -| Inspection cost | 0.2 | 1.0 |
 -| **Total shortfall** | **78.9** | **144.3** |
-+| Component | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
++| Component | Gemini 3.8 Flash | GPT-6 Luna | GLM 5.3 Flash (addendum A) |
 +|---|---:|---:|---:|
-+| Information not acquired | 3.6 | 9.2 | 10.1 |
-+| Contrary to held information | 10.3 | 73.6 | 86.4 |
-+| Worse lease terms | 56.4 | 42.2 | 44.0 |
-+| Lease commitment error | 8.2 | 12.4 | 2.9 |
-+| Procedure or format | 0.0 | 5.1 | 0.0 |
-+| Inspection cost | 0.2 | −0.2 | 1.0 |
-+| **Total shortfall** | **78.9** | **142.3** | **144.3** |
++| Information not acquired | −0.2 | 14.9 | 18.9 |
++| Contrary to held information | 1.9 | 22.2 | 49.6 |
++| Worse lease terms | 40.7 | 54.3 | 40.1 |
++| Lease commitment error | 8.9 | 8.6 | 7.2 |
++| Procedure or format | 0.0 | 0.0 | 11.7 |
++| Inspection cost | −0.3 | −0.1 | −0.2 |
++| **Total shortfall** | **51.1** | **99.9** | **127.3** |
  
 -Two landlord arms averaged within each complete world: 240 worlds for Gemini, 260 for Luna.
-+Two landlord arms averaged within each complete world: 260 worlds for each; Gemini's refused cells come from the declared fill. GLM's procedure losses are offers on listings already taken and one malformed commit; its inspection cost is negative because it spent $0.2 a world less on inspection than the reference.
++Two landlord arms averaged within each of the 260 main worlds; no cell is missing. GLM played in a declared addendum outside v15's contrasts. Its procedure losses are actions the environment refused, chiefly malformed commits ($5.7 a world, 14 cells) and offers on listings already taken ($2.1, 5 cells). Negative amounts mean the subject did better than the reference in that class and are not drawn in Figure 5.2.
  
  **(b) Procurement**
  
@@ -2225,7 +2271,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **(d) Refund**
  
-@@ -391,21 +527,23 @@
+@@ -391,21 +531,23 @@
  120 cells per model, averaged within each of six fixed cases and then across cases.
  
  Rows that are zero for every displayed subject are omitted; rounded components may not add to
@@ -2257,7 +2303,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  "Deal-feasible" describes those worlds, including negotiations that ended without agreement;
  it does not select only signed contracts. Means first average both focal seats within a world,
  then worlds. The independent unit is the world, not each correlated seat observation.
-@@ -427,7 +565,7 @@
+@@ -427,7 +569,7 @@
  per redline. This threshold describes the recorded actions, not an optimal fee or how either
  agent would respond to a changed fee.
  
@@ -2266,7 +2312,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Fee per redline | Sol joint loss | Opus joint loss |
  |---|---:|---:|
-@@ -468,13 +606,31 @@
+@@ -468,13 +610,31 @@
  The QC standard defines six gates and the rule that a changed bound input reopens them; a repository
  test rejects a registered family without a profile. Each of the four current designs
  now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
@@ -2302,7 +2348,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  identity, and Procurement's corrected schema ran under new identities.
  
  **Table F.1. Benchmark QC gates.**
-@@ -524,7 +680,7 @@
+@@ -524,7 +684,7 @@
    Procurement's original report read an unsealed action list through an unpinned reference.
    The 16 October reanalysis audits all 144 receipts (96 final-brief and 48 earlier-brief), reads
    parsed actions from their sealed logs, and pins the extraction, reference, report and case inputs.
@@ -2311,7 +2357,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    derivation; decision loss has not been inserted into the original receipts. The Housing
    receipts also name the model for the five tenant seats a script played; the true seat map is in
    an unsealed log.
-@@ -534,9 +690,11 @@
+@@ -534,9 +694,11 @@
    cell (χ² p 0.46; the same test rejects the development packs' pattern). Tests play every
    shortcut through the environment for every type pair and confirm the loss admission assigned,
    and the oracle pair loses nothing in all 60 worlds. A separate 12-world pilot and the
@@ -2326,7 +2372,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
    Procurement and Refund; the agreement case has no such test.
  - **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
-@@ -560,11 +718,11 @@
+@@ -560,11 +722,11 @@
  ### F.4 Adversarial checks applied
  
  - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
@@ -2341,7 +2387,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    is the finding that fails Gates 1 and 3. A v2 pack built after the runs adds one mechanism: new
    listings of one seller kind share a source with a stated chance, so a cheap test of one listing
    tells the buyer about another. Admitted on what a buyer sees, with types drawn afterwards, its 24
-@@ -575,7 +733,9 @@
+@@ -575,7 +737,9 @@
    Its separate 12-world gate/pilot used 50 cells ($0.2193). Gemini never tested a newcomer
    and matched the premium rule; Luna touched one in 1 of 24 pilot plays, and neither model
    reached the planned probe. Required sizes were 326, 3,464 and 2,047 worlds, beyond the
@@ -2352,7 +2398,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Brief audits** found instructions that decided outcomes in Procurement
    and a schema that contradicts its verifier in Refund.
  - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
-@@ -600,13 +760,14 @@
+@@ -600,13 +764,14 @@
  plays as independent made intervals 1.47 to 1.65 times too narrow, and more worlds beat more
  repeats: a $50k gap needs 83 to 91 negotiations an arm at one play a world against 159 to 162 at
  three. Counterparts are named and reported per type: in the agreement case the counterpart
@@ -2370,7 +2416,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  (`aeread.design.sizing`), frozen plans, paired world-level intervals and Holm
  correction were applied. Eight departures are documented: CLI versions; an added wall-time stop;
  run-plan labels; the pack-module change for pilot generation; the permitted sizing-code copy;
-@@ -694,7 +855,7 @@
+@@ -694,7 +859,7 @@
  | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, initially by tests added after development; the admitted agreement pack also had a pre-confirmatory dry run (Appendix F.2) |
  | T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
  | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
@@ -2379,7 +2425,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures |
  | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
  | R.2 Open evaluation harness | met | the shared runner is in the public repository |
-@@ -720,8 +881,9 @@
+@@ -720,8 +885,9 @@
    repository.
  - **Evidence.** Sealed, digest-bound bundles under `evidence/`: the Housing v14 confirmatory and
    its declared fill, the data-center agreement bundles, and the Refund V2.1 bundles with their gap
@@ -2391,7 +2437,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Quality control.** Each family's QC profile and incident log, kept with its code; the
    reference-run tests named in §6.
  - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map
-@@ -738,7 +900,7 @@
+@@ -738,7 +904,7 @@
  The Housing analysis re-extracts its committed trajectory table from the sealed run roots and
  regenerates both measures exactly. Procurement's `pay_or_test_reanalysis` checks all 144 original
  receipts, then reconstructs decision loss from their sealed parsed actions; its public projection
@@ -2402,7 +2448,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 16:56:47
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 17:11:40
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -2433,7 +2479,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,138 +30,276 @@
+@@ -29,138 +30,280 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -2726,8 +2772,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 +**Figure 5.2. Shortfall to each case's reference.** Segments account for observed actions;
 +labels give mean totals (lower is better within a panel). Units and scales differ. Housing shows
-+v14's three models on 260 worlds (v15 is in Table 5.2); GLM's inspection cost of −0.2 a world is in Table E.10
-+and is not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
++v15's two declared models and GLM's addendum on the 260 main worlds of Table 5.2, below the reachable scripted
++rule (`inspect_lowball`, as in Table 5.2's fourth row); the few negative amounts, at most
++$0.3 a world, are in Table E.10 and are not drawn. Procurement shows all four subjects on the 20 declared worlds of Table 5.3; full subject tables are in Appendix E.5. Data center reports v2's joint loss
 +against the full-information bound with the firm counterparts at $25k per paid redline, across all 80 worlds of
 +Table 5.4 with both seats averaged. In Procurement, $6.33 a world of Luna's information-not-acquired segment is the
 +worse-quantity part of awards made before a worthwhile test; the declared rules file such an award's whole loss
@@ -2759,25 +2806,28 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -Sol's earnings lead rises from $26.4k to $54.8k and reverses near $48.3k per redline. Across
 -all 60 worlds, however, removing fees reverses the joint-loss ranking: Sol loses $31.1k versus
 -Opus's $42.3k. Fee robustness therefore depends on the measure and the worlds included.
-+**Housing (v14), Gemini: it signs leases it understood, on worse terms.** 72% of its shortfall
-+against the reachable rule comes from leases whose quality it had settled, by inspecting or because
-+the landlord's reply proved the listing sound. It then signed on terms worse than the rule's in
-+three ways. It chose a listing worth less than the rule's choice even at the landlord's floor (52%
-+of this class). It paid rent above the landlord's floor (31%): a landlord accepts any offer at or
-+above its floor, so an opening offer near the ask is accepted as made, whereas the rule opens at $0,
-+which always draws a counter at the floor. And it inspected more than the rule (17%). It seldom
-+signs blind or against what it knows.
++**Housing, Gemini: it drops a known lemon even where the lemon is the better lease.** Worse terms are 80% of
++its shortfall against the reachable rule ($40.7 of $51.1 a world), and nearly all of it is one move. Under the
++landlord kind that prices a lemon off its own lower cost, a lemon's landlord counters about $1,000 below a sound
++listing's floor ($995 to $1,000 in these worlds), so a known lemon signed at that counter is worth what the listing
++would be worth sound at a sound floor: exactly so in 187 of the 200 worlds whose favourite is a lemon, and within $5
++in the rest. The rule inspects the favourite, finds the lemon, offers $0 and signs the counter, in all 200. Gemini
++also inspected the favourite and found the lemon in all 200, but made an offer on it in only 4; in 172 cells it
++leased a sound listing that left it less ($65.0 a world). Under the other landlord kind the rule leases nothing in
++77 worlds, and Gemini's leases there offset $26.5 a world. Gemini reads landlords' replies: of 74 that proved a
++lemon, it walked away from 64 and signed above the lemon's value once. Ending with no lease where the rule leased
++costs another $8.9 (12 of 520 cells).
  
-+**Housing (v14), Luna: it signs a lemon that the landlord's reply had identified.** This is 60% of
-+its shortfall. Under the leaky landlord kind a lemon costs its landlord $1,000 less, so its floor
-+sits about $1,000 below a sound listing's. An offer between the two floors is countered by a sound
-+landlord at its floor but accepted by a lemon's landlord, so an acceptance there marks the listing
-+a lemon. In Appendix A.1's example an offer of $2,000 against a sound floor of $2,375 is accepted,
-+and signing it pays the lemon's value less the rent, −$400. Luna signed such a hold in 56 of its
-+520 cells, losing about $800 a cell against the rule. The rule inspects first and signs a lemon only
-+at a rent its lemon value covers (+$225 in the example). The v14 brief did not state how landlords
-+price, so these signings show that Luna did not act on what the acceptance implied, not that it
-+knew what the acceptance implied; v15's brief states the rule (Table 5.2).
++**Housing, Luna: it drops the lemons worth taking and signs ones that cost it.** Its shortfall against the
++reachable rule is $99.9 a world. Worse terms (54%, $54.3) follow Gemini's pattern: in the same 200 worlds Luna found
++the lemon favourite in 197 and made an offer on it in 7, and in 154 cells it leased a sound listing that left it
++less ($57.7 a world). Signing a listing a landlord's reply had proved a lemon is 22% ($22.2, 11 cells): the landlord
++accepted Luna's offer at a rent no sound landlord would take, which by the stated pricing rule proves a lemon, and
++Luna signed at that rent, above the lemon's value. Of 89 such replies it walked away from 58 and signed 20 at or
++below the lemon's value. Another 15% ($14.9, 64 cells) is signing without settling quality under the landlord kind
++whose replies reveal nothing, where an inspection was worth its $25 fee every time; 21 of those listings were
++lemons. Ending with no lease where the rule leased costs $8.6. In v14, whose brief did not state how landlords
++price, the reply-proved lemon was 60% of Luna's shortfall.
 +
 +**Refund, Gemini 2.5 Flash Lite: the case ends before it decides.** In 81% of its cells it asked
 +again for a fact it had already been given; the environment rejects a repeated request and the
@@ -2805,7 +2855,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
  case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
  names the counterparts it covers. What the brief states moves the score as much as the subject
-@@ -168,34 +307,88 @@
+@@ -168,34 +311,88 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -2893,7 +2943,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -| Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 -| Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
 +| Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
-+| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing's corrected cell changes, Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
++| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch, built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
 +| Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 +| Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 +| Housing scripted controls (Table E.13, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |

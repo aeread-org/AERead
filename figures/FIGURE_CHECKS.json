@@ -1,6 +1,6 @@
 {
   "source": "analysis_evidence/shortfall_panels/panels.json",
-  "source_sha256": "a14778185947e428a97e10891d535db9f0bacf73d75472f2f1adaf82e5a7ba2f",
+  "source_sha256": "42bcbd843bc649e659d3672ea62331d9b04582e4f49719f65d81e46006cdb9c2",
   "figure": "Figure 5.2",
   "table": "Table E.10",
   "procurement_table_keys": [
@@ -15,23 +15,23 @@
     {
       "case": "housing",
       "subject": "Gemini 3.8 Flash",
-      "total": 78.87017307692307,
+      "total": 51.13076923076923,
       "components": [
         {
           "key": "information_not_acquired",
-          "value": 3.6391346153846156
+          "value": -0.1623653846153846
         },
         {
           "key": "contrary_to_information_held",
-          "value": 10.312442307692306
+          "value": 1.94775
         },
         {
           "key": "worse_terms",
-          "value": 56.435346153846154
+          "value": 40.7185
         },
         {
           "key": "commitment_error",
-          "value": 8.242865384615385
+          "value": 8.915346153846155
         },
         {
           "key": "procedure_and_format",
@@ -39,74 +39,74 @@
         },
         {
           "key": "interaction_cost",
-          "value": 0.2403846153846154
+          "value": -0.28846153846153844
         }
       ],
-      "axis_limit": 180
+      "axis_limit": 150
     },
     {
       "case": "housing",
-      "subject": "GLM 5.3 Flash",
-      "total": 142.2703269230769,
+      "subject": "GPT-6 Luna",
+      "total": 99.91561538461539,
       "components": [
         {
           "key": "information_not_acquired",
-          "value": 9.222576923076923
+          "value": 14.907942307692306
         },
         {
           "key": "contrary_to_information_held",
-          "value": 73.60886538461538
+          "value": 22.150115384615383
         },
         {
           "key": "worse_terms",
-          "value": 42.206346153846155
+          "value": 54.33142307692308
         },
         {
           "key": "commitment_error",
-          "value": 12.389057692307693
+          "value": 8.622288461538462
         },
         {
           "key": "procedure_and_format",
-          "value": 5.083865384615385
+          "value": 0.0
+        },
+        {
+          "key": "interaction_cost",
+          "value": -0.09615384615384616
+        }
+      ],
+      "axis_limit": 150
+    },
+    {
+      "case": "housing",
+      "subject": "GLM 5.3 Flash (addendum A)",
+      "total": 127.31726923076923,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 18.900384615384613
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 49.60326923076923
+        },
+        {
+          "key": "worse_terms",
+          "value": 40.11642307692308
+        },
+        {
+          "key": "commitment_error",
+          "value": 7.1895
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 11.748076923076923
         },
         {
           "key": "interaction_cost",
           "value": -0.2403846153846154
         }
       ],
-      "axis_limit": 180
-    },
-    {
-      "case": "housing",
-      "subject": "GPT-6 Luna",
-      "total": 144.32753846153844,
-      "components": [
-        {
-          "key": "information_not_acquired",
-          "value": 10.100692307692308
-        },
-        {
-          "key": "contrary_to_information_held",
-          "value": 86.40713461538462
-        },
-        {
-          "key": "worse_terms",
-          "value": 44.00590384615384
-        },
-        {
-          "key": "commitment_error",
-          "value": 2.852269230769231
-        },
-        {
-          "key": "procedure_and_format",
-          "value": 0.0
-        },
-        {
-          "key": "interaction_cost",
-          "value": 0.9615384615384616
-        }
-      ],
-      "axis_limit": 180
+      "axis_limit": 150
     },
     {
       "case": "procurement",
@@ -287,6 +287,6 @@
   ],
   "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (GLM 5.3 Flash Housing inspection cost, -0.2); positive components stack from zero",
   "uncertainty": "Point estimates; descriptive intervals in Table E.9",
-  "svg_sha256": "72a0f333709411846b843264086fffa98a3372ab5c198d2be680014ae5239f37",
-  "png_sha256": "eb1fadb06cf6ab7a17c1284f4bd009b1835b61cc4d22deb68b3a7ed91d2ddb88"
+  "svg_sha256": "830bddcad4d6bcf9b1b64252524309e4844e8c0807309222c15da2206b6e7ee4",
+  "png_sha256": "53359e6fe8981618056f15e94069e381249de3d4733932919b35466fbc2a51b7"
 }

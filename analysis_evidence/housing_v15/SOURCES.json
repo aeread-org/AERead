@@ -1,0 +1,13 @@
+{
+ "branch": "codex/housing-v15-offline",
+ "commit": "df81e28c",
+ "files": {
+  "v15_analysis.json": "evidence/housing/housing_lemons_price_v15_analysis/reports/analysis.json",
+  "glm_addendum_analysis.json": "evidence/housing/housing_lemons_price_v15_glm_addendum/reports/analysis.json"
+ },
+ "sha256": {
+  "glm_addendum_analysis.json": "4587f8fda6c2c8eff95a006fba07cc89fdcd4d029ccd3c4416507a4951738707",
+  "v15_analysis.json": "f9b4b6e8b3bce72aba38a2c35a80b9973795dd482ccba8fbeb462e385c5b9e63"
+ },
+ "taxonomy": "tools/paper/failure_taxonomy/housing_v15.py and housing_v15_taxonomy.json on docs/paper-case-studies-qc at 5522d543, copied to ../shortfall_panels/"
+}

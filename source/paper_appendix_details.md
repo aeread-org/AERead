@@ -347,12 +347,15 @@ pairing, and Appendix E.9 its replay at other fees.
 The priority order makes the decomposition an accounting identity, not a causal attribution.
 
 **Rules per case.** *Housing:* the unit is the cell (one world, one landlord kind), the shortfall is
-the reachable reference's net minus the tenant's at the corrected reply-conditioned measure (the original measure is retained in Table E.5), and the rules apply in
+the reachable reference's net minus the tenant's at v15's primary measure (the reply-conditioned measure), and the rules apply in
 the order procedure, contrary to information held, not acquired, commitment, worse terms,
 interaction cost. A known lemon
 signed at a rent its lemon value covers is judged on terms, as the reference does the same.
-Revealed-lemon signings count as contrary to information held although the v14 prompt did not
-state how landlords price; moving that class to not acquired instead would move $73.6 per world for GLM, without changing its total. *Procurement:*
+Revealed-lemon signings count as contrary to information held; v15's brief states how landlords
+price, so the acceptance that reveals a lemon follows from a stated rule. The rules are v14's
+(`housing_v15.py`, 5522d543); each reads seat 0's decisions from v15's seat-0 receipts, the reference is
+`inspect_lowball` scored as v15's scorer scores it, and every cell's gap reproduces the published
+v15 analysis. v14's classes (Gemini 78.9, GLM 142.3, Luna 144.3 $ a world) stay in the source package. *Procurement:*
 the unit is the action, and each action's loss against the best policy (which sums to the decision
 loss) goes to a class by what the action did; a request to the recorded supplier counts as not
 acquired only when the episode never tests a newcomer, and as contrary to information held
@@ -372,19 +375,19 @@ not establish robustness to the chosen $25k fee per additional redline. Appendix
 scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
 adaptation would require new model runs under declared fee settings.
 
-**Table E.5. Housing and Procurement, every subject ($ per world; Housing corrected, with original values in brackets where changed; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
+**Table E.5. Housing and Procurement, every subject ($ per world; Housing v15 on the 260 main worlds of Table 5.2, GLM from its declared addendum; Procurement on the 20 declared worlds of Table 5.3, each world the mean of its two plays).**
 
-| Class | Housing Gemini | Housing GLM | Housing Luna | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
+| Class | Housing Gemini | Housing Luna | Housing GLM (addendum) | Proc. Sol | Proc. Opus | Proc. Gemini | Proc. Luna |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Information not acquired | 3.6 (6.1) | 9.2 (28.1) | 10.1 (32.4) | 17.5 | 51.0 | 49.4 | 55.4 |
-| Acted contrary to information held | 10.3 | 73.6 | 86.4 | 13.9 | 0 | 0 | 0 |
-| Worse terms | 56.4 (55.9) | 42.2 (36.1) | 44.0 (39.1) | 0 | 0 | 0 | 0.5 |
-| Commitment error | 8.2 | 12.4 | 2.9 | 0 | 0 | 0 | 0 |
-| Interaction cost | 0.2 | −0.2 | 1.0 | 1.1 | 0.2 | 1.9 | 2.2 |
-| Procedure and format | 0 | 5.1 | 0 | 0 | 0 | 0 | 0 |
-| Total | 78.9 (80.8) | 142.3 (155.1) | 144.3 (161.6) | 32.5 | 51.2 | 51.2 | 58.1 |
+| Information not acquired | −0.2 | 14.9 | 18.9 | 17.5 | 51.0 | 49.4 | 55.4 |
+| Acted contrary to information held | 1.9 | 22.2 | 49.6 | 13.9 | 0 | 0 | 0 |
+| Worse terms | 40.7 | 54.3 | 40.1 | 0 | 0 | 0 | 0.5 |
+| Commitment error | 8.9 | 8.6 | 7.2 | 0 | 0 | 0 | 0 |
+| Interaction cost | −0.3 | −0.1 | −0.2 | 1.1 | 0.2 | 1.9 | 2.2 |
+| Procedure and format | 0 | 0 | 11.7 | 0 | 0 | 0 | 0 |
+| Total | 51.1 | 99.9 | 127.3 | 32.5 | 51.2 | 51.2 | 58.1 |
 
-Housing's corrected class amounts match the reply-conditioned v2 measure cell by cell. Main-world means first average both landlord arms and exclude an entire world when either arm is missing: every subject has 260 complete worlds. Gemini's 36 refused cells, 30 of them in the main pack, where they would have removed 20 worlds, come from the declared fill. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
+Housing's totals reproduce the published v15 differences from `inspect_lowball` (51.13 and 99.92 $ a world; GLM's addendum row R3, 127.32), and every one of the 520 main cells per subject completed, so no world is excluded. Main-world means average both landlord arms within a world. Negative amounts are retained when the subject beats the reference. The inspection-cost row is a residual after earlier classes; inspection costs inside other classes are not counted again.
 
 **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
 
@@ -442,8 +445,9 @@ v1's by pairing.
 
 | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
 |---|---:|---|---|---|
-| Housing: Gemini 3.8 Flash | 260 | 78.9 [63.7, 94.0] | 50.5 [0.0, 155.1] | 34 / 48 |
-| Housing: GPT-6 Luna | 260 | 144.3 [124.7, 163.9] | 111.1 [7.4, 238.5] | 43 / 19 |
+| Housing: Gemini 3.8 Flash | 260 | 51.1 [38.3, 63.9] | 29.9 [0.0, 98.3] | 60 / 45 |
+| Housing: GPT-6 Luna | 260 | 99.9 [83.8, 116.0] | 72.1 [0.0, 167.6] | 46 / 32 |
+| Housing: GLM 5.3 Flash (addendum) | 260 | 127.3 [105.2, 149.4] | 79.9 [0.0, 212.8] | 36 / 39 |
 | Procurement: Sol 6.1 | 20 | 32.5 [23.8, 41.3] | 33.3 [21.5, 48.7] | 0 / 0 |
 | Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
 | Data center: Opus 5.5 | 80 | 83.6 [68.8, 98.4] | 57.2 [27.8, 137.3] | 0 / 0 |
@@ -468,23 +472,23 @@ component-level intervals, distributions, per-world amounts and input digests in
 The figure uses the same estimates below. Components retain each case's native units and
 classification rules; the figure adds no new analysis or cross-case aggregate.
 
-**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
+**Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 declared worlds of Table 5.3. Refund retains its development panel.**
 
 **(a) Housing**
 
-$ per main world below the reachable scripted reference; corrected v14.
+$ per main world below the reachable scripted reference (`inspect_lowball`); v15, measure v2.
 
-| Component | Gemini 3.8 Flash | GLM 5.3 Flash | GPT-6 Luna |
+| Component | Gemini 3.8 Flash | GPT-6 Luna | GLM 5.3 Flash (addendum A) |
 |---|---:|---:|---:|
-| Information not acquired | 3.6 | 9.2 | 10.1 |
-| Contrary to held information | 10.3 | 73.6 | 86.4 |
-| Worse lease terms | 56.4 | 42.2 | 44.0 |
-| Lease commitment error | 8.2 | 12.4 | 2.9 |
-| Procedure or format | 0.0 | 5.1 | 0.0 |
-| Inspection cost | 0.2 | −0.2 | 1.0 |
-| **Total shortfall** | **78.9** | **142.3** | **144.3** |
+| Information not acquired | −0.2 | 14.9 | 18.9 |
+| Contrary to held information | 1.9 | 22.2 | 49.6 |
+| Worse lease terms | 40.7 | 54.3 | 40.1 |
+| Lease commitment error | 8.9 | 8.6 | 7.2 |
+| Procedure or format | 0.0 | 0.0 | 11.7 |
+| Inspection cost | −0.3 | −0.1 | −0.2 |
+| **Total shortfall** | **51.1** | **99.9** | **127.3** |
 
-Two landlord arms averaged within each complete world: 260 worlds for each; Gemini's refused cells come from the declared fill. GLM's procedure losses are offers on listings already taken and one malformed commit; its inspection cost is negative because it spent $0.2 a world less on inspection than the reference.
+Two landlord arms averaged within each of the 260 main worlds; no cell is missing. GLM played in a declared addendum outside v15's contrasts. Its procedure losses are actions the environment refused, chiefly malformed commits ($5.7 a world, 14 cells) and offers on listings already taken ($2.1, 5 cells). Negative amounts mean the subject did better than the reference in that class and are not drawn in Figure 5.2.
 
 **(b) Procurement**
 

@@ -334,7 +334,7 @@ def main():
             assert abs(component['value']-values[component['key']]['mean']) < 1e-9
     PROCUREMENT_KEYS = json.loads((ROOT/'figures/FIGURE_CHECKS.json').read_text())['procurement_table_keys']
     displayed_panels = [
-        ('housing', ['Gemini 3.8 Flash','GLM 5.3 Flash','GPT-6 Luna'],
+        ('housing', ['Gemini 3.8 Flash','GPT-6 Luna','GLM 5.3 Flash (addendum A)'],
          ['information_not_acquired','contrary_to_information_held','worse_terms',
           'commitment_error','procedure_and_format','interaction_cost','total']),
         ('procurement', ['Sol 6.1 (Codex)','Opus 5.5 (Claude Code)','Gemini 3.8 Flash','GPT-6 Luna'],

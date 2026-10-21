@@ -56,7 +56,41 @@ def main():
     result = dict(analysis_id='paper_shortfall_panels_v11_20261020',
                   status='post-run descriptive accounting',
                   interval_method='95% Student t interval across worlds; Refund across six fixed cases, descriptive only',
-                  housing={}, procurement={}, datacenter={}, datacenter_v1={}, refund={})
+                  housing={}, housing_v14={}, procurement={}, datacenter={}, datacenter_v1={}, refund={})
+    # Housing v15 (Table 5.2, Figure 5.2a): the 260 main worlds, measure v2 primary, shortfall to inspect_lowball.
+    # Each cell's class and gap come from housing_v15.py (5522d543); a world is the mean of its two landlord arms.
+    v15 = read(ROOT/'housing_v15_taxonomy.json')
+    v15_report = read(EVIDENCE/'housing_v15/v15_analysis.json')['secondary']['means_main']
+    glm_report = read(EVIDENCE/'housing_v15/glm_addendum_analysis.json')['R3']
+    published = {'Gemini 3.8 Flash': v15_report['inspect_lowball'] - v15_report['gemini'],
+                 'GPT-6 Luna': v15_report['inspect_lowball'] - v15_report['luna'],
+                 'GLM 5.3 Flash (addendum A)': -glm_report['mean']}
+    for name, subject in v15['subjects'].items():
+        assert subject['completed_cells'] == subject['planned_cells'] == 520 and not subject['missing_cells']['total']
+        by_world = defaultdict(list)
+        for row in subject['instances']:
+            if row['population'] == 'main':
+                by_world[row['world_seed']].append(row)
+        units = {}
+        for world, rows in by_world.items():
+            assert len(rows) == 2 and len({r['arm'] for r in rows}) == 2
+            values = {k: sum(r['corrected']['gap'] for r in rows if r['corrected']['class'] == k)/2 for k in CLASSES}
+            values['total'] = st.fmean(r['corrected']['gap'] for r in rows)
+            units[str(world)] = values
+        assert len(units) == 260
+        detail = {str(w['world_seed']): w for w in subject['worlds_detail']}
+        for world, row in units.items():
+            close(row['total'], detail[world]['total'], 1e-3)
+        summary = summarize(units)
+        for k in CLASSES:
+            close(summary[k]['mean'], subject['measures']['corrected']['main']['per_world'][k])
+        close(summary['total']['mean'], published[name], .0051)
+        result['housing'][name] = dict(summary=summary, units=units, measure='housing_price_reply_conditioned_v2 (v15 primary)',
+            reference='inspect_lowball', campaign_id=subject['campaign_id'], worlds=260, cells=520, missing_cells=0,
+            declared_v15_pair=subject['declared_v15_pair'],
+            by_stratum={s: st.fmean(w['total'] for w in subject['worlds_detail'] if w['stratum'] == s)
+                        for s in sorted({w['stratum'] for w in subject['worlds_detail']})})
+
     housing = read(ROOT/'housing_v14_taxonomy.json')
     cells = read(EVIDENCE/'housing_reply_conditioned/tables/cells.jsonl', True)
     index = {(c['campaign_id'], c['world_seed'], c['arm']): c for c in cells}
@@ -97,7 +131,7 @@ def main():
         current = report[analysis]['models'][subject['campaign_id']]['by_scope']['main']
         close(summary['total']['mean'], -current['minus_reference']['mean'], .0051)
         assert len(units) == current['worlds_with_both_arms'] == old['worlds']
-        result['housing'][name] = dict(summary=summary, units=units,
+        result['housing_v14'][name] = dict(summary=summary, units=units,
             measure='housing_price_reply_conditioned_v2',
             panel='completed with the declared fill' if name in completed else 'declared bundle',
             missingness=old['operational'], cell_corrections_matched=matched)
@@ -243,10 +277,10 @@ def main():
             per_case_cell_totals={k:[r['total'] for r in rs] for k,rs in by_case.items()})
     result['inputs_sha256'] = INPUTS
     result['checks'] = dict(all_component_sums=True, all_primary_source_totals_reproduced=True,
-        all_housing_cell_corrections_matched=True, dc_publication_artifact_hashes=True, dc_v2_table_hashes_and_published_leaves=True,
+        all_housing_cell_corrections_matched=True, housing_v15_published_totals_reproduced=True, dc_publication_artifact_hashes=True, dc_v2_table_hashes_and_published_leaves=True,
         dc_all_worlds_denominator_verified=True, procurement_all_worlds_matched=True)
     (ROOT/'panels.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
-    for case in ('housing','procurement','datacenter','refund'):
+    for case in ('housing','housing_v14','procurement','datacenter','datacenter_v1','refund'):
         for name, value in result[case].items():
             print(case, name, {k:round(v['mean'],4) for k,v in value['summary'].items()})
 
