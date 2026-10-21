@@ -620,9 +620,10 @@ test rejects a registered family without a profile. Each of the four current des
 now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
 and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's harder pack,
 used in Table 5.3, passes Gate 0 and is `partial` at Gates 1 to 5: every gate that rests on live
-play is held at `partial` because its environment's registration with the runtime awaits a non-author review
-and its code is not on the main branch, and Gate 2's replay through the runtime's command line could not
-yet run there (profile section 8.2). Gate 1's measured headroom was then tried with a frozen control that tests,
+play was held at `partial` while its environment's registration with the runtime awaited review and its code was off
+the main branch. Both are now on the main branch, the registration merged on the owner's override without a non-author
+review; replay of the published receipts through the runtime's command line and sealed baseline receipts are under way
+(profile section 8.2). Gate 1's measured headroom was then tried with a frozen control that tests,
 declared before its plays: it tested but lost to the kind-blind shortcut, so only 2 of the 20 declared worlds pass
 that check and the gate stays `partial` (Appendix E.4). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
 the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development

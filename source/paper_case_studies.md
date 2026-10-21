@@ -50,12 +50,16 @@ that certificate (Appendix F.2). Table E.1 lists every check.
 
 Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
 and is partial at Gate 4. The Data-center comparison reported here (v2) passes Gate 3 for what it measures, pricing and
-bargaining against a fixed counterpart, and is partial at Gates 0, 1, 2, 4 and 5, chiefly because, as for Procurement,
-its environment's registration with the runtime awaits review and its code is not on the main branch, and no frozen
-control has screened its worlds. It is not a test of inference about the other side, whose type is worth less than 1%
+bargaining against a fixed counterpart, and is partial at Gates 0, 1, 2, 4 and 5, chiefly because its environment's
+registration with the runtime awaits review and its code is not on the main branch, and no frozen control has screened
+its worlds. It is not a test of inference about the other side, whose type is worth less than 1%
 of the value available in a deal to the best informed policy. The Procurement pack reported here passes
-Gate 0 and is partial at Gates 1 to 5, chiefly because its environment's registration with the runtime awaits review
-and its code is not yet on the main branch; the earlier, saturated Procurement pack fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
+Gate 0 and is partial at Gates 1 to 5. Its environment and its registration with the runtime are now on the main
+branch; the registration was merged on the owner's override, without the independent review the process asks for. The
+gates stay partial because a frozen control could not certify the worlds' headroom (Gate 1), because replaying the
+published receipts through the runtime's command line and sealing the scripted baselines' receipts are still under way
+(Gates 2, 3 and 5), and because the command-line subjects take no seed (Gate 4). The earlier, saturated Procurement pack
+fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
 subjects on these worlds and are not qualified benchmark scores.
 
@@ -177,8 +181,8 @@ earlier pack's more favourable odds, and a brief corrected for four wording defe
 One bears on why Opus never tests: in a check with no play, it was asked how likely a newcomer is to be
 sound once another newcomer of its kind has passed or failed a sample, with and without a clean quote of its
 own first, and answered all 18 questions within 0.05 of the exact value, as Sol did. Opus reads
-the sharing rule and does not plan with it. These runs used the case's environment from a development branch
-whose registration with the runtime still awaits review (Appendix F.1). An earlier pack, in which quotes always
+the sharing rule and does not plan with it. These runs used the case's environment from a development branch, which is
+now on the main branch with its registration (Appendix F.1). An earlier pack, in which quotes always
 arrive and newcomers never share a source, is saturated: a rule that looks one test ahead comes within 0.01% of
 the best policy (Appendix E.4, Table E.14).
 
@@ -349,14 +353,16 @@ is also one stateless call per round. Our prompt does not state the agent's payo
 against accepting above its reservation value; its observation differs from the paper's; a malformed
 move removes the episode where the paper applies a fallback, under which GLM-5.1's surplus efficiency
 would be 0.520 over all 15 cases; and our price range and zone widths are wider than the paper's. A
-declared reproduction will follow those fixes. The paper reports critical violations by GLM-5.1 in
+declared reproduction with those fixes has been built, and it stopped at its first check: one of the paper's
+fixed-concession baselines (FC10) scores 0.307 here against the paper's 0.266, while the other two match, and the paper
+does not define that baseline exactly. No agent has played it. The paper reports critical violations by GLM-5.1 in
 5% of cases without a zone of agreement for these three families; at that rate 15 such cases would
 show none about half the time, and ours showed none. The port also exposed a harness effect. On one provider route, any declared
 reasoning budget suppressed deliberation, and GLM 5.3 Flash breached its own reservation value in
 13 of 30 cases against the paper's band of 0 to 2.06%. With no reasoning declaration it breached in
 2 of 30 and its surplus efficiency rose from 0.40 to 0.53; the comparison above uses that setting.
-This is why the reasoning condition is part of each run's declared configuration. The runtime
-support for a scripted seat that this family uses is still in development.
+This is why the reasoning condition is part of each run's declared configuration. The runtime's
+support for the scripted seat this family uses is now on the main branch.
 
 ### References
 

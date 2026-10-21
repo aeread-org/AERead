@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.29 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.30 (20 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -311,3 +311,9 @@ current one saturated"):
   partial (registry row unreviewed and code not on main, as for Procurement; no frozen-control screen; client seat
   DC-D-35); v1 is no longer named there. It says the case is not a test of inference. Table 5.4's caption, Table E.3's
   row and Appendix F.1 follow; a new test plays the full-information pair through all 80 v2 worlds (loses 0).
+- Version 15.30 (2026-10-20): Procurement's registration (#294, owner override RN-O-03) and code (#295) are on main,
+  so Section 5.1's gate sentence, the §5.1 Procurement passage and Appendix F.1 no longer say they await review or
+  are off main; they say the registration merged without the independent review, and name what keeps Gates 1-5
+  partial (control, replay through the CLI and baseline receipts under way, no seed). Data center's sentence drops
+  "as for Procurement". Section 5.3: the declared TERMS-Bench reproduction was built and stopped at its first check
+  (FC10 0.307 vs 0.266; code on main via #296/#297), and the scripted-seat runtime is on main.
