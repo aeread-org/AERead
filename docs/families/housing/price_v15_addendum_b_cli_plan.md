@@ -72,3 +72,16 @@ worlds is inconclusive (v15's rule).
 
 The bundles are published as addendum A's, with `aeread verify-replay` on every published cell and the prohibited-text
 scan. A results note goes beside this plan. Runs play from a tree carrying the family's registry row, as v15 did.
+
+## Amendment 1, 2026-10-20 (after both admissions, before either main run)
+
+Both admissions passed. Each CLI's isolation probe found no violation, and each played the first development world
+(540003) in both arms, 2 of 2 cells completed, with every receipt replayed in-run.
+
+| | List cost (2 cells) | A cell | Seconds a cell | Main ceiling by the rule | Projected wall time, 600 cells at 3 |
+|---|---:|---:|---:|---:|---:|
+| Sol 6.1 (Codex) | $0.126802 | $0.0634 | 43.7 and 52.2 | 2 × 0.0634 × 600 + $1.00 = **$77.08** | about 2.7 hours |
+| Opus 5.5 (Claude Code) | $0.240608 | $0.1203 | 42.1 and 50.2 | 2 × 0.1203 × 600 + $2.00 = **$146.36** | about 2.6 hours |
+
+Both projections are under the 6-hour gate, so both main runs start. The ceilings are list prices on subscription
+logins, not charges.

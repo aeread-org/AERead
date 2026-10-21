@@ -77,8 +77,10 @@ SUBJECTS: dict[str, dict[str, Any]] = {
 CEILINGS: dict[str, float | None] = {
     "housing_lemons_price_v15_cli_admission_codex_sol61": 4.0,
     "housing_lemons_price_v15_cli_admission_claude_opus55": 4.0,
-    "housing_lemons_price_v15_cli_codex_sol61": None,
-    "housing_lemons_price_v15_cli_claude_opus55": None,
+    # Amendment 1 (after admission, before the main runs): twice the measured list cost a cell times 600, plus one
+    # cell's ceiling. Sol's admission cost $0.126802 for 2 cells, Opus's $0.240608.
+    "housing_lemons_price_v15_cli_codex_sol61": 77.08,
+    "housing_lemons_price_v15_cli_claude_opus55": 146.36,
 }
 MAX_PARALLEL_CELLS = 3
 WALL_TIME_GATE_HOURS = 6.0
