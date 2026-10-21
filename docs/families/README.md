@@ -170,7 +170,9 @@ Directory `tau3-retail/`, package `tau3_retail`.
 
 Directory `termsbench/`, package `termsbench`.
 
+- [QC profile](termsbench/qc.md) (the reproduction, `termsbench_repro_v1`)
 - [Adapter specification](termsbench/adapter_spec.md)
 - [Adapter status](termsbench/adapter_status.md)
 - [TERMS-Bench live campaign (#92): what is done, and the blocker](termsbench/campaign_scoping.md)
+- [TERMS-Bench reproduction: declared plan, v1](termsbench/reproduction_plan.md)
 - Review trail: [Claude review](termsbench/reviews/termsbench_review_claude.md), [Codex review](termsbench/reviews/termsbench_review_codex.md), [Codex triage](termsbench/reviews/termsbench_codex_triage.md), [disposition](termsbench/reviews/termsbench_review_disposition.md)
