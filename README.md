@@ -298,7 +298,7 @@ evidence. It is generated from the tree and the plugin registry
 | Single offer | kernel smoke test | [`single_offer`](src/aeread_families/single_offer/) | `single_offer_v1@1.0.0` | none | none | 0 |
 | STEER | external adapter | [`steer`](src/aeread_families/steer/) | `steer@0.1.0` | [`steer/`](cases/steer/) | [`steer/`](docs/families/steer/) | 0 |
 | Tau3 retail | external adapter | [`tau3_retail`](src/aeread_families/tau3_retail/) | `tau3.retail@0.1.0` | [`tau3_retail/`](cases/tau3_retail/) | [`tau3-retail/`](docs/families/tau3-retail/) | 0 |
-| TERMS-Bench | external adapter | [`termsbench`](src/aeread_families/termsbench/) | `termsbench@0.1.0` | [`termsbench/`](cases/termsbench/) | [`termsbench/`](docs/families/termsbench/) | 5 |
+| TERMS-Bench | external adapter | [`termsbench`](src/aeread_families/termsbench/) | `termsbench@0.1.0`, `termsbench@0.2.0` | [`termsbench/`](cases/termsbench/) | [`termsbench/`](docs/families/termsbench/) | 5 |
 
 22 families, 26 case directories, 97 published bundles. A registered identity is a `family_id@version` in the kernel's trusted plugin keys.
 

@@ -89,6 +89,9 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
         ('negarena', '0.1.0', 'negarena_environment'),
         ('steer', '0.1.0', 'steer_environment'),
         ('termsbench', '0.1.0', 'termsbench_environment'),
+        # The reproduction's protocol (``environment_v2.TermsBenchPluginV2``, family version 0.2.0): the paper's
+        # observation and fallback over 0.1.0's kernel, counterpart and scorer. Its module arrives with the family PR.
+        ('termsbench', '0.2.0', 'termsbench_environment'),
         (
             "commercial_state_calibration_v1",
             "1.0.0",
