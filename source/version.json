@@ -1,5 +1,5 @@
 {
-  "version": "15.31",
+  "version": "15.32",
   "date": "20 October 2026",
   "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 }

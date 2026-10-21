@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.31 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.32 (20 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -321,3 +321,8 @@ current one saturated"):
   main after #298, 1dd48cf5): 12 bundles replay through main's CLI, 432 of 432 receipts incl. 100 scripted-baseline
   receipts (one bundle re-checked here: 40 of 40). Section 5.1, the Procurement passage, Appendix F.1 and Table F.1
   (Gates 2 and 5) say so; the registration merged on the owner's override is still stated. Sources row added.
+- Version 15.32 (2026-10-20, owner: "housing should have cli results in the table in 5.1"): Table 5.2 gains Sol 6.1
+  (Codex) and Opus 5.5 (Claude Code) from Housing v15 addendum B (plan 5515349e, results add1efdb, 600/600 cells each,
+  replay-verified): Sol 90.4% (lemon 85.9%), +40.9 over inspect_then_sign, -5.0 vs inspect_lowball, holdout 88.0%;
+  Opus 80.4% (71.2%), +30.9, -15.0, 80.1%; Sol - Opus +10.0 points; Opus vs Gemini +1.6 [-0.3, 3.6]. Outside v15's
+  contrasts. Caption, a paragraph after the GLM sentence, a sources row and Table E.3's row.

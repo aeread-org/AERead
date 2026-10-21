@@ -96,6 +96,7 @@ least $25k. Its seeds are disjoint from every earlier pack; of 5,436 scanned, 80
 |---|---|---|---|---|---|---|
 | Housing v14 | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 cells and a 48-cell fill | about $8 | confirmatory |
 | Housing v15 | 260 main + 40 holdout (outside demand 0.3), from a screened pack | as v14 | Gemini 3.8 Flash, GPT-6 Luna, and Luna's A/A twin | 1,720 cells, all verified by replay; pilot 160 cells | $8.64 (pilot $1.08) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
+| Housing v15 addendum B | the v15 pack: 260 main + 40 holdout | as v15 | Sol 6.1 (Codex), Opus 5.5 (Claude Code), both isolated | 1,200 cells, all completed and verified by replay | $24.30 and $54.03 at list price (subscriptions) | declared addendum, outside v15's contrasts |
 | Housing, CLI agents | first 20 of the main pack | 10 and 10 | Opus 5.5, Sol 6.1 | 40 cells each | $4.72 | development |
 | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 cells over two briefs | $9.10 | development |
 | Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused) | 24 cells each, second brief | $0.21 | development |

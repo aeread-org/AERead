@@ -85,15 +85,15 @@ states how landlords price, the corrected measure is primary from the start, and
 deciding tenant. Its holdout of 40 worlds changes one mechanism, outside demand at 0.3 a round, and its brief
 says so.
 
-**Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds ($307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13.**
+**Table 5.2. Housing v15, main pack of 260 worlds (200 with the favourite a lemon, 60 sound): seat 0's net under the corrected measure as a share of what the best informed tenant earns in the same worlds ($307 a world on the main pack), mean of the two landlord arms; differences in percentage points of that value, with 95% intervals over worlds. Declared before any v15 artifact; dollar values are in the results note, and the v14 comparison is in Table E.13. Sol 6.1 and Opus 5.5 played the same worlds through their command-line tools in a declared addendum, outside v15's contrasts.**
 
-| | Gemini 3.8 Flash | GPT-6 Luna |
-|---|---:|---:|
-| Share of the best informed tenant's value | 78.7% | 62.9% |
-| Favourite is a lemon / sound | 68.8% / 100.0% | 46.8% / 97.3% |
-| Minus `inspect_then_sign` (the declared beatability baseline), points | +29.3 [+24.7, +33.8] | +13.4 [+8.2, +18.6] |
-| Minus `inspect_lowball` (v14's reachable reference), points | −16.6 [−20.8, −12.5] | −32.5 [−37.8, −27.3] |
-| Holdout (40 worlds, outside demand at 0.3) | 79.3% | 61.1% |
+| | Gemini 3.8 Flash | GPT-6 Luna | Sol 6.1 (Codex), addendum | Opus 5.5 (Claude Code), addendum |
+|---|---:|---:|---:|---:|
+| Share of the best informed tenant's value | 78.7% | 62.9% | 90.4% | 80.4% |
+| Favourite is a lemon / sound | 68.8% / 100.0% | 46.8% / 97.3% | 85.9% / 100.0% | 71.2% / 100.0% |
+| Minus `inspect_then_sign` (the declared beatability baseline), points | +29.3 [+24.7, +33.8] | +13.4 [+8.2, +18.6] | +40.9 [+36.2, +45.6] | +30.9 [+26.3, +35.5] |
+| Minus `inspect_lowball` (v14's reachable reference), points | −16.6 [−20.8, −12.5] | −32.5 [−37.8, −27.3] | −5.0 [−8.0, −2.0] | −15.0 [−18.9, −11.0] |
+| Holdout (40 worlds, outside demand at 0.3) | 79.3% | 61.1% | 88.0% | 80.1% |
 
 Against the best informed tenant's value, the full-information ceiling is 121%, `inspect_lowball` earns 95% and
 `inspect_then_sign` 49%. Under the analysis declared before any cell, Gemini leads Luna by 15.9 points [11.3, 20.4]
@@ -111,7 +111,12 @@ admission: its provider now serves another quantization than the one v14 pinned.
 another provider serving v14's quantization (600 of 600 cells, verified by replay), reported beside v15 and outside its
 declared contrasts. On the main pack GLM keeps 53.9% of the best informed tenant's value and does not beat
 `inspect_then_sign` at the declared 98.3% level (+4.5 points [−4.4, +13.3]); descriptively it trails Luna by 8.9
-points [1.6, 16.2] and Gemini by 24.8 [19.0, 30.5].
+points [1.6, 16.2] and Gemini by 24.8 [19.0, 30.5]. A second declared addendum ran Sol 6.1 and Opus 5.5 through their
+command-line tools on the same 600 cells each (all completed and verified by replay), likewise outside v15's
+contrasts. Sol keeps 90.4% of the best informed tenant's value and comes closest to v14's reachable rule (5.0 points
+below it); Opus keeps 80.4%. Both beat `inspect_then_sign` at the 98.3% level. Sol leads Opus by 10.0 points [7.4,
+12.6], and Opus is indistinguishable from Gemini (+1.6 [−0.3, +3.6]). As for the flash models, nearly all of each
+model's shortfall is in worlds whose favourite is a lemon.
 
 **Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688.
 A displayed price is not a quote, a listing's quality is known only after it is checked, and new
@@ -375,6 +380,7 @@ support for the scripted seat this family uses is now on the main branch.
 |---|---|---|
 | Housing v15 (Table 5.2) | `docs/families/housing/price_confirmatory_v15_results.md`, QC profile §23 and the bundles `evidence/housing/housing_lemons_price_v15_confirmatory`, `..._v15_analysis`, `..._v15_admission_and_pilot`, the pack `housing_lemons_price_pack_v2` and the goldens `housing_lemons_price_goldens_v15` (branch `codex/housing-v15-offline`, 833b57d4 and later) | declared; Gates 1, 2, 3 and 5 passed, 4 partial |
 | Housing v15 GLM addendum A (Section 5.1) | `docs/families/housing/price_confirmatory_v15_results.md` ("Addendum A results") and the bundle `evidence/housing/housing_lemons_price_v15_glm_addendum` (branch `codex/housing-v15-offline`; rows declared at c0a43f16, results df81e28c, verify-replay 600/600) | declared addendum, outside v15's contrasts |
+| Housing v15 addendum B: Sol 6.1 and Opus 5.5 (Table 5.2) | plan `docs/families/housing/price_v15_addendum_b_cli_plan.md` committed before any call (5515349e), amendments 44753f6e (ceilings by v15's rule) and bed881cf (the owner waived the 6-hour wall-time stop); results `price_v15_addendum_b_cli_results.md` (add1efdb) and the bundles `evidence/housing/housing_lemons_price_v15_cli_addendum{,_admission,_analysis}` on `codex/housing-v15-offline`; 600 of 600 cells per subject, every receipt verified by replay; both CLIs isolated and probed clean; $24.30 and $54.03 at list price on subscription logins | declared addendum, outside v15's contrasts |
 | Housing v15 profile probe (Section 5.1, Appendix F.1) | `evidence/housing/housing_lemons_price_v15_probe` (branch `codex/housing-v15-probe`, 6776937e); incident rows HL-J-14, HL-J-16, RN-T-07 | after the freeze |
 | Data center v2 (Table 5.4; §5.2 and Figure 5.2c; Tables E.8–E.10) | `docs/families/datacenter/agreement_confirmatory_v2_results.md` (c7bbadc9) and the bundles `datacenter_agreement_v2_{integrator_firm,client_firm,head_to_head}` with `agreement_confirmatory_v2_analysis` (461c5d93) on branch `codex/datacenter-agreement`; each bundle's cell table, summary and manifest and the analysis copied to `analysis_evidence/campaign_refresh/datacenter_v2/` (`SOURCES.json`), where `derive_panels.py` checks each copied file against its manifest and every pairing's loss leaves against the published analysis; the fee replay in §5.2 is the plan's declared secondary in that analysis | declared; gate review pending; §5.2's loss split is derived |
 | Best informed policy turn by turn (Section 5.1, Appendix C.3) | `agreement_best_informed.py` and the evidence `agreement_best_informed_{v1,v2}` (branch `codex/datacenter-best-informed`, 583d3de7); incident rows DC-D-40, DC-D-41, DC-D-42, DC-J-10 | derived after the runs |
