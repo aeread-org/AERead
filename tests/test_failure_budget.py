@@ -151,7 +151,13 @@ def test_caps_are_per_profile_even_when_route_and_executor_are_shared(tmp_path):
 @pytest.mark.parametrize("usage,expected,qualifier", [({"cost": 0.25}, 0.25, "exact"), ({"cost": 0}, 0, "exact"),
     ({"prompt_tokens": 20, "completion_tokens": 5}, 0.000003, "exact"), ({}, None, "lower_bound"),
     ({"prompt_tokens": 20}, None, "lower_bound"), (None, None, "lower_bound"),
-    ({"prompt_tokens": -1, "cost": 0.25}, 0.25, "exact")])
+    ({"prompt_tokens": -1, "cost": 0.25}, 0.25, "exact"),
+    # The cache breakdown is optional: unreported means full-rate input, not unknown usage.
+    ({"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": None}, 0.000003, "exact"),
+    ({"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": {}}, 0.000003, "exact"),
+    ({"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": {"cached_tokens": None}}, 0.000003, "exact"),
+    ({"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": {"audio_tokens": 0}}, 0.000003, "exact"),
+    ({"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": {"cached_tokens": -3}}, None, "lower_bound")])
 def test_existing_usage_and_missingness_qualifications_are_preserved(tmp_path, usage, expected, qualifier):
     failure = ProviderFailure("provider_contract", "usage fixture", retryable=False).with_reported_usage({"choices": [1], "usage": usage})
     executor, provider, evidence = make_executor(tmp_path, [failure], cap=None)
@@ -252,7 +258,9 @@ def test_cancelled_later_round_settles_completed_round_once_without_new_budget_p
     assert attempt_spend(evidence).cost_accounting == "lower_bound"
     assert not payloads(evidence, "action_attempt_failed")
 
-@pytest.mark.parametrize("usage", [{"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": {"cached_tokens": 21}}, {"completion_tokens": 5}, {"prompt_tokens": True, "completion_tokens": 0}])
+@pytest.mark.parametrize("usage", [{"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": {"cached_tokens": 21}}, {"completion_tokens": 5}, {"prompt_tokens": True, "completion_tokens": 0},
+    *({"prompt_tokens": 20, "completion_tokens": 5, "prompt_tokens_details": details}
+      for details in ({"cached_tokens": -3}, {"cached_tokens": "4"}, {"cached_tokens": 1.5}, {"cached_tokens": True}, "4"))])
 def test_invalid_or_partial_tokens_do_not_support_price_fallback(tmp_path, usage):
     failure = billed(usage=usage)
     assert failed_call_cost(failure, FAKE_PRICING) is None

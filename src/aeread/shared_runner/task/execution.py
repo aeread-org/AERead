@@ -120,7 +120,13 @@ class ProviderFailure(RuntimeError):
         input_tokens = count(usage, "prompt_tokens")
         output_tokens = count(usage, "completion_tokens")
         details = usage.get("prompt_tokens_details") if isinstance(usage, Mapping) else None
-        cached = count(details, "cached_tokens") if details is not None else 0
+        # The cache breakdown is optional, and the SDK dumps an unreported
+        # cached_tokens as null: unreported is no cached input, priced at the
+        # full input rate. A count that is present but invalid stays unknown.
+        unreported = details is None or (
+            isinstance(details, Mapping) and details.get("cached_tokens") is None
+        )
+        cached = 0 if unreported else count(details, "cached_tokens")
         self._complete_reported_tokens = (
             input_tokens is not None and output_tokens is not None
             and cached is not None and cached <= input_tokens
