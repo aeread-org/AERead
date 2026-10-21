@@ -1,0 +1,830 @@
+{
+ "campaigns": {
+  "A": {
+   "campaign_id": "datacenter_agreement_confirm_adversarial_v1",
+   "cells": 720,
+   "list_price_usd": 40.6773,
+   "missing": [
+    "codex_integrator__negotiator_collapse_client__747a604a__r0"
+   ],
+   "missing_by_cause": {
+    "SchedulerContractError": 1
+   },
+   "plan_sha256": "50d4b80177f0f175c9a0397788d5a56a6d25cfc452ff3a05a2c3445175505f4b",
+   "status": {
+    "invalid_measurement": 1,
+    "ok": 719
+   },
+   "valid": 719,
+   "wall_minutes": [
+    101.95
+   ]
+  },
+  "F": {
+   "campaign_id": "datacenter_agreement_confirm_firm_population_v1",
+   "cells": 240,
+   "list_price_usd": 11.8456,
+   "missing": [],
+   "missing_by_cause": {},
+   "plan_sha256": "7625c9e1dba45c8b7e28e97b6df7c6dfec7e9eb056e648a3a4e3d30bc9681434",
+   "status": {
+    "ok": 240
+   },
+   "valid": 240,
+   "wall_minutes": [
+    48.83
+   ]
+  },
+  "H": {
+   "campaign_id": "datacenter_agreement_confirm_head_to_head_v1",
+   "cells": 120,
+   "list_price_usd": 16.0841,
+   "missing": [],
+   "missing_by_cause": {},
+   "plan_sha256": "cd9d355aeeb509eb5a589ffcd645675928ebf4c49865fa42ab24c5f25b4556ac",
+   "status": {
+    "ok": 120
+   },
+   "valid": 120,
+   "wall_minutes": [
+    62.76
+   ]
+  }
+ },
+ "deal_worlds": 45,
+ "invalid_negotiations": {
+  "A": [],
+  "F": [],
+  "H": []
+ },
+ "pack": "agreement_admitted_v1",
+ "primary": [
+  {
+   "bootstrap_95": [
+    150.238,
+    230.414
+   ],
+   "ci_0.9500": [
+    148.047,
+    232.111
+   ],
+   "ci_0.9833": [
+    138.17,
+    241.988
+   ],
+   "contrast": "P1",
+   "dropout_share": 0.0,
+   "holm_alpha": 0.016666666666666666,
+   "holm_step": 1,
+   "inconclusive_by_dropout": false,
+   "mean": 190.079,
+   "minimum_effect": 100.0,
+   "missingness_bounds_mean": [
+    190.079,
+    190.079
+   ],
+   "n": 45,
+   "p": 1.0779108084357757e-11,
+   "p_holm": 3.233732425307327e-11,
+   "reading": "rejects 0",
+   "rejected": true,
+   "sd": 139.905,
+   "world_values": {
+    "0064cc63": 256.826,
+    "0589c053": 98.5,
+    "0605e34d": 345.302,
+    "15abc97f": 275.0,
+    "19fcd619": 347.5,
+    "1b6c7e6e": 167.5,
+    "243a85db": 354.043,
+    "2817b359": 177.5,
+    "2db42e15": 144.427,
+    "345bcf9c": 233.726,
+    "3bf2617c": 66.774,
+    "4763287e": 330.875,
+    "48c9e950": 81.588,
+    "5251e335": 253.516,
+    "56878b62": 118.06,
+    "610f80fa": 125.737,
+    "66befad3": 201.4,
+    "67119862": 105.248,
+    "688282e0": 383.6,
+    "6b3bce32": 117.7,
+    "6e8bb0f4": 55.0,
+    "6ec740f5": -22.005,
+    "784f45cc": 289.941,
+    "8043050d": 178.373,
+    "821d1f44": 439.59,
+    "83f63ed6": -2.636,
+    "9351db38": 517.102,
+    "959f8768": 173.8,
+    "984cbbde": 28.18,
+    "a43f0775": 295.34,
+    "a7b8e18a": 341.2,
+    "b163fa81": 22.605,
+    "b46552de": 155.8,
+    "b602d375": 206.6,
+    "bbbf8a75": -27.5,
+    "bf61977b": 47.0,
+    "c3bf8eff": 87.5,
+    "c69251bd": 65.2,
+    "c6d106b6": 55.183,
+    "cd6b12a1": 126.875,
+    "dc296c28": 460.913,
+    "df0e1d78": 241.176,
+    "e954a9e7": 418.545,
+    "ff56345b": 0.0,
+    "fff83730": 214.95
+   },
+   "worlds_base": 45,
+   "worlds_dropped": [],
+   "worlds_used": 45
+  },
+  {
+   "bootstrap_95": [
+    10.832,
+    41.457
+   ],
+   "ci_0.9500": [
+    10.455,
+    42.393
+   ],
+   "ci_0.9833": [
+    6.702,
+    46.146
+   ],
+   "contrast": "P2",
+   "dropout_share": 0.0,
+   "holm_alpha": 0.05,
+   "holm_step": 3,
+   "inconclusive_by_dropout": false,
+   "mean": 26.424,
+   "minimum_effect": 50.0,
+   "missingness_bounds_mean": [
+    26.424,
+    26.424
+   ],
+   "n": 45,
+   "p": 0.0017403540198858527,
+   "p_holm": 0.0017403540198858527,
+   "reading": "a gap against the firm population is claimed; no gap of 50 or more against a firm counterpart",
+   "rejected": true,
+   "sd": 53.154,
+   "world_values": {
+    "0064cc63": 42.5,
+    "0589c053": 42.5,
+    "0605e34d": 11.5,
+    "15abc97f": 2.5,
+    "19fcd619": 31.26,
+    "1b6c7e6e": 101.985,
+    "243a85db": -57.5,
+    "2817b359": 5.683,
+    "2db42e15": 50.0,
+    "345bcf9c": 52.5,
+    "3bf2617c": -40.0,
+    "4763287e": -27.188,
+    "48c9e950": -4.848,
+    "5251e335": 100.951,
+    "56878b62": 8.125,
+    "610f80fa": 45.0,
+    "66befad3": 72.978,
+    "67119862": 10.0,
+    "688282e0": 60.0,
+    "6b3bce32": 32.5,
+    "6e8bb0f4": 27.5,
+    "6ec740f5": 7.5,
+    "784f45cc": 121.377,
+    "8043050d": -104.0,
+    "821d1f44": 125.0,
+    "83f63ed6": 106.164,
+    "9351db38": 4.202,
+    "959f8768": -83.79,
+    "984cbbde": -15.66,
+    "a43f0775": 35.0,
+    "a7b8e18a": -86.032,
+    "b163fa81": -7.5,
+    "b46552de": 14.0,
+    "b602d375": 2.5,
+    "bbbf8a75": 32.5,
+    "bf61977b": 59.407,
+    "c3bf8eff": -5.0,
+    "c69251bd": 17.5,
+    "c6d106b6": 20.86,
+    "cd6b12a1": 60.375,
+    "dc296c28": 17.5,
+    "df0e1d78": 101.325,
+    "e954a9e7": 52.5,
+    "ff56345b": 22.898,
+    "fff83730": 122.5
+   },
+   "worlds_base": 45,
+   "worlds_dropped": [],
+   "worlds_used": 45
+  },
+  {
+   "bounds_if_missing_all_opus_or_all_codex": [
+    24,
+    24,
+    0,
+    0
+   ],
+   "codex_below_walk_away": 3,
+   "contrast": "P3",
+   "difference_in_rate": 0.4,
+   "discordant_codex_only": 0,
+   "discordant_opus_only": 24,
+   "dropout_share": 0.0,
+   "holm_alpha": 0.025,
+   "holm_step": 2,
+   "inconclusive_by_dropout": false,
+   "minimum_effect": 0.16,
+   "opus_below_walk_away": 27,
+   "p": 1.1920928955078125e-07,
+   "p_holm": 2.384185791015625e-07,
+   "reading": "rejects 0",
+   "rejected": true,
+   "worlds_base": 60,
+   "worlds_dropped": [],
+   "worlds_used": 60
+  }
+ ],
+ "secondary": {
+  "A": {
+   "claude_integrator__negotiator_collapse_client": {
+    "allocation_loss": 3.55,
+    "best_agreement_signed_in_deal_worlds": 23,
+    "deal_worlds": 45,
+    "delay_loss": 32.92,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 128.52,
+     "trade": 120.5,
+     "walk": 60.55
+    },
+    "integrator_earnings_deal_worlds_mean": 109.41,
+    "integrator_redlines_price_only": "37 of 81",
+    "joint_value_lost": 38.93,
+    "no_deal_loss": 2.46,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "claude_integrator__negotiator_overreach_client": {
+    "allocation_loss": 4.18,
+    "best_agreement_signed_in_deal_worlds": 22,
+    "deal_worlds": 45,
+    "delay_loss": 55.0,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 84.6,
+     "trade": 62.16,
+     "walk": 46.01
+    },
+    "integrator_earnings_deal_worlds_mean": 68.18,
+    "integrator_redlines_price_only": "46 of 110",
+    "joint_value_lost": 74.41,
+    "no_deal_loss": 15.23,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "claude_integrator__negotiator_price_only_client": {
+    "allocation_loss": 74.51,
+    "best_agreement_signed_in_deal_worlds": 1,
+    "deal_worlds": 45,
+    "delay_loss": 70.0,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 36.71,
+     "trade": 52.5,
+     "walk": 10.06
+    },
+    "integrator_earnings_deal_worlds_mean": 35.11,
+    "integrator_redlines_price_only": "91 of 131",
+    "joint_value_lost": 205.86,
+    "no_deal_loss": 61.35,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "codex_integrator__negotiator_collapse_client": {
+    "allocation_loss": 2.79,
+    "best_agreement_signed_in_deal_worlds": 22,
+    "deal_worlds": 45,
+    "delay_loss": 49.15,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 215.22,
+     "trade": 193.34,
+     "walk": 77.4
+    },
+    "integrator_earnings_deal_worlds_mean": 174.73,
+    "integrator_redlines_price_only": "39 of 108",
+    "joint_value_lost": 63.12,
+    "no_deal_loss": 11.18,
+    "signed_in_no_deal_worlds": "0 of 14",
+    "valid": 59
+   },
+   "codex_integrator__negotiator_overreach_client": {
+    "allocation_loss": 2.4,
+    "best_agreement_signed_in_deal_worlds": 23,
+    "deal_worlds": 45,
+    "delay_loss": 65.42,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 92.59,
+     "trade": 110.4,
+     "walk": 61.72
+    },
+    "integrator_earnings_deal_worlds_mean": 90.59,
+    "integrator_redlines_price_only": "59 of 133",
+    "joint_value_lost": 102.62,
+    "no_deal_loss": 34.8,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "codex_integrator__negotiator_price_only_client": {
+    "allocation_loss": 38.6,
+    "best_agreement_signed_in_deal_worlds": 5,
+    "deal_worlds": 45,
+    "delay_loss": 85.0,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 76.85,
+     "trade": 65.89,
+     "walk": 75.46
+    },
+    "integrator_earnings_deal_worlds_mean": 73.1,
+    "integrator_redlines_price_only": "87 of 151",
+    "joint_value_lost": 180.16,
+    "no_deal_loss": 56.55,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "codex_less_claude_by_style": {
+    "collapse": {
+     "bootstrap_95": [
+      77.363,
+      127.853
+     ],
+     "ci_0.9500": [
+      76.48,
+      128.144
+     ],
+     "ci_0.9833": [
+      70.41,
+      134.214
+     ],
+     "claim": "none",
+     "contrast": "against collapse",
+     "dropout_share": 0.0,
+     "mean": 102.312,
+     "minimum_effect": 50.0,
+     "missingness_bounds_mean": [
+      102.312,
+      102.312
+     ],
+     "n": 45,
+     "p": 4.277181303051949e-10,
+     "sd": 85.981,
+     "world_values": {
+      "0064cc63": 140.0,
+      "0589c053": 27.5,
+      "0605e34d": 309.125,
+      "15abc97f": 260.0,
+      "19fcd619": 96.24,
+      "1b6c7e6e": 175.0,
+      "243a85db": 115.0,
+      "2817b359": -13.285,
+      "2db42e15": 126.84,
+      "345bcf9c": 192.5,
+      "3bf2617c": 107.5,
+      "4763287e": -33.375,
+      "48c9e950": 85.59,
+      "5251e335": 133.451,
+      "56878b62": 192.517,
+      "610f80fa": 127.5,
+      "66befad3": 72.5,
+      "67119862": 117.5,
+      "688282e0": 246.924,
+      "6b3bce32": 110.7,
+      "6e8bb0f4": 96.165,
+      "6ec740f5": 37.944,
+      "784f45cc": 150.0,
+      "8043050d": 175.0,
+      "821d1f44": 191.044,
+      "83f63ed6": 202.961,
+      "9351db38": 84.894,
+      "959f8768": -6.29,
+      "984cbbde": 0.0,
+      "a43f0775": 159.68,
+      "a7b8e18a": 42.5,
+      "b163fa81": 85.0,
+      "b46552de": 35.219,
+      "b602d375": 162.5,
+      "bbbf8a75": 35.0,
+      "bf61977b": 29.407,
+      "c3bf8eff": -36.36,
+      "c69251bd": 25.0,
+      "c6d106b6": 108.36,
+      "cd6b12a1": -66.85,
+      "dc296c28": 182.5,
+      "df0e1d78": 207.5,
+      "e954a9e7": 105.4,
+      "ff56345b": -42.482,
+      "fff83730": 50.22
+     },
+     "worlds_base": 45,
+     "worlds_dropped": [],
+     "worlds_used": 45
+    },
+    "overreach": {
+     "bootstrap_95": [
+      42.262,
+      80.885
+     ],
+     "ci_0.9500": [
+      41.447,
+      81.292
+     ],
+     "ci_0.9833": [
+      36.765,
+      85.973
+     ],
+     "claim": "none",
+     "contrast": "against overreach",
+     "dropout_share": 0.0,
+     "mean": 61.369,
+     "minimum_effect": 50.0,
+     "missingness_bounds_mean": [
+      61.369,
+      61.369
+     ],
+     "n": 45,
+     "p": 1.667602552442641e-07,
+     "sd": 66.312,
+     "world_values": {
+      "0064cc63": 102.5,
+      "0589c053": 69.94,
+      "0605e34d": 77.5,
+      "15abc97f": 122.5,
+      "19fcd619": 190.809,
+      "1b6c7e6e": 85.12,
+      "243a85db": -52.525,
+      "2817b359": 31.761,
+      "2db42e15": 39.386,
+      "345bcf9c": 27.52,
+      "3bf2617c": 85.0,
+      "4763287e": -11.306,
+      "48c9e950": 0.889,
+      "5251e335": 178.451,
+      "56878b62": 68.125,
+      "610f80fa": 19.793,
+      "66befad3": 85.0,
+      "67119862": -23.98,
+      "688282e0": 40.0,
+      "6b3bce32": 134.53,
+      "6e8bb0f4": -15.0,
+      "6ec740f5": -10.445,
+      "784f45cc": 148.739,
+      "8043050d": 91.462,
+      "821d1f44": 103.148,
+      "83f63ed6": 0.0,
+      "9351db38": 206.256,
+      "959f8768": 115.0,
+      "984cbbde": -25.66,
+      "a43f0775": 30.019,
+      "a7b8e18a": 115.0,
+      "b163fa81": -85.18,
+      "b46552de": 85.5,
+      "b602d375": -15.0,
+      "bbbf8a75": 48.836,
+      "bf61977b": 39.4,
+      "c3bf8eff": 132.5,
+      "c69251bd": 41.62,
+      "c6d106b6": 81.18,
+      "cd6b12a1": 110.4,
+      "dc296c28": -10.22,
+      "df0e1d78": 87.649,
+      "e954a9e7": 25.0,
+      "ff56345b": 25.398,
+      "fff83730": 165.0
+     },
+     "worlds_base": 45,
+     "worlds_dropped": [],
+     "worlds_used": 45
+    },
+    "price_only": {
+     "bootstrap_95": [
+      31.966,
+      66.337
+     ],
+     "ci_0.9500": [
+      31.345,
+      67.953
+     ],
+     "ci_0.9833": [
+      27.044,
+      72.254
+     ],
+     "claim": "none",
+     "contrast": "against price_only",
+     "dropout_share": 0.0,
+     "mean": 49.649,
+     "minimum_effect": 50.0,
+     "missingness_bounds_mean": [
+      49.649,
+      49.649
+     ],
+     "n": 45,
+     "p": 2.037883877957032e-06,
+     "sd": 60.925,
+     "world_values": {
+      "0064cc63": 45.156,
+      "0589c053": 62.431,
+      "0605e34d": -56.0,
+      "15abc97f": 66.0,
+      "19fcd619": 50.819,
+      "1b6c7e6e": 21.065,
+      "243a85db": -167.57,
+      "2817b359": 29.8,
+      "2db42e15": 112.615,
+      "345bcf9c": 12.5,
+      "3bf2617c": 9.802,
+      "4763287e": 60.65,
+      "48c9e950": 92.65,
+      "5251e335": 87.76,
+      "56878b62": -18.5,
+      "610f80fa": 61.192,
+      "66befad3": 8.48,
+      "67119862": -30.49,
+      "688282e0": 60.743,
+      "6b3bce32": 53.665,
+      "6e8bb0f4": 81.622,
+      "6ec740f5": 56.74,
+      "784f45cc": 147.211,
+      "8043050d": -10.018,
+      "821d1f44": -33.538,
+      "83f63ed6": 125.353,
+      "9351db38": 33.625,
+      "959f8768": 75.555,
+      "984cbbde": 0.0,
+      "a43f0775": 97.26,
+      "a7b8e18a": 22.574,
+      "b163fa81": 62.64,
+      "b46552de": 31.017,
+      "b602d375": 204.728,
+      "bbbf8a75": 98.977,
+      "bf61977b": 129.124,
+      "c3bf8eff": 136.34,
+      "c69251bd": 44.34,
+      "c6d106b6": 44.26,
+      "cd6b12a1": 59.174,
+      "dc296c28": 57.692,
+      "df0e1d78": 85.376,
+      "e954a9e7": 88.304,
+      "ff56345b": -2.5,
+      "fff83730": 35.585
+     },
+     "worlds_base": 45,
+     "worlds_dropped": [],
+     "worlds_used": 45
+    }
+   },
+   "negotiator_collapse_integrator__claude_client": {
+    "allocation_loss": 56.1,
+    "best_agreement_signed_in_deal_worlds": 19,
+    "client_below_walk_away": 24,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 22.98,
+     "trade": 3.88,
+     "walk": -132.26
+    },
+    "client_earnings_deal_worlds_mean": -20.91,
+    "client_redlines_price_only": "26 of 43",
+    "deal_worlds": 45,
+    "delay_loss": 30.83,
+    "joint_value_lost": 96.99,
+    "no_deal_loss": 10.06,
+    "signed_in_no_deal_worlds": "14 of 15",
+    "valid": 60
+   },
+   "negotiator_collapse_integrator__codex_client": {
+    "allocation_loss": 12.49,
+    "best_agreement_signed_in_deal_worlds": 21,
+    "client_below_walk_away": 4,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 156.89,
+     "trade": 121.81,
+     "walk": 44.07
+    },
+    "client_earnings_deal_worlds_mean": 118.4,
+    "client_redlines_price_only": "53 of 101",
+    "deal_worlds": 45,
+    "delay_loss": 67.92,
+    "joint_value_lost": 88.27,
+    "no_deal_loss": 7.86,
+    "signed_in_no_deal_worlds": "1 of 15",
+    "valid": 60
+   },
+   "negotiator_overreach_integrator__claude_client": {
+    "allocation_loss": 47.82,
+    "best_agreement_signed_in_deal_worlds": 16,
+    "client_below_walk_away": 31,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 23.32,
+     "trade": -60.61,
+     "walk": -164.1
+    },
+    "client_earnings_deal_worlds_mean": -48.6,
+    "client_redlines_price_only": "47 of 79",
+    "deal_worlds": 45,
+    "delay_loss": 51.67,
+    "joint_value_lost": 110.8,
+    "no_deal_loss": 11.31,
+    "signed_in_no_deal_worlds": "13 of 15",
+    "valid": 60
+   },
+   "negotiator_overreach_integrator__codex_client": {
+    "allocation_loss": 11.58,
+    "best_agreement_signed_in_deal_worlds": 18,
+    "client_below_walk_away": 0,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 65.32,
+     "trade": 40.35,
+     "walk": 41.5
+    },
+    "client_earnings_deal_worlds_mean": 51.73,
+    "client_redlines_price_only": "52 of 105",
+    "deal_worlds": 45,
+    "delay_loss": 79.58,
+    "joint_value_lost": 117.64,
+    "no_deal_loss": 26.48,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "negotiator_price_only_integrator__claude_client": {
+    "allocation_loss": 89.2,
+    "best_agreement_signed_in_deal_worlds": 4,
+    "client_below_walk_away": 24,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 115.28,
+     "trade": 52.74,
+     "walk": -22.69
+    },
+    "client_earnings_deal_worlds_mean": 62.1,
+    "client_redlines_price_only": "13 of 61",
+    "deal_worlds": 45,
+    "delay_loss": 46.25,
+    "joint_value_lost": 136.08,
+    "no_deal_loss": 0.63,
+    "signed_in_no_deal_worlds": "15 of 15",
+    "valid": 60
+   },
+   "negotiator_price_only_integrator__codex_client": {
+    "allocation_loss": 9.11,
+    "best_agreement_signed_in_deal_worlds": 21,
+    "client_below_walk_away": 0,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 165.22,
+     "trade": 117.75,
+     "walk": 54.56
+    },
+    "client_earnings_deal_worlds_mean": 123.4,
+    "client_redlines_price_only": "43 of 99",
+    "deal_worlds": 45,
+    "delay_loss": 77.92,
+    "joint_value_lost": 89.48,
+    "no_deal_loss": 2.46,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   }
+  },
+  "F": {
+   "claude_integrator__negotiator_drawn_public_v1_client": {
+    "allocation_loss": 2.22,
+    "best_agreement_signed_in_deal_worlds": 24,
+    "deal_worlds": 45,
+    "delay_loss": 30.0,
+    "integrator_below_walk_away": 1,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 115.47,
+     "trade": 92.77,
+     "walk": 50.8
+    },
+    "integrator_earnings_deal_worlds_mean": 92.6,
+    "integrator_redlines_price_only": "39 of 76",
+    "joint_value_lost": 44.45,
+    "no_deal_loss": 12.23,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "codex_integrator__negotiator_drawn_public_v1_client": {
+    "allocation_loss": 1.1,
+    "best_agreement_signed_in_deal_worlds": 23,
+    "deal_worlds": 45,
+    "delay_loss": 60.83,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 139.82,
+     "trade": 132.27,
+     "walk": 43.79
+    },
+    "integrator_earnings_deal_worlds_mean": 114.0,
+    "integrator_redlines_price_only": "57 of 124",
+    "joint_value_lost": 91.01,
+    "no_deal_loss": 29.08,
+    "signed_in_no_deal_worlds": "0 of 15",
+    "valid": 60
+   },
+   "negotiator_drawn_public_v1_integrator__claude_client": {
+    "allocation_loss": 57.27,
+    "best_agreement_signed_in_deal_worlds": 21,
+    "client_below_walk_away": 23,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 66.25,
+     "trade": 39.39,
+     "walk": -55.93
+    },
+    "client_earnings_deal_worlds_mean": 28.02,
+    "client_redlines_price_only": "25 of 37",
+    "deal_worlds": 45,
+    "delay_loss": 27.08,
+    "joint_value_lost": 97.22,
+    "no_deal_loss": 12.87,
+    "signed_in_no_deal_worlds": "15 of 15",
+    "valid": 60
+   },
+   "negotiator_drawn_public_v1_integrator__codex_client": {
+    "allocation_loss": 18.25,
+    "best_agreement_signed_in_deal_worlds": 19,
+    "client_below_walk_away": 1,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 72.59,
+     "trade": 72.19,
+     "walk": 19.46
+    },
+    "client_earnings_deal_worlds_mean": 59.48,
+    "client_redlines_price_only": "52 of 106",
+    "deal_worlds": 45,
+    "delay_loss": 83.75,
+    "joint_value_lost": 115.84,
+    "no_deal_loss": 13.84,
+    "signed_in_no_deal_worlds": "1 of 15",
+    "valid": 60
+   }
+  },
+  "H": {
+   "claude_integrator__codex_client": {
+    "allocation_loss": 10.46,
+    "best_agreement_signed_in_deal_worlds": 16,
+    "client_below_walk_away": 3,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 240.89,
+     "trade": 164.7,
+     "walk": 146.89
+    },
+    "client_earnings_deal_worlds_mean": 194.21,
+    "client_redlines_price_only": "25 of 96",
+    "deal_worlds": 45,
+    "delay_loss": 63.33,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 36.87,
+     "trade": 62.32,
+     "walk": 27.76
+    },
+    "integrator_earnings_deal_worlds_mean": 42.56,
+    "integrator_redlines_price_only": "53 of 116",
+    "joint_value_lost": 77.46,
+    "no_deal_loss": 3.67,
+    "signed_in_no_deal_worlds": "1 of 15",
+    "valid": 60
+   },
+   "codex_integrator__claude_client": {
+    "allocation_loss": 57.39,
+    "best_agreement_signed_in_deal_worlds": 7,
+    "client_below_walk_away": 27,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 44.16,
+     "trade": -42.7,
+     "walk": -62.1
+    },
+    "client_earnings_deal_worlds_mean": -8.84,
+    "client_redlines_price_only": "42 of 61",
+    "deal_worlds": 45,
+    "delay_loss": 44.17,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 157.43,
+     "trade": 296.15,
+     "walk": 235.51
+    },
+    "integrator_earnings_deal_worlds_mean": 219.67,
+    "integrator_redlines_price_only": "41 of 105",
+    "joint_value_lost": 126.77,
+    "no_deal_loss": 25.22,
+    "signed_in_no_deal_worlds": "14 of 15",
+    "valid": 60
+   }
+  }
+ },
+ "worlds": 60
+}

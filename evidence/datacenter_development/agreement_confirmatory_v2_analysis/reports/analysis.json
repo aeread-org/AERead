@@ -1,0 +1,752 @@
+{
+ "campaigns": {
+  "CF": {
+   "campaign_id": "datacenter_agreement_v2_client_firm",
+   "cells": 160,
+   "list_price_usd": 10.8499,
+   "missing": [],
+   "missing_by_cause": {},
+   "plan_sha256": "01b525f670c6880ed821ecd41ba65ea7abb7908f87c2e9512a128bc57aacba3d",
+   "status": {
+    "ok": 160
+   },
+   "valid": 160,
+   "wall_minutes": [
+    29.04
+   ]
+  },
+  "HH": {
+   "campaign_id": "datacenter_agreement_v2_head_to_head",
+   "cells": 160,
+   "list_price_usd": 24.2049,
+   "missing": [],
+   "missing_by_cause": {},
+   "plan_sha256": "2d2fc8f557f62ef5207eb382f98dcbb0212e4c0c6fd88e52503e3da5953762fa",
+   "status": {
+    "ok": 160
+   },
+   "valid": 160,
+   "wall_minutes": [
+    81.24
+   ]
+  },
+  "IF": {
+   "campaign_id": "datacenter_agreement_v2_integrator_firm",
+   "cells": 320,
+   "list_price_usd": 20.3514,
+   "missing": [],
+   "missing_by_cause": {},
+   "plan_sha256": "23a58c7266b2b19a8ac9240b476f0704b5e7deb9b9ca79e572753331115914e2",
+   "status": {
+    "ok": 320
+   },
+   "valid": 320,
+   "wall_minutes": [
+    70.0
+   ]
+  }
+ },
+ "deal_worlds": 72,
+ "pack": "agreement_admitted_v2",
+ "plan": "docs/families/datacenter/agreement_confirmatory_v2_plan.md",
+ "primary": [
+  {
+   "bootstrap_95": [
+    5.903,
+    40.562
+   ],
+   "ci_0.9500": [
+    5.425,
+    40.811
+   ],
+   "ci_0.9875": [
+    0.376,
+    45.859
+   ],
+   "contrast": "P1",
+   "dropout_share": 0.0,
+   "holm_alpha": 0.025,
+   "holm_step": 3,
+   "inconclusive_by_dropout": false,
+   "mean": 23.118,
+   "minimum_effect": 40.0,
+   "missingness_bounds_mean": [
+    23.118,
+    23.118
+   ],
+   "n": 72,
+   "p": 0.011174360867357217,
+   "p_holm": 0.022348721734714434,
+   "reading": "found; the 95% interval does not clear its minimum effect of 40",
+   "rejected": true,
+   "sd": 75.293,
+   "world_values": {
+    "00ed46a4": 199.175,
+    "020dc45e": -2.5,
+    "082fd45f": 70.0,
+    "09d5a5a5": -110.58,
+    "0bacb2bc": -14.18,
+    "0e213148": -42.264,
+    "0fb33902": 7.0,
+    "127fbf4d": 20.0,
+    "1364f3f3": 40.0,
+    "15add624": -25.68,
+    "19925759": -36.51,
+    "1b1a7d96": -3.12,
+    "1f16c257": 72.5,
+    "2161db59": -53.243,
+    "26c71547": 55.18,
+    "28921eb0": 70.0,
+    "28e6010c": -12.5,
+    "2d70836a": -12.5,
+    "31ef0baa": 75.0,
+    "4077595b": 67.5,
+    "438035b5": -205.345,
+    "4709cb29": 27.5,
+    "4f603de8": 55.0,
+    "533f6b64": 47.5,
+    "5c319eb5": 0.0,
+    "5ce9f222": -79.36,
+    "5fb9fbd9": -104.225,
+    "64a1d091": 90.0,
+    "6830fdec": -31.383,
+    "684939f4": 165.0,
+    "6b2c4e88": 77.5,
+    "6ed00b65": 0.0,
+    "71d61e6f": 45.0,
+    "7b31dd67": 82.5,
+    "7c518ecb": -83.3,
+    "7c8653c3": -67.644,
+    "7e4460d3": 45.0,
+    "824226ce": 130.0,
+    "83ffe920": 201.54,
+    "84ecb7ed": -10.0,
+    "889b1693": -29.68,
+    "924dbb57": -68.452,
+    "9253d2d5": 155.0,
+    "9a068464": 0.0,
+    "a10a90d7": 0.0,
+    "a2ccd688": 140.1,
+    "a37dd691": -20.0,
+    "a38d64b0": -37.061,
+    "a435360b": 75.0,
+    "a74766d0": 37.5,
+    "a7e2ef96": 15.557,
+    "ac22e3d4": 0.0,
+    "b240226a": -13.07,
+    "b746f54b": 35.0,
+    "bbd3f264": 210.0,
+    "c3d87daf": 0.0,
+    "c5799bad": 0.0,
+    "cb8732a1": 17.5,
+    "cc564090": 105.0,
+    "d5953991": 16.25,
+    "d95a2ca4": 102.5,
+    "dfc273fd": -37.98,
+    "e0cc88ce": 32.5,
+    "e7094fe8": 9.472,
+    "e960521d": -51.905,
+    "ebc17f8f": 77.5,
+    "ec8e21e8": 10.0,
+    "ee0b7fa0": 130.0,
+    "ee376a3c": 13.29,
+    "f4737ae9": 75.0,
+    "f8a7b406": -57.77,
+    "f991ee31": -25.33
+   },
+   "worlds_base": 72,
+   "worlds_dropped": [],
+   "worlds_used": 72
+  },
+  {
+   "bootstrap_95": [
+    98.358,
+    160.609
+   ],
+   "ci_0.9500": [
+    96.783,
+    160.822
+   ],
+   "ci_0.9875": [
+    87.646,
+    169.959
+   ],
+   "contrast": "P2",
+   "dropout_share": 0.0,
+   "holm_alpha": 0.0125,
+   "holm_step": 1,
+   "inconclusive_by_dropout": false,
+   "mean": 128.803,
+   "minimum_effect": 100.0,
+   "missingness_bounds_mean": [
+    128.803,
+    128.803
+   ],
+   "n": 72,
+   "p": 1.529730517853653e-11,
+   "p_holm": 6.118922071414612e-11,
+   "reading": "found; the 95% interval does not clear its minimum effect of 100",
+   "rejected": true,
+   "sd": 136.26,
+   "world_values": {
+    "00ed46a4": 387.513,
+    "020dc45e": 42.945,
+    "082fd45f": 173.85,
+    "09d5a5a5": 510.782,
+    "0bacb2bc": 0.0,
+    "0e213148": -7.5,
+    "0fb33902": 104.403,
+    "127fbf4d": 109.0,
+    "1364f3f3": 75.423,
+    "15add624": 0.0,
+    "19925759": 22.278,
+    "1b1a7d96": 75.75,
+    "1f16c257": 259.2,
+    "2161db59": -28.125,
+    "26c71547": 100.99,
+    "28921eb0": 172.5,
+    "28e6010c": 12.5,
+    "2d70836a": 80.92,
+    "31ef0baa": 391.531,
+    "4077595b": 237.805,
+    "438035b5": 305.725,
+    "4709cb29": 87.38,
+    "4f603de8": 110.58,
+    "533f6b64": 163.365,
+    "5c319eb5": 0.0,
+    "5ce9f222": 103.1,
+    "5fb9fbd9": 316.844,
+    "64a1d091": 150.0,
+    "6830fdec": 19.6,
+    "684939f4": 412.964,
+    "6b2c4e88": 139.04,
+    "6ed00b65": -10.0,
+    "71d61e6f": 255.734,
+    "7b31dd67": 182.083,
+    "7c518ecb": 324.18,
+    "7c8653c3": 330.45,
+    "7e4460d3": 164.859,
+    "824226ce": 8.52,
+    "83ffe920": 110.675,
+    "84ecb7ed": 24.726,
+    "889b1693": -10.803,
+    "924dbb57": 27.577,
+    "9253d2d5": 335.012,
+    "9a068464": 53.918,
+    "a10a90d7": 241.986,
+    "a2ccd688": 13.83,
+    "a37dd691": 25.78,
+    "a38d64b0": 118.3,
+    "a435360b": 262.5,
+    "a74766d0": 126.6,
+    "a7e2ef96": -20.611,
+    "ac22e3d4": 58.406,
+    "b240226a": 207.165,
+    "b746f54b": 113.265,
+    "bbd3f264": 273.35,
+    "c3d87daf": 0.407,
+    "c5799bad": -12.5,
+    "cb8732a1": 53.397,
+    "cc564090": 90.0,
+    "d5953991": 46.655,
+    "d95a2ca4": 280.18,
+    "dfc273fd": 5.0,
+    "e0cc88ce": 40.593,
+    "e7094fe8": -5.0,
+    "e960521d": 405.8,
+    "ebc17f8f": -18.096,
+    "ec8e21e8": 114.4,
+    "ee0b7fa0": 411.28,
+    "ee376a3c": 0.0,
+    "f4737ae9": 190.0,
+    "f8a7b406": -88.7,
+    "f991ee31": 12.5
+   },
+   "worlds_base": 72,
+   "worlds_dropped": [],
+   "worlds_used": 72
+  },
+  {
+   "bootstrap_95": [
+    8.429,
+    36.588
+   ],
+   "ci_0.9500": [
+    8.117,
+    37.107
+   ],
+   "ci_0.9875": [
+    3.981,
+    41.243
+   ],
+   "contrast": "P3a",
+   "dropout_share": 0.0,
+   "holm_alpha": 0.016666666666666666,
+   "holm_step": 2,
+   "inconclusive_by_dropout": false,
+   "mean": 22.612,
+   "minimum_effect": 40.0,
+   "missingness_bounds_mean": [
+    22.612,
+    22.612
+   ],
+   "n": 72,
+   "p": 0.0026888058272427737,
+   "p_holm": 0.008066417481728322,
+   "reading": "found; the 95% interval does not clear its minimum effect of 40",
+   "rejected": true,
+   "sd": 61.684,
+   "world_values": {
+    "00ed46a4": 199.175,
+    "020dc45e": 52.17,
+    "082fd45f": 20.0,
+    "09d5a5a5": 26.72,
+    "0bacb2bc": 25.0,
+    "0e213148": 39.764,
+    "0fb33902": -17.5,
+    "127fbf4d": 15.0,
+    "1364f3f3": 12.5,
+    "15add624": 0.0,
+    "19925759": 29.01,
+    "1b1a7d96": 59.57,
+    "1f16c257": 52.5,
+    "2161db59": 0.0,
+    "26c71547": 94.18,
+    "28921eb0": 70.0,
+    "28e6010c": 105.848,
+    "2d70836a": -12.5,
+    "31ef0baa": -7.5,
+    "4077595b": 71.8,
+    "438035b5": -165.345,
+    "4709cb29": -37.5,
+    "4f603de8": 55.0,
+    "533f6b64": -12.5,
+    "5c319eb5": 0.0,
+    "5ce9f222": 64.36,
+    "5fb9fbd9": -101.725,
+    "64a1d091": -10.0,
+    "6830fdec": -31.383,
+    "684939f4": 55.0,
+    "6b2c4e88": 77.5,
+    "6ed00b65": 50.16,
+    "71d61e6f": -5.0,
+    "7b31dd67": 22.5,
+    "7c518ecb": 15.8,
+    "7c8653c3": -122.644,
+    "7e4460d3": 45.0,
+    "824226ce": 90.0,
+    "83ffe920": 60.0,
+    "84ecb7ed": 123.761,
+    "889b1693": 0.0,
+    "924dbb57": 0.0,
+    "9253d2d5": -25.0,
+    "9a068464": 131.114,
+    "a10a90d7": 0.0,
+    "a2ccd688": 140.1,
+    "a37dd691": -20.0,
+    "a38d64b0": 69.561,
+    "a435360b": 25.0,
+    "a74766d0": 134.048,
+    "a7e2ef96": -15.0,
+    "ac22e3d4": 0.0,
+    "b240226a": -28.07,
+    "b746f54b": 35.0,
+    "bbd3f264": 75.0,
+    "c3d87daf": 0.0,
+    "c5799bad": 0.0,
+    "cb8732a1": 23.769,
+    "cc564090": 40.0,
+    "d5953991": -3.65,
+    "d95a2ca4": 57.5,
+    "dfc273fd": 50.48,
+    "e0cc88ce": 32.5,
+    "e7094fe8": 43.628,
+    "e960521d": -181.905,
+    "ebc17f8f": 17.5,
+    "ec8e21e8": 0.0,
+    "ee0b7fa0": 25.0,
+    "ee376a3c": -30.0,
+    "f4737ae9": -32.5,
+    "f8a7b406": 55.27,
+    "f991ee31": 0.0
+   },
+   "worlds_base": 72,
+   "worlds_dropped": [],
+   "worlds_used": 72
+  },
+  {
+   "bootstrap_95": [
+    -16.425,
+    15.405
+   ],
+   "ci_0.9500": [
+    -17.087,
+    16.075
+   ],
+   "ci_0.9875": [
+    -21.818,
+    20.807
+   ],
+   "contrast": "P3b",
+   "dropout_share": 0.0,
+   "holm_alpha": 0.05,
+   "holm_step": 4,
+   "inconclusive_by_dropout": false,
+   "mean": -0.506,
+   "minimum_effect": 40.0,
+   "missingness_bounds_mean": [
+    -0.506,
+    -0.506
+   ],
+   "n": 72,
+   "p": 0.9516718880636905,
+   "p_holm": 0.9516718880636905,
+   "reading": "not found: Holm does not reject 0",
+   "rejected": false,
+   "sd": 70.56,
+   "world_values": {
+    "00ed46a4": 0.0,
+    "020dc45e": 54.67,
+    "082fd45f": -50.0,
+    "09d5a5a5": 137.3,
+    "0bacb2bc": 39.18,
+    "0e213148": 82.028,
+    "0fb33902": -24.5,
+    "127fbf4d": -5.0,
+    "1364f3f3": -27.5,
+    "15add624": 25.68,
+    "19925759": 65.52,
+    "1b1a7d96": 62.69,
+    "1f16c257": -20.0,
+    "2161db59": 53.243,
+    "26c71547": 39.0,
+    "28921eb0": 0.0,
+    "28e6010c": 118.348,
+    "2d70836a": 0.0,
+    "31ef0baa": -82.5,
+    "4077595b": 4.3,
+    "438035b5": 40.0,
+    "4709cb29": -65.0,
+    "4f603de8": 0.0,
+    "533f6b64": -60.0,
+    "5c319eb5": 0.0,
+    "5ce9f222": 143.72,
+    "5fb9fbd9": 2.5,
+    "64a1d091": -100.0,
+    "6830fdec": 0.0,
+    "684939f4": -110.0,
+    "6b2c4e88": 0.0,
+    "6ed00b65": 50.16,
+    "71d61e6f": -50.0,
+    "7b31dd67": -60.0,
+    "7c518ecb": 99.1,
+    "7c8653c3": -55.0,
+    "7e4460d3": 0.0,
+    "824226ce": -40.0,
+    "83ffe920": -141.54,
+    "84ecb7ed": 133.761,
+    "889b1693": 29.68,
+    "924dbb57": 68.452,
+    "9253d2d5": -180.0,
+    "9a068464": 131.114,
+    "a10a90d7": 0.0,
+    "a2ccd688": 0.0,
+    "a37dd691": 0.0,
+    "a38d64b0": 106.622,
+    "a435360b": -50.0,
+    "a74766d0": 96.548,
+    "a7e2ef96": -30.557,
+    "ac22e3d4": 0.0,
+    "b240226a": -15.0,
+    "b746f54b": 0.0,
+    "bbd3f264": -135.0,
+    "c3d87daf": 0.0,
+    "c5799bad": 0.0,
+    "cb8732a1": 6.269,
+    "cc564090": -65.0,
+    "d5953991": -19.9,
+    "d95a2ca4": -45.0,
+    "dfc273fd": 88.46,
+    "e0cc88ce": 0.0,
+    "e7094fe8": 34.156,
+    "e960521d": -130.0,
+    "ebc17f8f": -60.0,
+    "ec8e21e8": -10.0,
+    "ee0b7fa0": -105.0,
+    "ee376a3c": -43.29,
+    "f4737ae9": -107.5,
+    "f8a7b406": 113.04,
+    "f991ee31": 25.33
+   },
+   "worlds_base": 72,
+   "worlds_dropped": [],
+   "worlds_used": 72
+  }
+ ],
+ "secondary": {
+  "CF": {
+   "codex_less_claude_client_earnings": {
+    "bootstrap_95": [
+     -9.685,
+     15.024
+    ],
+    "ci_0.9500": [
+     -10.018,
+     14.97
+    ],
+    "ci_0.9875": [
+     -13.583,
+     18.535
+    ],
+    "claim": "none",
+    "limit": "DC-D-35: the client seat has little to infer",
+    "mean": 2.476,
+    "n": 72,
+    "p": 0.6939279543313865,
+    "sd": 53.169
+   },
+   "negotiator_drawn_public_v1_integrator__claude_client": {
+    "allocation_loss": 16.99,
+    "best_agreement_signed_in_deal_worlds": 20,
+    "client_below_walk_away": 0,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 98.0,
+     "trade": 28.8,
+     "walk": 11.87
+    },
+    "client_earnings_deal_worlds_mean": 48.85,
+    "client_redlines_price_only": "40 of 86",
+    "deal_worlds": 72,
+    "delay_loss": 50.62,
+    "joint_value_lost": 115.9,
+    "no_deal_loss": 48.29,
+    "signed_in_no_deal_worlds": "0 of 8",
+    "valid": 80
+   },
+   "negotiator_drawn_public_v1_integrator__codex_client": {
+    "allocation_loss": 12.39,
+    "best_agreement_signed_in_deal_worlds": 24,
+    "client_below_walk_away": 0,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 92.93,
+     "trade": 36.83,
+     "walk": 17.08
+    },
+    "client_earnings_deal_worlds_mean": 51.33,
+    "client_redlines_price_only": "82 of 152",
+    "deal_worlds": 72,
+    "delay_loss": 92.81,
+    "joint_value_lost": 158.78,
+    "no_deal_loss": 53.59,
+    "signed_in_no_deal_worlds": "0 of 8",
+    "valid": 80
+   }
+  },
+  "HH": {
+   "claude_integrator__codex_client": {
+    "allocation_loss": 12.65,
+    "best_agreement_signed_in_deal_worlds": 25,
+    "client_below_walk_away": 0,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 273.47,
+     "trade": 104.81,
+     "walk": 133.39
+    },
+    "client_earnings_deal_worlds_mean": 174.05,
+    "client_redlines_price_only": "28 of 143",
+    "deal_worlds": 72,
+    "delay_loss": 74.38,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 31.4,
+     "trade": 7.8,
+     "walk": 11.97
+    },
+    "integrator_earnings_deal_worlds_mean": 17.54,
+    "integrator_redlines_price_only": "80 of 175",
+    "joint_value_lost": 111.36,
+    "no_deal_loss": 24.34,
+    "signed_in_no_deal_worlds": "0 of 8",
+    "valid": 80
+   },
+   "codex_integrator__claude_client": {
+    "allocation_loss": 22.42,
+    "best_agreement_signed_in_deal_worlds": 13,
+    "client_below_walk_away": 0,
+    "client_earnings_by_cell": {
+     "hand_risk_over": 57.16,
+     "trade": 33.7,
+     "walk": 35.95
+    },
+    "client_earnings_deal_worlds_mean": 42.82,
+    "client_redlines_price_only": "70 of 128",
+    "deal_worlds": 72,
+    "delay_loss": 68.12,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 263.33,
+     "trade": 98.78,
+     "walk": 49.81
+    },
+    "integrator_earnings_deal_worlds_mean": 143.92,
+    "integrator_redlines_price_only": "78 of 170",
+    "joint_value_lost": 116.66,
+    "no_deal_loss": 26.11,
+    "signed_in_no_deal_worlds": "0 of 8",
+    "valid": 80
+   }
+  },
+  "IF": {
+   "claude_integrator__negotiator_drawn_public_v1_client": {
+    "allocation_loss": 2.22,
+    "best_agreement_signed_in_deal_worlds": 80,
+    "deal_worlds": 144,
+    "delay_loss": 40.0,
+    "integrator_below_walk_away": 2,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 124.89,
+     "trade": 62.75,
+     "walk": 49.66
+    },
+    "integrator_earnings_deal_worlds_mean": 81.37,
+    "integrator_redlines_price_only": "114 of 227",
+    "joint_value_lost": 51.28,
+    "no_deal_loss": 9.06,
+    "signed_in_no_deal_worlds": "0 of 16",
+    "valid": 160
+   },
+   "codex_integrator__negotiator_drawn_public_v1_client": {
+    "allocation_loss": 1.74,
+    "best_agreement_signed_in_deal_worlds": 68,
+    "deal_worlds": 144,
+    "delay_loss": 73.91,
+    "integrator_below_walk_away": 0,
+    "integrator_earnings_by_cell": {
+     "hand_risk_over": 153.34,
+     "trade": 89.91,
+     "walk": 61.37
+    },
+    "integrator_earnings_deal_worlds_mean": 104.49,
+    "integrator_redlines_price_only": "175 of 371",
+    "joint_value_lost": 121.56,
+    "no_deal_loss": 45.91,
+    "signed_in_no_deal_worlds": "0 of 16",
+    "valid": 160
+   }
+  },
+  "below_walk_away": {
+   "CF": {
+    "claude_opus55 as client (negotiator_drawn_public_v1_integrator__claude_client)": "0 of 80",
+    "codex_sol61 as client (negotiator_drawn_public_v1_integrator__codex_client)": "0 of 80"
+   },
+   "HH": {
+    "claude_opus55 as client (codex_integrator__claude_client)": "0 of 80",
+    "claude_opus55 as integrator (claude_integrator__codex_client)": "0 of 80",
+    "codex_sol61 as client (claude_integrator__codex_client)": "0 of 80",
+    "codex_sol61 as integrator (codex_integrator__claude_client)": "0 of 80"
+   },
+   "IF": {
+    "claude_opus55 as integrator (claude_integrator__negotiator_drawn_public_v1_client)": "2 of 160",
+    "codex_sol61 as integrator (codex_integrator__negotiator_drawn_public_v1_client)": "0 of 160"
+   }
+  },
+  "fee_sensitivity": {
+   "CF": {
+    "claude_opus55 as client (negotiator_drawn_public_v1_integrator__claude_client)": {
+     "0": 74.89,
+     "12.5": 61.87,
+     "50": 22.81
+    },
+    "codex_sol61 as client (negotiator_drawn_public_v1_integrator__codex_client)": {
+     "0": 101.33,
+     "12.5": 76.33,
+     "50": 1.33
+    },
+    "negotiator_drawn_public_v1_integrator__claude_client:joint_value_lost": {
+     "0": 72.53,
+     "12.5": 96.84,
+     "50": 169.75
+    },
+    "negotiator_drawn_public_v1_integrator__codex_client:joint_value_lost": {
+     "0": 73.3,
+     "12.5": 122.09,
+     "50": 268.44
+    }
+   },
+   "HH": {
+    "claude_integrator__codex_client:joint_value_lost": {
+     "0": 41.1,
+     "12.5": 79.29,
+     "50": 193.87
+    },
+    "claude_opus55 as client (codex_integrator__claude_client)": {
+     "0": 83.45,
+     "12.5": 63.14,
+     "50": 2.2
+    },
+    "claude_opus55 as integrator (claude_integrator__codex_client)": {
+     "0": 47.4,
+     "12.5": 32.47,
+     "50": -12.32
+    },
+    "codex_integrator__claude_client:joint_value_lost": {
+     "0": 53.93,
+     "12.5": 88.13,
+     "50": 190.74
+    },
+    "codex_sol61 as client (claude_integrator__codex_client)": {
+     "0": 220.58,
+     "12.5": 197.31,
+     "50": 127.52
+    },
+    "codex_sol61 as integrator (codex_integrator__claude_client)": {
+     "0": 171.7,
+     "12.5": 157.81,
+     "50": 116.14
+    }
+   },
+   "IF": {
+    "claude_integrator__negotiator_drawn_public_v1_client:joint_value_lost": {
+     "0": 12.53,
+     "12.5": 34.75,
+     "50": 101.42
+    },
+    "claude_opus55 as integrator (claude_integrator__negotiator_drawn_public_v1_client)": {
+     "0": 93.01,
+     "12.5": 87.19,
+     "50": 69.74
+    },
+    "codex_integrator__negotiator_drawn_public_v1_client:joint_value_lost": {
+     "0": 52.95,
+     "12.5": 94.0,
+     "50": 217.18
+    },
+    "codex_sol61 as integrator (codex_integrator__negotiator_drawn_public_v1_client)": {
+     "0": 141.12,
+     "12.5": 122.81,
+     "50": 67.86
+    }
+   }
+  },
+  "headroom_captured": {
+   "ceiling_mean": 186.68,
+   "claude": {
+    "mean": 81.37,
+    "share_of_ceiling_headroom": -0.005,
+    "share_of_own_information_headroom": -0.006
+   },
+   "codex": {
+    "mean": 104.49,
+    "share_of_ceiling_headroom": 0.216,
+    "share_of_own_information_headroom": 0.25
+   },
+   "own_information_mean": 172.3,
+   "rule_mean": 81.88
+  },
+  "identical_plays": {
+   "claude": "47 of 80 worlds",
+   "codex": "28 of 80 worlds"
+  }
+ },
+ "worlds": 80
+}

@@ -1,0 +1,106 @@
+# datacenter_agreement_confirm_pilot_v1
+
+The agreement case (`docs/families/datacenter/agreement_case.md`), first slice: two players redline one services agreement clause by clause, sealed, verified and replayed through the shared runner. Both seats are CLI subjects without tools at reasoning effort low. development: a variance pilot, nothing in it is a result.
+
+Joint value lost ($ thousands) is the surplus the best of the 600 agreements makes available for both parties' true private costs, less the surplus the pair realised, redline costs included. It needs no model of either player.
+
+| pairing | world | ended | joint value lost | allocation / no deal / delay | available | client surplus | integrator surplus | clauses from best |
+|---|---|---|---|---|---|---|---|---|
+| claude_integrator__negotiator_drawn_public_v1_client | 3e58960e | signed | 43.225 | 18.225 / 0.0 / 25.0 | 494.8 | 351.525 | 100.05 | 3 |
+| claude_integrator__negotiator_drawn_public_v1_client | 3e58960e | signed | 43.225 | 18.225 / 0.0 / 25.0 | 494.8 | 351.525 | 100.05 | 3 |
+| claude_integrator__negotiator_drawn_public_v1_client | 4c1768d2 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 631.332 | 390.78 | 215.552 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 4c1768d2 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 631.332 | 390.78 | 215.552 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 6707ee78 | walked | 158.5562 | 0.0 / 58.5562 / 100.0 | 58.556 | -50.0 | -50.0 | None |
+| claude_integrator__negotiator_drawn_public_v1_client | 6707ee78 | walked | 158.5562 | 0.0 / 58.5562 / 100.0 | 58.556 | -50.0 | -50.0 | None |
+| claude_integrator__negotiator_drawn_public_v1_client | 6b1dbd6f | signed | 25.0 | 0.0 / 0.0 / 25.0 | 97.276 | 34.8175 | 37.458 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 6b1dbd6f | signed | 75.0 | 0.0 / 0.0 / 75.0 | 97.276 | -10.1825 | 32.458 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 74fba85f | signed | 25.0 | 0.0 / 0.0 / 25.0 | 378.663 | 191.323 | 162.34 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 74fba85f | signed | 25.0 | 0.0 / 0.0 / 25.0 | 378.663 | 191.323 | 162.34 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 7b6d7764 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 216.51 | 88.0 | 103.51 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 7b6d7764 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 216.51 | 88.0 | 103.51 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 84058cbf | signed | 25.0 | 0.0 / 0.0 / 25.0 | 456.692 | 246.8725 | 184.82 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 84058cbf | signed | 25.0 | 0.0 / 0.0 / 25.0 | 456.692 | 276.8725 | 154.82 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | 97a78a2b | signed | 25.0 | 0.0 / 0.0 / 25.0 | 429.28 | 296.28 | 108.0 | 1 |
+| claude_integrator__negotiator_drawn_public_v1_client | 97a78a2b | signed | 25.0 | 0.0 / 0.0 / 25.0 | 429.28 | 296.28 | 108.0 | 1 |
+| claude_integrator__negotiator_drawn_public_v1_client | ab7f8454 | signed | 26.5 | 1.5 / 0.0 / 25.0 | 543.11 | 312.16 | 204.45 | 2 |
+| claude_integrator__negotiator_drawn_public_v1_client | ab7f8454 | signed | 26.5 | 1.5 / 0.0 / 25.0 | 543.11 | 312.16 | 204.45 | 2 |
+| claude_integrator__negotiator_drawn_public_v1_client | b282adb4 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 189.864 | 82.24 | 82.624 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | b282adb4 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 189.864 | 42.24 | 72.624 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | ed5deeda | signed | 75.0 | 0.0 / 0.0 / 75.0 | 396.766 | 215.166 | 106.6 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | ed5deeda | signed | 25.0 | 0.0 / 0.0 / 25.0 | 396.766 | 255.166 | 116.6 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | f32dc5f4 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 340.695 | 298.895 | 16.8 | 0 |
+| claude_integrator__negotiator_drawn_public_v1_client | f32dc5f4 | signed | 25.0 | 0.0 / 0.0 / 25.0 | 340.695 | 298.895 | 16.8 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 3e58960e | signed | 118.225 | 18.225 / 0.0 / 100.0 | 494.8 | 166.525 | 210.05 | 3 |
+| codex_integrator__negotiator_drawn_public_v1_client | 3e58960e | walked | 594.8 | 0.0 / 494.8 / 100.0 | 494.8 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | 4c1768d2 | signed | 50.0 | 0.0 / 0.0 / 50.0 | 631.332 | 310.78 | 270.552 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 4c1768d2 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 631.332 | 270.78 | 285.552 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 6707ee78 | walked | 158.5562 | 0.0 / 58.5562 / 100.0 | 58.556 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | 6707ee78 | walked | 158.5562 | 0.0 / 58.5562 / 100.0 | 58.556 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | 6b1dbd6f | walked | 197.2755 | 0.0 / 97.2755 / 100.0 | 97.276 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | 6b1dbd6f | signed | 75.0 | 0.0 / 0.0 / 75.0 | 97.276 | -10.1825 | 32.458 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 74fba85f | signed | 75.0 | 0.0 / 0.0 / 75.0 | 378.663 | 166.323 | 137.34 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 74fba85f | signed | 100.0 | 0.0 / 0.0 / 100.0 | 378.663 | 46.323 | 232.34 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 7b6d7764 | walked | 316.51 | 0.0 / 216.51 / 100.0 | 216.51 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | 7b6d7764 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 216.51 | 43.0 | 98.51 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 84058cbf | signed | 75.0 | 0.0 / 0.0 / 75.0 | 456.692 | 146.8725 | 234.82 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 84058cbf | signed | 75.0 | 0.0 / 0.0 / 75.0 | 456.692 | 146.8725 | 234.82 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | 97a78a2b | signed | 100.0 | 0.0 / 0.0 / 100.0 | 429.28 | 136.28 | 193.0 | 1 |
+| codex_integrator__negotiator_drawn_public_v1_client | 97a78a2b | walked | 529.28 | 0.0 / 429.28 / 100.0 | 429.28 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | ab7f8454 | signed | 76.5 | 1.5 / 0.0 / 75.0 | 543.11 | 172.16 | 294.45 | 2 |
+| codex_integrator__negotiator_drawn_public_v1_client | ab7f8454 | signed | 76.5 | 1.5 / 0.0 / 75.0 | 543.11 | 197.16 | 269.45 | 2 |
+| codex_integrator__negotiator_drawn_public_v1_client | b282adb4 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 189.864 | 42.24 | 72.624 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | b282adb4 | walked | 289.864 | 0.0 / 189.864 / 100.0 | 189.864 | -50.0 | -50.0 | None |
+| codex_integrator__negotiator_drawn_public_v1_client | ed5deeda | signed | 25.0 | 0.0 / 0.0 / 25.0 | 396.766 | 255.166 | 116.6 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | ed5deeda | signed | 75.0 | 0.0 / 0.0 / 75.0 | 396.766 | 155.166 | 166.6 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | f32dc5f4 | signed | 100.0 | 0.0 / 0.0 / 100.0 | 340.695 | 113.895 | 126.8 | 0 |
+| codex_integrator__negotiator_drawn_public_v1_client | f32dc5f4 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 340.695 | 203.895 | 61.8 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | 3e58960e | signed | 54.0 | 54.0 / 0.0 / 0.0 | 494.8 | 80.8 | 360.0 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | 3e58960e | signed | 54.0 | 54.0 / 0.0 / 0.0 | 494.8 | 80.8 | 360.0 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | 4c1768d2 | signed | 101.2 | 1.2 / 0.0 / 100.0 | 631.332 | 337.58 | 192.552 | 1 |
+| negotiator_drawn_public_v1_integrator__claude_client | 4c1768d2 | signed | 1.2 | 1.2 / 0.0 / 0.0 | 631.332 | 307.58 | 322.552 | 1 |
+| negotiator_drawn_public_v1_integrator__claude_client | 6707ee78 | signed | 203.7502 | 103.7502 / 0.0 / 100.0 | 58.556 | -235.15 | 89.956 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | 6707ee78 | signed | 153.7502 | 103.7502 / 0.0 / 50.0 | 58.556 | -215.15 | 119.956 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | 6b1dbd6f | signed | 0.0 | 0.0 / 0.0 / 0.0 | 97.276 | -245.1825 | 342.458 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | 6b1dbd6f | signed | 0.0 | 0.0 / 0.0 / 0.0 | 97.276 | -245.1825 | 342.458 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | 74fba85f | signed | 61.575 | 36.575 / 0.0 / 25.0 | 378.663 | 94.848 | 222.24 | 1 |
+| negotiator_drawn_public_v1_integrator__claude_client | 74fba85f | signed | 98.885 | 73.885 / 0.0 / 25.0 | 378.663 | 100.538 | 179.24 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | 7b6d7764 | signed | 0.0 | 0.0 / 0.0 / 0.0 | 216.51 | 88.0 | 128.51 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | 7b6d7764 | signed | 0.0 | 0.0 / 0.0 / 0.0 | 216.51 | 88.0 | 128.51 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | 84058cbf | signed | 37.25 | 12.25 / 0.0 / 25.0 | 456.692 | 252.6225 | 166.82 | 1 |
+| negotiator_drawn_public_v1_integrator__claude_client | 84058cbf | signed | 65.95 | 40.95 / 0.0 / 25.0 | 456.692 | 193.5225 | 197.22 | 1 |
+| negotiator_drawn_public_v1_integrator__claude_client | 97a78a2b | signed | 106.8425 | 106.8425 / 0.0 / 0.0 | 429.28 | 63.2875 | 259.15 | 5 |
+| negotiator_drawn_public_v1_integrator__claude_client | 97a78a2b | signed | 106.8425 | 106.8425 / 0.0 / 0.0 | 429.28 | 63.2875 | 259.15 | 5 |
+| negotiator_drawn_public_v1_integrator__claude_client | ab7f8454 | signed | 85.7375 | 85.7375 / 0.0 / 0.0 | 543.11 | 1.5445 | 455.828 | 5 |
+| negotiator_drawn_public_v1_integrator__claude_client | ab7f8454 | signed | 135.7375 | 85.7375 / 0.0 / 50.0 | 543.11 | 31.5445 | 375.828 | 5 |
+| negotiator_drawn_public_v1_integrator__claude_client | b282adb4 | signed | 0.0 | 0.0 / 0.0 / 0.0 | 189.864 | -207.76 | 397.624 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | b282adb4 | signed | 0.0 | 0.0 / 0.0 / 0.0 | 189.864 | -207.76 | 397.624 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | ed5deeda | signed | 137.54788 | 87.54788 / 0.0 / 50.0 | 396.766 | 67.31716 | 191.90096 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | ed5deeda | signed | 87.54788 | 87.54788 / 0.0 / 0.0 | 396.766 | 92.31716 | 216.90096 | 3 |
+| negotiator_drawn_public_v1_integrator__claude_client | f32dc5f4 | signed | 0.0 | 0.0 / 0.0 / 0.0 | 340.695 | 173.895 | 166.8 | 0 |
+| negotiator_drawn_public_v1_integrator__claude_client | f32dc5f4 | signed | 0.0 | 0.0 / 0.0 / 0.0 | 340.695 | 173.895 | 166.8 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | 3e58960e | signed | 174.7875 | 74.7875 / 0.0 / 100.0 | 494.8 | 149.6125 | 170.4 | 4 |
+| negotiator_drawn_public_v1_integrator__codex_client | 3e58960e | signed | 174.7875 | 74.7875 / 0.0 / 100.0 | 494.8 | 149.6125 | 170.4 | 4 |
+| negotiator_drawn_public_v1_integrator__codex_client | 4c1768d2 | signed | 101.2 | 1.2 / 0.0 / 100.0 | 631.332 | 332.58 | 197.552 | 1 |
+| negotiator_drawn_public_v1_integrator__codex_client | 4c1768d2 | signed | 101.2 | 1.2 / 0.0 / 100.0 | 631.332 | 337.58 | 192.552 | 1 |
+| negotiator_drawn_public_v1_integrator__codex_client | 6707ee78 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 58.556 | -73.623 | 57.1792 | 1 |
+| negotiator_drawn_public_v1_integrator__codex_client | 6707ee78 | walked | 158.5562 | 0.0 / 58.5562 / 100.0 | 58.556 | -50.0 | -50.0 | None |
+| negotiator_drawn_public_v1_integrator__codex_client | 6b1dbd6f | walked | 197.2755 | 0.0 / 97.2755 / 100.0 | 97.276 | -50.0 | -50.0 | None |
+| negotiator_drawn_public_v1_integrator__codex_client | 6b1dbd6f | walked | 197.2755 | 0.0 / 97.2755 / 100.0 | 97.276 | -50.0 | -50.0 | None |
+| negotiator_drawn_public_v1_integrator__codex_client | 74fba85f | signed | 154.075 | 54.075 / 0.0 / 100.0 | 378.663 | 107.348 | 117.24 | 3 |
+| negotiator_drawn_public_v1_integrator__codex_client | 74fba85f | walked | 478.663 | 0.0 / 378.663 / 100.0 | 378.663 | -50.0 | -50.0 | None |
+| negotiator_drawn_public_v1_integrator__codex_client | 7b6d7764 | signed | 50.0 | 0.0 / 0.0 / 50.0 | 216.51 | 73.0 | 93.51 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | 7b6d7764 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 216.51 | 83.0 | 58.51 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | 84058cbf | signed | 165.45 | 65.45 / 0.0 / 100.0 | 456.692 | 155.0225 | 136.22 | 3 |
+| negotiator_drawn_public_v1_integrator__codex_client | 84058cbf | signed | 75.0 | 0.0 / 0.0 / 75.0 | 456.692 | 216.8725 | 164.82 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | 97a78a2b | signed | 206.8425 | 106.8425 / 0.0 / 100.0 | 429.28 | 73.2875 | 149.15 | 5 |
+| negotiator_drawn_public_v1_integrator__codex_client | 97a78a2b | signed | 177.5625 | 77.5625 / 0.0 / 100.0 | 429.28 | 94.5675 | 157.15 | 4 |
+| negotiator_drawn_public_v1_integrator__codex_client | ab7f8454 | signed | 76.5 | 1.5 / 0.0 / 75.0 | 543.11 | 187.16 | 279.45 | 2 |
+| negotiator_drawn_public_v1_integrator__codex_client | ab7f8454 | signed | 185.7375 | 85.7375 / 0.0 / 100.0 | 543.11 | 71.5445 | 285.828 | 5 |
+| negotiator_drawn_public_v1_integrator__codex_client | b282adb4 | signed | 100.0 | 0.0 / 0.0 / 100.0 | 189.864 | -47.76 | 137.624 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | b282adb4 | signed | 75.0 | 0.0 / 0.0 / 75.0 | 189.864 | 7.24 | 107.624 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | ed5deeda | signed | 187.54788 | 87.54788 / 0.0 / 100.0 | 396.766 | 67.31716 | 141.90096 | 3 |
+| negotiator_drawn_public_v1_integrator__codex_client | ed5deeda | signed | 187.54788 | 87.54788 / 0.0 / 100.0 | 396.766 | 67.31716 | 141.90096 | 3 |
+| negotiator_drawn_public_v1_integrator__codex_client | f32dc5f4 | signed | 100.0 | 0.0 / 0.0 / 100.0 | 340.695 | 123.895 | 116.8 | 0 |
+| negotiator_drawn_public_v1_integrator__codex_client | f32dc5f4 | signed | 100.0 | 0.0 / 0.0 / 100.0 | 340.695 | 123.895 | 116.8 | 0 |
+
+96 of 96 planned cells sealed; 96 valid. Cost $5.81 (list price of the tokens; subscription logins, nothing charged per call). Plan `a27bf4fc3738`.

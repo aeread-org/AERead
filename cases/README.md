@@ -40,12 +40,14 @@ package that owns it.
 | [`collusion/`](collusion/) | Algorithmic collusion | [`collusion`](../src/aeread_families/collusion/) | 7 |
 | [`commercial_state_calibration_v1/`](commercial_state_calibration_v1/) | Commercial state calibration | [`commercial_state_calibration`](../src/aeread_families/commercial_state_calibration/) | 4 |
 | [`consent_ir_v1/`](consent_ir_v1/) | Consent/IR | [`consent_ir`](../src/aeread_families/consent_ir/) | 2 |
+| [`datacenter_agreement_v1/`](datacenter_agreement_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 450 |
 | [`datacenter_counteroffer_action_schema_v1/`](datacenter_counteroffer_action_schema_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 3 |
 | [`datacenter_counteroffer_adoption_v1/`](datacenter_counteroffer_adoption_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 10 |
 | [`datacenter_counteroffer_affordance_v1/`](datacenter_counteroffer_affordance_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 3 |
 | [`datacenter_counteroffer_salience_v1/`](datacenter_counteroffer_salience_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 3 |
 | [`datacenter_development_terms_v1/`](datacenter_development_terms_v1/) | Data-center development terms | [`datacenter_development_terms`](../src/aeread_families/datacenter_development_terms/) | 41 |
 | [`datacenter_development_v1/`](datacenter_development_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 107 |
+| [`datacenter_risk_allocation_contracts_v1/`](datacenter_risk_allocation_contracts_v1/) | Data-center development | [`datacenter_development`](../src/aeread_families/datacenter_development/) | 59 |
 | [`econagent_v1/`](econagent_v1/) | EconAgent | [`econagent_v1`](../src/aeread_families/econagent_v1/) | 5 |
 | [`econevals/`](econevals/) | EconEvals | [`econevals`](../src/aeread_families/econevals/) | 30 |
 | [`exchange_v1/`](exchange_v1/) | Exchange v1 | [`exchange_v1`](../src/aeread/exchange_v1/) | 10 |

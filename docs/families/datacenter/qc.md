@@ -71,6 +71,12 @@ differ. Registrations are in `src/aeread/shared_runner/registry.py`.
 | `datacenter_counteroffer_affordance_v1` | 1.0.0 | `reemit_package` against `accept_by_reference` | 2 files, same world |
 | `datacenter_counteroffer_action_schema_v1` | 1.0.0 | `shared_offer_schema` against `dedicated_accept_schema` | 2 files, same world |
 | `datacenter_development_terms_v1` | 1.0.0 | single-phase report on SEC-grounded project terms | 6 on-disk packs (20 authored cases) plus 8 derived packs |
+| `datacenter_risk_allocation_v1` | 0.1.0 | integrator-client negotiation of who bears which risk, one model seat against a scripted counterpart; registration in draft PR #219 (kernel lane); gates in §10 | `risk_allocation_dev_v1` (16 worlds), `risk_allocation_two_prices_dev_v1`, `risk_allocation_eval_v1` (32 worlds) |
+| `datacenter_risk_allocation_two_sided_v1` | 0.1.0 | the same case with both seats played by models, graded on the exact outcome (joint value lost at both true types); registration in #224 (kernel lane); gates in §10 | `two_sided_eval_v1` (the 32 eval worlds) |
+| `datacenter_risk_allocation_menu_v1` | 0.1.0 | the client negotiating a scripted integrator's posted playbook and menu, the pricing policy hidden; registration in #224 (kernel lane); gates in §10 | `menu_eval_v1` (36 worlds) |
+| `datacenter_risk_allocation_contracts_v1` | 0.1.0 | the menu with every contract term the economics can grade exactly (damages rate, liability cap, deposit size, escrow, burn-in, site preparation), 64 to 360 contracts a playbook; registration in #224 (kernel lane); gates in §10 | `contracts_eval_v1` (52 worlds) |
+| `datacenter_risk_allocation_tender_v1` | 0.1.0 | a tender: three managed or turnkey firms bid once each and the client negotiates every term with any of them in the same turn; registration on `codex/datacenter-risk-allocation` (kernel lane); gates in §10 | `tender_pilot_v1` (24 worlds) |
+| `datacenter_agreement_v1` | 0.1.0 | two sides redline one services agreement clause by clause and settle a price, both seats open, graded at both true costs; registration on `codex/datacenter-agreement` (kernel lane, 03a7faef, no PR); gates in §11 | `agreement_dev_v1` (58 worlds), `agreement_confirm_v1` (58 fresh worlds), a walk-away brief variant and two type-swap packs |
 
 Every one of the 15 counteroffer case files pins the *same* base world:
 `world_seed = 312101`, `base_case_id = datacenter_development_v1.v2.objective_bounded_001`,
@@ -581,3 +587,255 @@ effect, or any statement that a subject negotiated *well*. The last one stays:
 on the 30 pre-guard bundles because their reference is beatable by walking
 away, and on the world-panel campaigns because one route on a descriptive
 endpoint says nothing about how it negotiated relative to any other.
+
+## 10. Risk allocation (`datacenter_risk_allocation_v1`)
+
+The integrator-client case of `docs/families/datacenter/risk_allocation_case.md`:
+the model negotiates four risk clauses and a price for one seat, client or
+integrator, against a scripted counterpart that prices by a declared rule, with
+the counterpart's costs private. Decision regret is graded against the exact
+best play on the model's own information. Its campaigns are
+`datacenter_risk_allocation_dev_campaign_v1` (192 cells, three arms, the dev
+pack) and `datacenter_risk_allocation_dev_campaign_v2` (704 cells: two arms,
+two models, two replicates, scripted controls, the fresh eval pack).
+
+**Gate 0, profile admission: partial.** This section is the profile. The trusted
+registry row is in draft PR #219 and needs a non-author review; both campaigns
+ran with that row applied on their branch.
+
+**Gate 1, task-distribution admission: passed for a diagnostic.** Worlds are drawn
+per declared cell and admitted only when the cell's lesson holds for the drawn
+facts (`risk_allocation.admit`); twins are added where the right contract
+depends on the counterpart's hidden type. The eval pack's 32 worlds use seeds no
+probe or prompt was tuned on (24 independent clusters, a twin with its base).
+
+**Gate 2, environment and verifier: passed.** The reference is an exact dynamic
+programme; in the v2 dry run it graded zero regret on all 192 of its cells, and
+seated in the v2 run itself it graded zero on all 64. Every executed receipt is replayed to the same
+digest before its cell counts. Leak tests keep the counterpart's type and the
+world's cell name out of every observation.
+
+**Gate 3, construct validity and baselines: partial.** Upper and lower controls
+run under the model's conditions in v2: the reference, the best contract signed
+without asking (`sign_the_prior_best_now`) and keeping the other side's terms
+while haggling the price (`haggle_price_only` for the client,
+`defend_the_opening_terms` for the integrator). Partial because the counterpart
+prices honestly by rule, outcomes are expectations, and a model counterpart is
+not yet a cell.
+
+**Gate 4, attribution and experimental controls: partial.** In v2 both models
+answer the same worlds under the same per-world request seed, with retries only
+for provider faults (rate limits, 5xx, dropped connections; DC-O-10) and a
+reply cut off by the output limit typed as missingness. Partial because each
+model has one provider route, reasoning is declared per arm (low effort, or
+the provider default) rather than matched in tokens, and v2's missingness falls
+on one model: GLM at default reasoning lost 31 of 128 cells to its time and
+token limits and upstream errors (DC-O-12, DC-T-15), Gemini none.
+
+**Gate 5, confirmatory reliability and publication: not confirmatory.** v2
+declares one contrast in its frozen plan (GLM 5.3 Flash minus Gemini 3.8 Flash,
+per arm and seat, paired on world and replicate, world-clustered bootstrap) and
+publishes it as a descriptive result: `winner_claim_allowed`,
+`inferential_model_ranking_allowed` and `causal_condition_effect_allowed` are
+false. v2's result: Gemini gives up less than GLM at low effort in both seats
+(+105 and +84 thousand per negotiation, intervals above zero) and at default
+reasoning in the client seat (+50, interval above zero); at default reasoning in
+the integrator seat GLM is lower (−27, interval reaching zero). Both costs are
+floors: v1's (DC-T-13) and v2's $8.94 (DC-T-14).
+
+**The two-sided family (`datacenter_risk_allocation_two_sided_v1`).** Gate 2
+passed: a full-information oracle pair loses zero on all 32 worlds through the
+kernel path and every receipt replays. Gate 3 partial: the rules pair runs in the
+same campaign as the lower control; per-move quality is not measured, only the
+outcome. Gate 5 not confirmatory: `datacenter_risk_allocation_two_sided_dev_campaign_v1`
+declared eight seat contrasts before any cell ran and publishes them as
+descriptive, claim flags false. GLM as client lost less joint value than Gemini as
+client against either integrator (intervals below zero); the integrator-seat
+contrasts are not separated. The campaign's cost, $1.40, is a floor (three calls
+of unknown outcome).
+
+**The playbook menu (`datacenter_risk_allocation_menu_v1`).** Gate 2 passed: the
+reference graded zero on all 36 of its cells in the run and every receipt replayed.
+Gate 3 partial: four rules lose 364 to 728 under the same kernel path; a check after
+the run shows the models' shortfall is mostly price, not the item, so the case
+separates hagglers more than item choosers. Gate 5 not confirmatory:
+`datacenter_risk_allocation_menu_dev_campaign_v1` (468 cells, $5.11 floor) reports
+GLM minus Gemini of −190 [−307, −96] at low effort and −91 [−148, −41] at default
+reasoning, the latter on the 35 of 72 GLM cells that finished (DC-O-14).
+
+**The full-terms menu (`datacenter_risk_allocation_contracts_v1`).** Gate 1
+passed for a diagnostic: eleven situations, each admitted only when its lesson
+holds for the reference, the deal and walking are $150k apart and the shortcuts it
+names lose by $75k (DC-D-27); 58 worlds. Gate 2 passed:
+the economics reduce to the one-sided case's with the new terms off, the
+reference's closed form equals brute-force search, every shown price is one the
+integrator signs at (DC-D-26), and through the kernel the reference grades zero
+on all 58 worlds with every receipt replayed. Gate 3 partial: five lower controls
+under the same kernel path, among them asking for every protection; outcomes are
+expectations. Gate 5 not confirmatory: v1 ran on an exhausted account (DC-O-15);
+`datacenter_risk_allocation_contracts_dev_campaign_v2` (696 cells, $3.93) reports
+GLM minus Gemini at low effort of −19 [−79, +37] and Gemini default minus low
+effort of −168 [−225, −114]; GLM at default reasoning is not seated (DC-O-14).
+
+**The tender (`datacenter_risk_allocation_tender_v1`).** Gate 1 passed for a pilot:
+four world types label coverage and each world is admitted under a situation only
+when every bid reveals its firm's type, the deal and walking are $150k apart and
+taking a bid as it stands loses $75k; coordination firms do not bid (DC-D-30); 24
+worlds. Gate 2 passed: no random move beats the exact reference, the environment's
+state is the reference's at every step, and through the kernel the reference grades
+zero on all 24 worlds with every receipt replayed. Gate 3 partial: four lower
+controls under the same kernel path (390 to 611). Gate 5 not confirmatory:
+`datacenter_risk_allocation_tender_pilot_v1` (178 cells, $0.59) reports GLM minus
+Gemini at low effort of −113 [−192, −41] on 21 worlds and sizes a later run from the
+per-world spread (51 worlds at one seed for ±50); two of GLM's three invalid episodes
+follow a break-off the answer text does not say withdrew the offer (DC-D-31).
+`datacenter_risk_allocation_tender_eval_v1` (440 cells, $1.32), sized from the pilot on 60
+fresh worlds with DC-D-31 fixed, reports GLM minus Gemini at low effort of −99 [−144, −52]
+on 54 worlds and Gemini default minus low effort of −114 [−191, −54] on 20; GLM lost six
+episodes to its output limit and one provider rejection (DC-O-16). Descriptive, not
+confirmatory: one pack, no pre-registration beyond the frozen plan.
+
+
+## 11. Negotiating into an agreement (`datacenter_agreement_v1`)
+
+The case of `docs/families/datacenter/agreement_case.md`, results in
+`agreement_results_2026-10.md`: an integrator and a client redline one services
+agreement of eight clauses and an all-in price (600 agreements) over six alternating
+moves, both seats open, graded exactly at both sides' true costs (`agreement.grade`).
+Its campaigns are the 18 `datacenter_agreement_cli_*` bundles: 2,456 negotiations of
+Codex (Sol 6.1) and Opus 5.5 against each other, themselves and scripted counterparts,
+2,417 valid, every one of them on a development pack. **Normative status: failed** for
+those campaigns, on Gate 1. The admitted pack `agreement_admitted_v1` (2026-10-13) is
+`partial` at Gate 1; no model has played it, and the confirmatory plan that would is
+`agreement_confirmatory_plan.md`.
+
+**Gate 0, profile admission: partial.** This section is the profile. From the registry
+row of 2026-10-09 (03a7faef) until it, the family was trusted with neither a profile nor
+an exemption, so `tests/test_benchmark_qc_profiles.py` failed on the branch through every
+agreement campaign (DC-J-08); that test now maps the family here. The registry row is
+kernel lane, on a branch with no PR, and needs a non-author review.
+
+**Gate 1, task-distribution admission: failed for the development packs, which every
+published campaign used; partial for `agreement_admitted_v1`, which no model has played.**
+
+*The development packs.* Both regenerate to the committed digests and share no world, but
+neither was admitted for this case. `agreement_dev_v1` (58 worlds, 6 with no deal worth
+signing) is the full-terms case's `contracts_eval_v1`, admitted for a client choosing from
+a list; `agreement_confirm_v1` (58, 6) is the same generator at base seed 2790000, a new
+seed and not a held-out mechanism. The client's hidden charge is fixed by cell, 8, 22 and
+28 worlds at the low, middle and high charge against a prior of a third each (DC-D-33),
+and the rival turnkey price, a public number, is the drawn integrator type's best contract
+cost plus an offset, so it moves with both hidden types (DC-D-34). These packs stay failed;
+nothing published on them is relabelled.
+
+*The admitted pack* (`cases/datacenter_agreement_v1/agreement_admitted_v1/`, built by
+`agreement_admitted_pack.py`, tested by `tests/test_datacenter_agreement_admitted_pack.py`,
+26 tests). What holds:
+
+- **Regeneration.** The generator scans seeds from 6,100,000 in order until every quota is
+  filled: 2,729 seeds. A full rescan (`python -m ...agreement_admitted_pack --check`, 45 s on
+  eight cores) reproduces all 62 files byte for byte. The test rebuilds them from the
+  committed scan log, recomputing the 60 admitted seeds and a fixed sample of 108 rows,
+  and checks that every status in the log follows from its reasons and cells.
+- **Admission before any type exists**, by the case's rules, on the public world and the
+  declared priors (the world's client charge is `None` until the types are drawn, so
+  anything reading it fails). In expectation over the prior on both hidden types, at both
+  sides' true costs: the draft leaves at least 75 against c*; signing the draft, haggling
+  only the price and asking for every protection (either side's) each lose at least 75, and
+  walking at least 150 (the full-terms case's margins: three redline fees, and twice that,
+  against the 322 an admitted deal world makes available); knowing the client's charge is
+  worth at least 25 (one redline) to the integrator's choice of agreement, and for every
+  integrator type the best outcome differs between charges. Every world meets every rule
+  when it is recomputed from the environment's cost functions, and each rule rejects a world
+  built or found to break it. The binding rule is asking for every client protection (2,054
+  of 2,729 rejections).
+- **Shortcuts are what they are said to be.** Each, played as a scripted pair through the
+  plugin's hooks for every type pair of one world per cell, loses exactly the amount
+  admission assigned it, and the prior-weighted sum is the pack's record.
+- **Cells and the give-up share.** 20 worlds where walking is right against at least a
+  third of counterparts, 20 where the best agreement trades a client protection for
+  another, 20 where it only hands risk to the integrator; 34 of 60 give a clause up (at
+  least a third declared). The design's other two cells cannot be filled: the draft is the
+  best agreement for no type pair in 2,729 worlds, and only 1 admissible world asks the
+  client only to take risk on (DC-D-36).
+- **Types drawn after admission, on their own stream** keyed by the pack and the seed:
+  client charges 26, 15 and 19 at 0.15, 0.75 and 1.55; against the prior by cell,
+  chi-square 5.7 on 6 df, p 0.46 (0.49 by simulation at the prior; independence 0.55);
+  integrator types within playbook p 0.61. The stream ignores the public world and the
+  cell, and admission is identical under each substituted charge. The same check rejects
+  DC-D-33's pattern (charge set by cell).
+- **Reference values.** Through the plugin's hooks, with the oracle test's harness, the
+  full-information pair loses 0 in 60 of 60 worlds, signs c* in the 45 deal worlds and
+  walks in the 15 others; the draft pair loses what its midpoint predicts in all 60.
+- **Splits.** Seeds start at 6,100,000 against at most 3,820,000 in every development
+  pack, and no world shares a content digest, a public-world digest or a set of drawn
+  parameters with one. The generator is a new mechanism (type-free turnkey anchor,
+  independent types, admission), not a new seed.
+- **Counterpart style.** `agreement_admitted_pack.public_style` draws the `drawn` population
+  from the public world and the seat: the same under all three charges in every world,
+  where `drawn_style` changes in all 120 world-seats (DC-D-32). `Negotiator` takes a
+  `Style`, so no hashed module is edited; no driver uses it yet.
+
+Blockers:
+
+1. **The client seat fails the rule that the best agreement depends on the counterpart's
+   type** (DC-D-35). The client's hidden counterpart type is the integrator's pre-staging
+   cost, and knowing it is worth at most 19.4 to the client's choice of agreement in 2,729
+   candidate worlds (median 0, 99th percentile 10.5) and at most 12.9 in the admitted 60.
+   The pack is admitted on the integrator seat's information alone, so a client-seat
+   result on it measures price and the walk-away decision under nearly complete clause
+   information. Clearing it needs a world family in which the integrator's risk charge is
+   private.
+2. **No measured-headroom screen.** Nothing has played the pack, so the control's per-world
+   rate at several plays and the trivial and degenerate grounds are not measured. The
+   shortcuts are deterministic public-information policies and each loses a margin in every
+   world, which is necessary and not sufficient. The confirmatory plan's variance pilot on a
+   separate admitted draw supplies the screen.
+
+**Gate 2, environment and verifier: partial.** `tests/test_datacenter_agreement_oracle_run.py`
+plays every world of both packs through the plugin's own hooks (parse, legality, step,
+terminal, outcome) and checks the grade against an optimum the test computes from the
+two cost functions. The full-information pair loses 0 (to 1e-6) in 116 of 116 worlds,
+signs c* in the 104 deal worlds and walks in the 12 others; the draft pair loses exactly
+what signing the draft at its midpoint predicts in all 116, $317.64k a world on dev and
+$289.02k on confirm. The grade is the outcome hook's, computed from the terminal state,
+and the terminal is reproduced from its own moves; the kernel's replay re-executes the
+steps and recomputes the outcome, and the CLI driver replays every receipt to the same
+digest before a cell counts. Three mutations kill the checks: a benchmark that names the
+draft (the grade alone still reads zero), clauses dropped by the environment, a price off
+the midpoint. Partial because no test exercises the invalid, malformed or truncated
+goldens the parser and legality codes define; the leak check compares briefs on the swap
+packs, not whole observations; and the run drives the plugin, not the kernel scheduler
+(the 116-cell scripted dry run of 9d7429e0 is in gitignored `runs/`).
+
+**Gate 3, construct validity and baselines: partial.** Lower control: the draft pair,
+which signs in only 15 of the 52 dev deal worlds. Counterparts: the scripted negotiator
+in seven fixed styles and a `drawn` population; the Codex-Opus gap runs from 17 and 23
+against `firm` to 148 against `collapse`, so a result is a result for that counterpart.
+Stand-ins with both types known (`agreement_negotiator_check.py`) give a sign-the-first-
+offer anchor (122 and 114 against `firm`) and a best plan against each script, a ceiling
+the models fall 45 to 247 below, not an attainable target. Partial because the design's
+primary measure, loss by turn against a best informed policy, and its one-step check
+that the case is not arithmetic are not built; on the development packs the `drawn`
+style's draw hashes the client's hidden charge (DC-D-32) and no shortcut is screened at
+admission. The admitted pack screens every shortcut and has a public style, which no
+driver uses yet.
+
+**Gate 4, attribution and experimental controls: partial.** Pairings are compared on the
+same worlds; same-model pairings are declared self-play with their estimand. An A/A
+check on repeat plays flagged 0 of 48, and the counterpart carries 25 to 33% of the spread
+in earnings (shuffled labels 2% or less); both come from notebooks outside the
+repository. All 39 failed negotiations were CLI or service errors, typed missingness; 16
+were played again as three new campaigns by owner ruling (DC-O-17 to DC-O-19), the other
+23 stay missing (DC-O-20, DC-O-21). Partial because a CLI takes no seed or temperature,
+each model has one route and one reasoning setting, 36 of the 39 failures are Codex's,
+and no plan-level test shows that only the treatment differs between paired plans.
+
+**Gate 5, confirmatory reliability and publication: not_run.** No variance pilot, no run
+sized from a declared minimum effect, no confirmatory freeze. The one declared test, of
+what an offer gives away, committed its plan (`agreement_signalling_plan_2026-10.md`,
+e69b6cff) before its runs, on fresh worlds with six predictions corrected by Holm; it
+did not pass the campaign SOP's variance-pilot or freeze gates. An admitted panel now
+exists, and `agreement_confirmatory_plan.md`, committed before any run, declares the
+pilot, the sizing from the development spread, the contrasts and the freeze. Blocker: none
+of it has run.
