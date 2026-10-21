@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.38 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.39 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -353,3 +353,12 @@ current one saturated"):
   real LaTeX captions numbered as the paper numbers them (38 tables, 2 figures; Table E.10, a caption over four
   panel tables, stays a bold paragraph); Tables 2.1, H.1, H.2 and Figures 1.1, 4.1, H.1 carry their paper numbers
   too. No change to the paper's content.
+- Version 15.39 (2026-10-21): style pass for an ML conference benchmark track. Full sentences instead of telegraphic
+  ones; literal wording instead of metaphor; "we" for our own actions; standard terms (pre-registered, evaluation set,
+  inclusion criterion, episode, frozen configuration, development set, task prompt; world, seat and gate kept and
+  defined in the glossary); 46 displayed, numbered equations ((1)-(3) in Section 5, (A.1)-(D.8), (E.1)-(E.2)); file
+  paths, line numbers, hashes and incident codes moved to source/replication_note.md, the paper citing the repository
+  once. A script checked every rewritten file: no number changed, and every removed number is in the note. Also
+  corrected: E.7's run counts (Procurement and Data center have two plays per world), the Data center Gate 1 wording
+  (a control on a frozen set cannot certify it; a new set is needed), and Appendix G's evidence locations
+  (Procurement's bundles are on main). LaTeX export: long equations wrap; no line runs past the margin.

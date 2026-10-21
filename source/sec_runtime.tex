@@ -14,13 +14,13 @@ the kernel schedules play and records the evidence used for evaluation
 ARCHITECTUREFIGUREPLACEHOLDER
 
 \subsection{Verification}
-Checks compare behavior or outcomes against five kinds of reference:
-an \emph{answer key} specifies a correct resolution; a \emph{rule}
-specifies a constraint; \emph{value} measures economic outcomes against
-a policy or bound; \emph{relative} compares named agents or populations;
+Checks compare behavior or outcomes against five kinds of reference.
+An \emph{answer key} specifies a correct resolution, and a \emph{rule}
+specifies a constraint. A \emph{value} reference measures economic outcomes against
+a policy or a bound, a \emph{relative} reference compares named agents or populations,
 and a \emph{rubric} rates an artifact. Each check states its output
 (pass/fail, count or amount) and whether it concerns the outcome or
-the path. Results retain their native units, without a cross-family
+the path. Results retain their native units, and we report no cross-family
 aggregate. Value references distinguish a reachable policy, the best
 policy given the decider's information, and a full-information upper
 bound; the last need not be attainable by the evaluated seat.
@@ -31,11 +31,11 @@ model. Housing and Procurement also report separately verified headline measures
 outside that receipt certificate; their measurement paths are documented
 in Appendix~\ref{app:runtime-cases}. Replay establishes consistency with
 recorded execution. Scientific qualification depends on the checks in
-\qcref{}; none of the four current designs fully passes Gates~1--5
-in the review snapshot.
+\qcref{}; none of the four current designs passes all of the quality-control Gates~1--5
+in the snapshot we review.
 
 \subsection{Evaluation harness}
-Before execution, the kernel hashes a plan declaring worlds, seat
+Before execution, the kernel hashes a plan that specifies the worlds, seat
 assignments, agent configurations, seeds and budgets. During simultaneous
 play, it freezes all acting seats' observations before requesting actions
 and then applies their joint transition. Calls through its provider and
@@ -43,27 +43,27 @@ tool interfaces are logged with typed outcomes. Finalization seals the
 evidence and produces a receipt binding the plan, world and scores.
 
 A seat is played in one of three ways. Most models run through AERead's
-own harness: each action is a single call through a pinned provider route,
-with the seat's instructions and its current observation in and one action
-in the case's schema out, no tools, and no memory beyond what the
-observation shows. The route is checked against its pin, a seed is
-requested, and the reasoning setting and output limit are declared.
+own harness. Each action is a single call through a pinned provider route:
+the call receives the seat's instructions and its current observation and returns one action
+in the case's schema, with no tools and no memory beyond what the
+observation shows. The harness checks the route against its pin, requests a
+seed, and records the specified reasoning setting and output limit.
 Gemini 3.8 Flash, GLM 5.3 Flash and GPT-6 Luna in Housing (Gemini and Luna
 in Procurement), the Refund models and the TERMS-Bench agents are run this
 way. The two frontier agents, Opus 5.5 and Sol 6.1, run instead through
-their vendors' command-line tools, Claude Code and Codex: one fresh process
-per action at low effort, with the same instructions and schema, tools
+their vendors' command-line tools, Claude Code and Codex. Each action starts a fresh process
+at low reasoning effort, with the same instructions and schema, tools
 disabled or refused, and no session carried over. Neither tool was fully
 isolated from the operator's machine (Table~\ref{tab:cli-controls}):
 Claude Code ran in safe mode, with none of the operator's instructions,
 memory or skills but with its working directory in context, and Codex
 still listed eight of the operator's own skills. Only the tool's version
 and binary are checked, and the tool exposes no seed, temperature or output
-limit. Through the harness the subject is the model; through a
-command-line tool it is the product, including its own instructions and
+limit. Through the harness, the system under evaluation is the model; through a
+command-line tool, it is the product, including the tool's own instructions and
 internal turns. A comparison across the two paths therefore compares agent
 configurations rather than models, and each result names its path.
 Counterparts, references and simple-rule baselines are scripted, call no
-model and replay exactly. A recorded declaration does not establish that a
+model and replay exactly. A recorded setting does not establish that a
 provider honoured it; Appendix~\ref{app:runtime} gives the controls each
 path applied and the versions behind each reported panel.

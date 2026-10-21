@@ -60,6 +60,7 @@ PREAMBLE = r"""\documentclass[10pt]{article}
 \usetikzlibrary{arrows.meta}
 \usepackage[round,authoryear]{natbib}
 \usepackage[hidelinks]{hyperref}
+\usepackage{xurl}  % long URLs break anywhere instead of running into the margin
 \setcounter{secnumdepth}{2}
 \captionsetup{font=small,labelfont=bf,labelsep=period}
 % pandoc's helpers
@@ -77,7 +78,27 @@ PREAMBLE = r"""\documentclass[10pt]{article}
 """
 
 
+LATEX_SPECIALS = {"\\": r"\textbackslash{}", "&": r"\&", "%": r"\%", "$": r"\$", "#": r"\#", "_": r"\_",
+                  "{": r"\{", "}": r"\}", "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
+
+
+def latex_text(text: str) -> str:
+    return "".join(LATEX_SPECIALS.get(char, char) for char in text)
+
+
+def display_equations(text: str) -> str:
+    """`[[eq A.3]] expression` paragraphs become numbered display equations (raw LaTeX through pandoc)."""
+    def block(match: re.Match) -> str:
+        body = re.sub(r"\*\*|`", "", match[2].strip())  # the expression is set as text; drop Markdown emphasis and code marks
+        text = latex_text(body)
+        # text inside math cannot break; a long expression goes in a box that wraps, left-aligned like the PDF
+        inner = rf"\parbox{{0.86\linewidth}}{{\raggedright {text}}}" if len(body) > 70 else rf"\text{{{text}}}"
+        return f"```{{=latex}}\n\\[ {inner} \\tag{{{match[1]}}} \\]\n```"
+    return re.sub(r"^\[\[eq ([A-Z]?\.?[0-9]+(?:\.[0-9]+)*)\]\][ \t]*(.+(?:\n(?!\n).+)*)", block, text, flags=re.M)
+
+
 def pandoc_md(text: str) -> str:
+    text = display_equations(text)
     for old, new in CITES.items():
         text = text.replace(old, new)
     text = re.sub(r"\]\(figures/([^)]+)\.svg\)", r"](figures/\1.png)", text)
@@ -139,7 +160,16 @@ SUBSCRIPTS = {"ₐ": "a", "ₑ": "e", "ₒ": "o", "ₓ": "x", "ₕ": "h", "ₖ":
 def subscripts(text: str) -> str:
     for char, letter in SUBSCRIPTS.items():
         text = text.replace(char, r"\textsubscript{" + letter + "}")
-    return breakable_code(text)
+    return sloppy_code_paragraphs(breakable_code(text))
+
+
+def sloppy_code_paragraphs(text: str) -> str:
+    """A paragraph made mostly of code paths cannot be justified; let it set loosely instead of overflowing."""
+    blocks = text.split("\n\n")
+    for i, block in enumerate(blocks):
+        if block.count(r"\texttt{") >= 5 and not block.lstrip().startswith("\\"):
+            blocks[i] = "\\begin{sloppypar}\n" + block + "\n\\end{sloppypar}"
+    return "\n\n".join(blocks)
 
 
 def breakable_code(text: str) -> str:
@@ -214,6 +244,7 @@ def main() -> None:
     tex["app_runtime"] = (tex["app_runtime"].replace("RUNTIMEFIGUREPLACEHOLDER", r"\renewcommand{\thefigure}{H.1}" + RUNTIME_TIKZ)
                           .replace(r"\input{tab_cli_controls}", r"\input{sections/tab_cli_controls}")
                           .replace(r"\input{tab_case_paths}", r"\input{sections/tab_case_paths}"))
+    tex["tab_case_paths"] = tex["tab_case_paths"].replace("P{3.06in}", "P{3.0in}")  # 3pt wider than the text block
     for name, number in (("tab_cli_controls", "H.1"), ("tab_case_paths", "H.2")):  # the order the appendix inputs them
         tex[name] = f"\\renewcommand{{\\thetable}}{{{number}}}\n" + tex[name]
     for name, body in tex.items():

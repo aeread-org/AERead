@@ -34,58 +34,58 @@ upper bound. Results retain their native units and reference types.
 
 CASEFIGUREPLACEHOLDER
 
-AERead combines seven properties. Prior benchmarks have some of them,
-TERMS-Bench five in full; AERead has six in full and the seventh, a
-shortcut-screening admission rule, in three of its cases (Table~2.1). The first three
-concern a single world, the next two a case's population of worlds, and the
-last two the runtime (Figure~1.1). Each is built and was applied to the
+AERead combines seven properties. Prior benchmarks have some of them, and
+TERMS-Bench has five in full. AERead has six in full and has the seventh, an
+inclusion criterion that screens out shortcuts, in three of its cases (Table~2.1). The first three
+properties concern a single world, the next two a case's population of worlds, and the
+last two the runtime (Figure~1.1). We built each of them and applied it to the
 cases reported here.
 \begin{enumerate}
 \item \textbf{Value against a reference with stated information.} Scores
 are economic values in each case's own units, measured against a feasible
 policy, the best policy given the deciding seat's information, or a
-labelled full-information bound. Each reference is played through the
-environment on every admitted world (Section~\ref{sec:qc}).
+labelled full-information bound. We play each reference through the
+environment on every included world (Section~\ref{sec:qc}).
 \item \textbf{The counterpart is part of the case.} Other parties are seats
 with their own information and interests, played by scripted policies,
 another model or the same model, and each claim names its counterpart. In
-the Data-center case, one agent's earnings lead over another is 42\% of the
-value available in a deal head to head and 7\% against a fixed scripted
+the Data-center case, the earnings gap between two agents is 42\% of the
+value available in a deal when they negotiate against each other, and 7\% when each faces the same fixed scripted
 counterpart
 (Section~\ref{sec:cases}).
 \item \textbf{Typed shortfall.} The gap to the reference is split into
 observed action classes, such as tests not taken, worse terms, harmful
 agreements and negotiation fees, so a result states where value was lost
 as well as how much (Section~\ref{sec:cases}).
-\item \textbf{World generators with admission.} A case is a generator of
-worlds, and its packs regenerate from their seeds. An admission rule,
+\item \textbf{World generators with an inclusion criterion.} A case is a generator of
+worlds, and its evaluation sets regenerate from their seeds. An inclusion criterion,
 computed before any agent plays, keeps only worlds in which simple
-shortcuts lose a stated margin: the Data-center comparison used 80 worlds
-admitted from 5,436 scanned. Housing's v15 pack admits a world only if the best informed tenant
-beats a simple inspect-then-sign rule by \$25, and the reported Procurement pack only if a rule
-that plans one newcomer's test exactly pays the premium while the best policy beats paying it by
-10\%: 20 worlds from 5,164 scanned (Section~\ref{sec:cases}).
+shortcuts lose a stated margin. The Data-center comparison used 80 worlds
+included from 5,436 scanned. Housing's v15 evaluation set includes a world only if the best-informed tenant
+beats a simple inspect-then-sign rule by \$25. The reported Procurement evaluation set includes a world only if a rule
+that plans one newcomer's test exactly pays the premium while the best policy beats paying the premium by
+10\%; this criterion kept 20 worlds from 5,164 scanned (Section~\ref{sec:cases}).
 \item \textbf{Quality control over populations of worlds.} Cases are
-qualified through typed gates; simple-rule ceilings are scored beside the
-agents and briefs are audited. Of 25 defects selected from our record, 14
+qualified through typed quality-control gates. We score simple-rule ceilings beside the
+agents and audit the task prompts. Of 25 defects selected from our record, 14
 were invisible in any single world (Section~\ref{sec:qc}).
 \item \textbf{Scores recomputed from sealed evidence.} The kernel hashes a
 plan before execution, seals the events, and replays each receipt to
 recompute its scores without calling a model; no model judges a score
 (Section~\ref{sec:runtime}).
 \item \textbf{One runtime for several activities.} Families supply only the
-economic rules. Four maintainer-built cases and a reimplementation of three
+economic rules. Four cases built by the maintainers and a reimplementation of three
 TERMS-Bench counterpart families run on the same kernel
 (Section 5.3).
 \end{enumerate}
 A researcher studying another economic decision therefore writes only its
-rules, worlds and reference: execution, sealing, replay, counterpart seats
+rules, worlds and reference. Execution, sealing, replay, counterpart seats
 and the quality-control gates come with the runtime, so a new case starts
 with the same evidence and checks as the existing ones.
 Sections 3 and 4 describe the case design and the runtime, Section 5 the
-cases, and Section 6 the quality control. The cases are maintainer-built
-worked examples; Housing and Procurement pass four of the five qualification
-gates and none passes all five; Section 7
+cases, and Section 6 the quality control. The cases are worked examples built by the
+maintainers. Housing and Procurement pass four of the five quality-control
+gates, and no case passes all five; Section 7
 states what their results do and do not establish.
 
 \section{Related work}
@@ -123,8 +123,8 @@ negotiation through oracle-reference gaps \citep{zhang2026termsbench}; our
 case specifications follow its decomposition into environment, protocol
 and counterpart policy (Appendix~A), and Section 5.3 reimplements three of
 its counterpart families on AERead's runtime.
-AERead retains case-specific payoff units and distinguishes full-information
-bounds from information-constrained policy references, with QC of world
+AERead retains case-specific payoff units, distinguishes full-information
+bounds from information-constrained policy references, and applies quality control to world
 distributions and measurement paths.
 
 \paragraph{Shared environments and evaluation quality.}
@@ -144,7 +144,7 @@ of economic worlds.
 
 Three of AERead's properties are fixed when a case is designed: the
 reference and the information it may use, the counterpart seats, and the
-world generator with its admission rule.
+world generator with its inclusion criterion.
 
 \subsection{Cases, worlds and seats}
 \label{sec:task-formulation}
@@ -193,29 +193,29 @@ of economy-wide gains.
 \label{sec:case-construction}
 
 A contribution begins with a decision and an interpretation of success.
-The author specifies the principal's objective and constraints, what each
+The case author specifies the principal's objective and constraints, what each
 seat can observe, which actions commit resources, and how counterpart
-policies respond. The brief must expose the rules needed to make the
+policies respond. The task prompt must state the rules needed to make the
 decision while preserving the intended private information. These
 choices define the mechanism that a score is meant to test.
 
-The author then provides a world generator or fixed pack, an admission
-rule, and a reference whose information access is explicit. Admission
+The author then provides a world generator or a fixed evaluation set, an inclusion
+criterion, and a reference whose access to information is explicit. The inclusion criterion
 screens each candidate world before any agent plays and before hidden
-types are drawn. Computing exactly from the public world and the declared
-prior, it keeps a world only if simple shortcuts, such as accepting the
+types are drawn. It is computed exactly from the public world and the stated
+prior, and it keeps a world only if simple shortcuts, such as accepting the
 default terms or ignoring private information, fall short of the reference
 by a stated margin. Whether the reference can be reached is a separate
 check: executable controls play it through the actual environment and
-verifier on every admitted world, alongside simple policies that reveal
-shortcuts or ceiling effects that admission missed. The pack must also be
+verifier on every included world, alongside simple policies that reveal
+shortcuts or ceiling effects that the screen missed. The evaluation set must also be
 valid, free of duplicates, and split into disjoint development and holdout
 ranges. A full-information bound is labelled separately from a policy
-the evaluated seat could execute. The case declares score units,
-direction and treatment of invalid actions and incomplete episodes.
+the evaluated seat could execute. The case states its score units,
+the direction of each score, and its treatment of invalid actions and incomplete episodes.
 
 Before a confirmatory comparison, the campaign freezes the worlds,
-seat assignments, prompts, agent settings, budgets and analysis. Its
+seat assignments, prompts, agent settings, budgets and analysis, and pre-registers them. Its
 evidence package should connect each reported measure to the retained
 actions and outcomes, the scoring implementation, and a command that
 reproduces it. Section 4 describes the shared execution path; Appendix H
@@ -226,7 +226,7 @@ This is the contribution and qualification standard. Implementation
 support and completed checks vary across the four examples, as Section 6
 and Appendix F document. Cases can be useful for development before
 qualification, provided their reports identify missing checks, preserve
-failed attempts, and distinguish analyses declared before execution from
+failed attempts, and distinguish analyses pre-registered before execution from
 later corrections. The current examples demonstrate the workflow and
 its failure modes; they do not establish successful adoption by external
 contributors.

@@ -51,11 +51,20 @@ for node in nodes:
         exec(compile(ast.Module(body=[node], type_ignores=[]), "typesetting", "exec"), namespace)
 
 
+EQUATION = re.compile(r"<p>\[\[eq ([A-Z]?\.?[0-9]+(?:\.[0-9]+)*)\]\]\s*(.*?)</p>", re.S)
+
+
+def display_equations(html_text):
+    """A Markdown paragraph `[[eq A.3]] expression` is a displayed equation numbered (A.3)."""
+    return EQUATION.sub(lambda m: f'<div class="equation" id="eq-{m[1]}"><span class="eq-body">{m[2].strip()}</span>'
+                                  f'<span class="eq-number">({m[1]})</span></div>', html_text)
+
+
 def user_html(text):
     result = markdown.markdown(text, extensions=["tables", "fenced_code"])
     result = namespace["typeset"](result)
     result = result.replace("10⁻⁸", "10<sup>−8</sup>")
-    return result
+    return display_equations(result)
 
 
 def simplify_tables(text):

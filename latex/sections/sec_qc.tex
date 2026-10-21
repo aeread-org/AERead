@@ -1,21 +1,22 @@
 \section{Quality control}\label{quality-control}\label{sec:qc}
 
-The defects that mattered in the four cases were properties of the distribution, the brief, the
-counterpart or the analysis, and every world was individually correct when they were found: a
-seat-number tie-break that decided who signed the good listing, a prompt that pointed
-every subject at the right supplier in half the worlds and the wrong one in the other half,
-a hidden type tied to the pack cell so that comparisons by type compared worlds.
-Reading one world at a time passes all three. Quality control is therefore organised
-around populations of worlds, declared analyses and recorded failures. Appendix F describes each
-check that was applied to these cases, and only those.
+The defects that mattered in the four cases were properties of the distribution, the task prompt, the
+counterpart or the analysis, and every world was individually correct when they were found. In one, a
+seat-number tie-break decided who signed the good listing; in another, a prompt pointed
+every agent at the right supplier in half the worlds and at the wrong one in the other half; in a third,
+a hidden type was tied to the stratum of the evaluation set, so that comparisons by type compared worlds.
+An inspection of one world at a time passes all three. We therefore organise quality control
+around populations of worlds, pre-registered analyses and recorded failures. Appendix F describes each
+check that we applied to these cases, and only those.
 
-\textbf{Gates.} A case is qualified in six gates recorded in its family's QC profile: a profile exists
-(0); the worlds are valid, distinct, split and leave headroom (1); actions change the intended
-state and every score is rebuilt from sealed evidence (2); a better-informed policy does better
-and shortcuts lose (3); the result supports the attribution it claims (4); and the comparison was
-sized, frozen and executed without tuning on outcomes (5). Each gate is typed \texttt{passed}, \texttt{failed},
-\texttt{partial}, \texttt{not\_run} or \texttt{not\_\allowbreak{}applicable}, and only \texttt{passed} promotes. The profiles followed the initial
-runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 yet (Table 6.1).
+\textbf{Gates.} A case is qualified through six quality-control gates, whose verdicts are recorded in its family's QC
+profile. Gate 0 requires that the profile exists; Gate 1, that the worlds are valid, distinct, split and leave headroom;
+Gate 2, that actions change the intended state and that every score is rebuilt from sealed evidence; Gate 3, that a
+better-informed policy does better and that shortcuts lose; Gate 4, that the result supports the attribution it claims;
+and Gate 5, that the comparison was sized, frozen and executed without tuning on outcomes. Each gate has one of five
+statuses (\texttt{passed}, \texttt{failed}, \texttt{partial}, \texttt{not\_run} or \texttt{not\_\allowbreak{}applicable}), and only \texttt{passed} qualifies a result. We wrote
+the profiles after the initial runs; the confirmatory run of the agreement case came after its profile. No case yet
+passes all of Gates 1 to 5 (Table 6.1).
 
 \renewcommand{\thetable}{6.1}
 \begin{longtable}[]{@{}
@@ -27,8 +28,8 @@ runs; the agreement confirmatory followed its profile. None passes Gates 1 to 5 
   >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
   >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}
   >{\raggedright\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.1250}}@{}}
-\caption{\textbf{Gate status of each reported comparison,} 21 October: ● passed, ◐ partial, ✗ failed, -- not run.
-Reasons and flags are in Appendix F.1.}\label{tab:6.1}\tabularnewline
+\caption{\textbf{Gate status of each reported comparison} on 21 October: ● passed, ◐ partial, ✗ failed, -- not run.
+Appendix F.1 gives the reasons and the flags each check raised.}\label{tab:6.1}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Comparison
@@ -52,37 +53,42 @@ Main open item
 \bottomrule\noalign{}
 \endlastfoot
 Housing v15 & ● & ● & ● & ● & ◐ & ● & profile probe ran after the freeze \\
-Procurement, declared pack & ● & ● & ● & ● & ◐ & ● & subjects take no seed \\
-Data-center agreement v2, integrator seat & ◐ & ◐ & ◐ & ● & ◐ & ◐ & not on the main branch; no frozen control \\
+Procurement, pre-registered evaluation set & ● & ● & ● & ● & ◐ & ● & the agents take no seed \\
+Data-center agreement v2, integrator seat & ◐ & ◐ & ◐ & ● & ◐ & ◐ & not on the main branch; Gate 1 needs a new evaluation set \\
 Refund V2.5, developmental & ● & ◐ & ◐ & ✗ & ◐ & -- & a constant full refund passes 38 of 180 cases \\
 \end{longtable}
 
-\textbf{Headroom (Gate 1).} Where a case computes its reference exactly (Housing, Procurement), every shortcut its profile
-names must lose a declared margin to the reference in every world; otherwise a frozen model control screens the
-worlds. The first route was added on 21 October (Appendix F.1).
+\textbf{Headroom (Gate 1).} When a case computes its reference exactly, as Housing and Procurement do, every shortcut named
+in its profile must lose a pre-specified margin to the reference in every world. Otherwise, a frozen model control
+screens the worlds. We added the first route on 21 October (Appendix F.1). The data-center agreement's reference is a
+lower bound, and its evaluation set is frozen, so its Gate 1 can pass only on a new evaluation set.
 
-\textbf{The reference is played on every world.} For each case a test plays the reference through the
-real environment and verifier on every admitted world, with no model, and checks that it reaches
-its declared result: the Housing reference and a full-information tenant reproduce the published
-values in all 600 v14 cells, and the full-information tenant reaches the ceiling on all 320 v15 worlds; on Procurement's harder pack the best policy and the one-step rule equal their averages over 400
-plays through the environment, within four standard errors, on all 12 pilot worlds and all 20 worlds of the declared
-test (the declared worlds checked on 20 October, after the runs), and on the
-earlier pack the best policy equals the environment's average over its 27 type profiles in all 24 worlds; the data-center oracle pair loses nothing in all 116 worlds of
-both development packs, all 60 of v1's admitted pack and all 80 of v2's (checked on 20 October, after its runs); Refund V2.5's release requires full credit on every case. The initial tests followed development; the admitted-pack dry run preceded the confirmatory; two of them (the data-center grade and the Housing ceiling) are shown to fail when the grade
-or the reference is wrong.
+\textbf{The reference is played on every world.} For each case, a test plays the reference through the
+real environment and verifier on every included world, with no model, and checks that it reaches
+its stated result. In Housing, the reference and a full-information tenant reproduce the published
+values in all 600 v14 episodes, and the full-information tenant reaches the ceiling on all 320 v15 worlds. On
+Procurement's harder evaluation set, the best policy and the one-step rule equal their averages over 400
+plays through the environment, within four standard errors, on all 12 pilot worlds and on all 20 worlds of the
+pre-registered test; we checked these worlds on 20 October, after the runs. On the
+earlier evaluation set, the best policy equals the environment's average over its 27 type profiles in all 24 worlds.
+In the data-center case, the oracle pair loses nothing in all 116 worlds of
+both development sets, in all 60 worlds of v1's evaluation set and in all 80 of v2's; we checked the last on 20 October, after
+its runs. Refund V2.5's release requires full credit on every case. The initial tests were written after development,
+and the dry run on the evaluation set preceded the confirmatory run. Two of the tests (the data-center grade and the
+Housing ceiling) are shown to fail when the grade or the reference is wrong.
 
-\textbf{Other checks.} Every committed pack is regenerated byte for byte from its seeds; the Housing
-v14 and v15 receipts replay from their sealed events; trivial agents are reported beside the subjects,
-Procurement's fixed rules are scored exactly, and the briefs were audited for instructions that
-decide the outcome. Uncertainty is computed over worlds, claims name their counterparts, and six
-reported analyses were declared before their runs: Housing v14 and v15 (with v15's two addenda), Procurement's
-declared test, the data-center signalling test and the two agreement confirmatories. Procurement's frozen-control
-diagnostic was also declared before its plays.
+\textbf{Other checks.} Every committed evaluation set is regenerated byte for byte from its seeds, and the Housing
+v14 and v15 receipts replay from their sealed events. We report trivial agents beside the evaluated agents, score
+Procurement's fixed rules exactly, and audited the task prompts for instructions that
+decide the outcome. Uncertainty is computed over worlds, and every claim names its counterparts. Six
+reported analyses were pre-registered: Housing v14 and v15 (with v15's two addenda), Procurement's
+main test, the data-center signalling test and the two confirmatory runs of the agreement case. Procurement's
+frozen-control diagnostic was also pre-registered before its plays.
 
-\textbf{What it found.} Discovered failures are recorded in an incident log in design,
-operational, tooling and judgment rows that are never deleted: 51 entries about Housing, 57 about Procurement, 90
-about the data center and 23 about Refund on 16 October (Table F.3), with rows added since. Of 25 defects selected for Table F.4, 14 were invisible in any single
-world; the 11 visible ones were found by reading code or sealed bytes, by tracing a case, or in a
-single gate cell (Table F.4). Nine were open when the table was compiled; a later reanalysis from the sealed actions resolves
-one of them for the reported panels, leaving eight open. The same checks corrected three of our own
-statements while this paper was written.
+\textbf{What it found.} We record every discovered failure in an incident log, as design,
+operational, tooling or judgment rows that are never deleted. On 16 October the log held 51 entries about Housing,
+57 about Procurement, 90 about the data center and 23 about Refund (Table F.3), and rows have been added since. Of the
+25 defects selected for Table F.4, 14 were invisible in any single world; the 11 visible ones were found by reading
+code or sealed bytes, by tracing a case, or within a single gate (Table F.4). Nine were open when we compiled the
+table, and a later reanalysis from the sealed actions resolves one of them for the reported panels, leaving eight
+open. The same checks corrected three of our own statements while we wrote this paper.

@@ -1,17 +1,17 @@
 \renewcommand{\thetable}{H.1}
 \begin{longtable}{@{}P{1.25in}P{2.6in}P{2.6in}@{}}
-\caption{CLI controls applied in the reviewed panels. These describe
-the evaluated subjects, not all capabilities of the products.}
+\caption{Controls applied to the command-line agents in the reviewed panels. They describe
+the evaluated configurations, not all capabilities of the products.}
 \label{tab:cli-controls}\\
 \toprule
 \textbf{Control} & \textbf{Claude Code / Opus 5.5} & \textbf{Codex CLI / Sol 6.1}\\
 \midrule\endfirsthead
 \endhead\endfoot\endlastfoot
-Client and execution & Kernel \texttt{ClaudeCodePrintClient}; one ephemeral process per action; low effort. & External \texttt{CodexExecClient}; one ephemeral process per action; low effort.\\
+Client and execution & The kernel's Claude Code client; one ephemeral process per action; low effort. & An external Codex client; one ephemeral process per action; low effort.\\
 Sampling and output & Seed, temperature and output-token limits not applied. & Seed, temperature and output-token limits not applied.\\
 Tools and session & Tools disabled; no persistent session. & Tool definitions retained; a call using a tool is refused.\\
-Observed identity & Version 2.1.292; binary digest \texttt{97a01e5b}, rechecked before calls. & Version 0.160.0; binary digest \texttt{112fae7a}; no served-model identity.\\
-Accounting limits & Two internal model turns observed per kernel call; internal retries are not separate kernel attempts. & Adapter digest \texttt{3f254873}; CLI internal execution is not independently certified.\\
+Observed identity & Version 2.1.292; binary digest rechecked before calls. & Version 0.160.0; binary digest recorded; no served-model identity.\\
+Accounting limits & Two internal model turns observed per kernel call; internal retries are not separate kernel attempts. & Adapter digest pinned; the tool's internal execution is not independently certified.\\
 User customizations & \verb|--safe-mode|: no CLAUDE.md, memory, skill, plugin, hook, output style or MCP server reached the model. The run's working directory, a repository checkout, and the account's email address were in context. & \verb|--ignore-user-config| did not remove the operator's skills: eight were listed beside Codex's four built-in ones (about 500 input tokens a call), two described in benchmark and evaluation terms. The working directory's name contained the project's name.\\
 Shared limits & Working directory and environment unsealed; costs estimated at list prices. & Working directory and environment unsealed; costs estimated at list prices.\\
 \end{longtable}

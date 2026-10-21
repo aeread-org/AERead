@@ -18,9 +18,9 @@ same runtime.
 The cases teach three lessons that bear on any evaluation of this kind.
 The counterpart is part of the measurement: the same two agents differ by
 far more when they negotiate with each other than when each faces a fixed
-counterpart. The brief is part of the case: stating a rule it had left
-implicit moved scores as much as changing the agent did. And the defects
-that matter are often properties of the population of worlds, the brief or
+counterpart. The task prompt is part of the case: stating a rule that the prompt had left
+implicit changed scores as much as changing the agent did. And the defects
+that matter are often properties of the population of worlds, the task prompt or
 the analysis rather than of any single world, which is why construction
 and quality control belong in the method; the checks of Section 6 changed
 the interpretation of our own results. Loss categories locate a shortfall
@@ -41,13 +41,13 @@ evidence that the agent keeps value against the counterparts it will meet.
 
 The present evidence has clear limits. The cases take their decision
 structure from informal rentals, wholesale sourcing and AI-infrastructure
-contracting, but their parameters are set by the authors; calibration to
+contracting, but we set their parameters; calibration to
 field data and transfer to field settings remain to be established.
 Coverage is limited to two transaction classes and a small set of agent
 configurations, with no human policy baseline. Housing v15 and Procurement's
-declared pack pass four of the five qualification gates and no case passes
-all five: several checks were added after the runs they qualify, and hosted-model and CLI
-behavior limits attribution from declared settings.
+pre-registered evaluation set pass four of the five quality-control gates, and no case passes
+all five. Several checks were added after the runs they qualify, and the behavior of hosted models and
+command-line tools limits how far a result can be attributed to its stated settings.
 Versioned reanalyses now regenerate the corrected Housing measures and
 Procurement decision losses from sealed records, which strengthens their
 provenance, but full verification against original execution still
@@ -66,9 +66,9 @@ pursue their own questions with the existing cases, counterparts and
 evidence. The results above leave four questions open, each suited to a
 different kind of contribution.
 \begin{itemize}
-\item \textbf{Counterpart populations.} The Data-center gap between two
-agents is 42\% of the value available in a deal head to head and 7\%
-against a fixed script.
+\item \textbf{Counterpart populations.} In the Data-center case, the gap between two
+agents is 42\% of the value available in a deal when they negotiate against each other, and 7\%
+when each faces a fixed script.
 How far does an agent's measured skill depend on whom it faces, can
 rankings reverse across counterpart populations (none did in our runs),
 and which populations separate distinct strategic capabilities? The
@@ -78,8 +78,8 @@ from our record, 14 were invisible in any single world. Which checks find
 such defects before a campaign runs, and what should qualify a case? The
 quality-control gates, the incident record and the failed campaigns are
 available for study.
-\item \textbf{Information and judgment.} Stating a rule the brief had left
-implicit moved scores as much as changing the agent. Separating what an
+\item \textbf{Information and judgment.} Stating a rule that the task prompt had left
+implicit changed scores as much as changing the agent. Separating what an
 agent was told from how it decided, and computing best-informed references
 for richer cases, are open methodological problems.
 \item \textbf{New economic decisions.} A case for another activity
@@ -87,20 +87,20 @@ supplies its rules, worlds and reference; execution, replay, counterpart
 seats and the quality-control standard come with the runtime.
 \end{itemize}
 
-What is ready and what is not: the runtime, its sealed evidence and
+Some components are ready and others are not. The runtime, its sealed evidence and
 replay, and the case layout are in use, and Housing, Procurement and Data
 center each have a world generator, references and scripted counterparts.
-No case is yet fully qualified: Housing v15 and Procurement's declared pack
+No case is yet fully qualified: Housing v15 and Procurement's pre-registered evaluation set
 pass four of the five gates.
 Section~\ref{sec:qc} gives every gate verdict and
 Appendix~F each campaign's open checks, so a contributor can see what a
 case still needs before its results can rank agents.
 
 The next steps follow from the limits in Section 7.1. Future campaigns should bind
-actual seat assignments and headline scorers into frozen evaluation
-identities and run the required controls before any comparison, and the
+the actual seat assignments and headline scorers into frozen evaluation
+configurations and run the required controls before any comparison, and the
 TERMS-Bench reimplementation needs the protocol fixes described in
-Section 5.3 before a declared reproduction. Practitioner review would
+Section 5.3 before a pre-registered reproduction. Practitioner review would
 calibrate the cases' parameters, human baselines would show where agents
 stand against people, and externally contributed cases would test whether
 the structure serves authors other than its maintainers. AERead's present
