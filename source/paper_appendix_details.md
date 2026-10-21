@@ -102,7 +102,7 @@ least $25k. Its seeds are disjoint from every earlier pack; of 5,436 scanned, 80
 | Procurement, record pack | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one cell a world each | | development |
 | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
 | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
-| Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; gate review pending |
+| Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; Gate 3 passed, the others partial |
 | Data center confirmatory v1 | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
 | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
 | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
@@ -626,7 +626,7 @@ yet run there (profile section 8.2). Gate 1's measured headroom was then tried w
 declared before its plays: it tested but lost to the kind-blind shortcut, so only 2 of the 20 declared worlds pass
 that check and the gate stays `partial` (Appendix E.4). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
 the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
-packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
+packs fail Gate 1 because admission and type assignment were confounded. Its first confirmatory (v1) used
 the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
 incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
 lower controls (Appendix F.4).
@@ -642,7 +642,12 @@ Housing v15 was declared and run after these profiles were first written. It pas
   working and both reasoning tiers in effect: every sealed call's raw response carries the provider's reasoning
   count, which the kernel's OpenRouter client does not copy into its own field.
 
-The agreement's v2 confirmatory has no gate review yet.
+The agreement's v2 confirmatory (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves room
+in every deal world by construction, the best informed integrator earns far more than either model, and the pack
+separates the subjects. It is partial at Gates 0, 1, 2, 4 and 5. Its registry row awaits a non-author review and its
+code is not on the main branch, so replay through the runtime's command line has not run; no frozen control has
+screened its worlds; and the client seat keeps its construct limit. Through the environment's hooks the
+full-information pair loses nothing in all 80 of its worlds.
 
 The identity rule was applied: Housing's 36 refused cells ran later under their own
 identity, and Procurement's corrected schema ran under new identities.

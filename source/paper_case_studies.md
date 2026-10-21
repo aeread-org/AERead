@@ -49,9 +49,11 @@ that certificate (Appendix F.2). Table E.1 lists every check.
 ### 5.1 Results
 
 Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
-and is partial at Gate 4. The Data-center comparison reported here (v2) has no gate review yet; its predecessor (v1,
-Appendix E.4) is partial at every gate, chiefly because neither seat has much to infer (knowing the other side's type
-is worth less than 1% of the value available in a deal to the best informed policy). The Procurement pack reported here passes
+and is partial at Gate 4. The Data-center comparison reported here (v2) passes Gate 3 for what it measures, pricing and
+bargaining against a fixed counterpart, and is partial at Gates 0, 1, 2, 4 and 5, chiefly because, as for Procurement,
+its environment's registration with the runtime awaits review and its code is not on the main branch, and no frozen
+control has screened its worlds. It is not a test of inference about the other side, whose type is worth less than 1%
+of the value available in a deal to the best informed policy. The Procurement pack reported here passes
 Gate 0 and is partial at Gates 1 to 5, chiefly because its environment's registration with the runtime awaits review
 and its code is not yet on the main branch; the earlier, saturated Procurement pack fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
@@ -204,7 +206,7 @@ states its walk-away point, and a world is admitted only if the integrator has a
 price-only rule. An earlier declared comparison (v1) did none of these three; it is in Appendix E.4 (Table E.16),
 and development results remain in Tables E.3 and E.7.
 
-**Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, $309k a world); intervals are 95%, with Holm correction across the four primaries. The gate review is pending.**
+**Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, $309k a world); intervals are 95%, with Holm correction across the four primaries. Gate 3 passes for the integrator seat; Gates 0, 1, 2, 4 and 5 are partial (Section 5.1).**
 
 | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
 |---|---:|---|---:|

@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 18:39:49
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 19:23:01
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -2067,7 +2067,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 18:39:33
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 19:22:48
 @@ -42,14 +42,28 @@
  (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
  each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
@@ -2137,7 +2137,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
  | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
 -| Data center confirmatory | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
-+| Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; gate review pending |
++| Data center confirmatory v2 | 80 admitted + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | declared; Gate 3 passed, the others partial |
 +| Data center confirmatory v1 | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
  | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
  | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
@@ -2562,13 +2562,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Fee per redline | Sol joint loss | Opus joint loss |
  |---|---:|---:|
-@@ -468,13 +618,33 @@
+@@ -468,13 +618,38 @@
  The QC standard defines six gates and the rule that a changed bound input reopens them; a repository
  test rejects a registered family without a profile. Each of the four current designs
  now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
 -and none passes Gates 1 to 5: Housing v14 is `partial` throughout; Procurement's pay-or-test v1 pack,
 -used in Table 5.3, fails Gates 1 and 3; v2 passes the scripted Gate 3 checks but remains
 -`partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
+-packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
 +and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, passes four); Procurement's harder pack,
 +used in Table 5.3, passes Gate 0 and is `partial` at Gates 1 to 5: every gate that rests on live
 +play is held at `partial` because its environment's registration with the runtime awaits a non-author review
@@ -2577,7 +2578,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +declared before its plays: it tested but lost to the kind-blind shortcut, so only 2 of the 20 declared worlds pass
 +that check and the gate stays `partial` (Appendix E.4). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
 +the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
- packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
++packs fail Gate 1 because admission and type assignment were confounded. Its first confirmatory (v1) used
  the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
  incomplete measured-headroom qualification (Appendix F.2); Refund V2.5 fails Gate 3 on its
 -lower controls (Appendix F.4). The identity rule was applied: Housing's 36 refused cells ran later under their own
@@ -2594,13 +2595,18 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  working and both reasoning tiers in effect: every sealed call's raw response carries the provider's reasoning
 +  count, which the kernel's OpenRouter client does not copy into its own field.
 +
-+The agreement's v2 confirmatory has no gate review yet.
++The agreement's v2 confirmatory (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves room
++in every deal world by construction, the best informed integrator earns far more than either model, and the pack
++separates the subjects. It is partial at Gates 0, 1, 2, 4 and 5. Its registry row awaits a non-author review and its
++code is not on the main branch, so replay through the runtime's command line has not run; no frozen control has
++screened its worlds; and the client seat keeps its construct limit. Through the environment's hooks the
++full-information pair loses nothing in all 80 of its worlds.
 +
 +The identity rule was applied: Housing's 36 refused cells ran later under their own
  identity, and Procurement's corrected schema ran under new identities.
  
  **Table F.1. Benchmark QC gates.**
-@@ -524,7 +694,7 @@
+@@ -524,7 +699,7 @@
    Procurement's original report read an unsealed action list through an unpinned reference.
    The 16 October reanalysis audits all 144 receipts (96 final-brief and 48 earlier-brief), reads
    parsed actions from their sealed logs, and pins the extraction, reference, report and case inputs.
@@ -2609,7 +2615,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    derivation; decision loss has not been inserted into the original receipts. The Housing
    receipts also name the model for the five tenant seats a script played; the true seat map is in
    an unsealed log.
-@@ -534,9 +704,11 @@
+@@ -534,9 +709,11 @@
    cell (χ² p 0.46; the same test rejects the development packs' pattern). Tests play every
    shortcut through the environment for every type pair and confirm the loss admission assigned,
    and the oracle pair loses nothing in all 60 worlds. A separate 12-world pilot and the
@@ -2624,7 +2630,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
    Procurement and Refund; the agreement case has no such test.
  - **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
-@@ -560,11 +732,11 @@
+@@ -560,11 +737,11 @@
  ### F.4 Adversarial checks applied
  
  - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
@@ -2639,7 +2645,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    is the finding that fails Gates 1 and 3. A v2 pack built after the runs adds one mechanism: new
    listings of one seller kind share a source with a stated chance, so a cheap test of one listing
    tells the buyer about another. Admitted on what a buyer sees, with types drawn afterwards, its 24
-@@ -575,7 +747,9 @@
+@@ -575,7 +752,9 @@
    Its separate 12-world gate/pilot used 50 cells ($0.2193). Gemini never tested a newcomer
    and matched the premium rule; Luna touched one in 1 of 24 pilot plays, and neither model
    reached the planned probe. Required sizes were 326, 3,464 and 2,047 worlds, beyond the
@@ -2650,7 +2656,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Brief audits** found instructions that decided outcomes in Procurement
    and a schema that contradicts its verifier in Refund.
  - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
-@@ -600,13 +774,14 @@
+@@ -600,13 +779,14 @@
  plays as independent made intervals 1.47 to 1.65 times too narrow, and more worlds beat more
  repeats: a $50k gap needs 83 to 91 negotiations an arm at one play a world against 159 to 162 at
  three. Counterparts are named and reported per type: in the agreement case the counterpart
@@ -2668,7 +2674,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  (`aeread.design.sizing`), frozen plans, paired world-level intervals and Holm
  correction were applied. Eight departures are documented: CLI versions; an added wall-time stop;
  run-plan labels; the pack-module change for pilot generation; the permitted sizing-code copy;
-@@ -694,7 +869,7 @@
+@@ -694,7 +874,7 @@
  | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, initially by tests added after development; the admitted agreement pack also had a pre-confirmatory dry run (Appendix F.2) |
  | T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
  | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
@@ -2677,7 +2683,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures |
  | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
  | R.2 Open evaluation harness | met | the shared runner is in the public repository |
-@@ -720,8 +895,9 @@
+@@ -720,8 +900,9 @@
    repository.
  - **Evidence.** Sealed, digest-bound bundles under `evidence/`: the Housing v14 confirmatory and
    its declared fill, the data-center agreement bundles, and the Refund V2.1 bundles with their gap
@@ -2689,7 +2695,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Quality control.** Each family's QC profile and incident log, kept with its code; the
    reference-run tests named in §6.
  - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map
-@@ -738,7 +914,7 @@
+@@ -738,7 +919,7 @@
  The Housing analysis re-extracts its committed trajectory table from the sealed run roots and
  regenerates both measures exactly. Procurement's `pay_or_test_reanalysis` checks all 144 original
  receipts, then reconstructs decision loss from their sealed parsed actions; its public projection
@@ -2700,7 +2706,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 18:39:33
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 19:22:48
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -2731,7 +2737,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  what a shortfall means: against a reachable policy it is value a feasible strategy would have
  kept; against the best policy given the decider's information it is the whole cost of the
  decisions; against a full-information bound it also includes the value of information no seat
-@@ -29,138 +30,280 @@
+@@ -29,138 +30,282 @@
  (business and household purchases); they were chosen to span the kinds of verifier and
  counterpart, not sampled from a representative distribution.
  
@@ -2765,9 +2771,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 -None of the four cases yet passes Gates 1 to 5 of §6. "Declared" below describes how a comparison
 +Each case's gate status (§6) bounds what its results can claim. Housing v15 passes Gates 1, 2, 3 and 5
-+and is partial at Gate 4. The Data-center comparison reported here (v2) has no gate review yet; its predecessor (v1,
-+Appendix E.4) is partial at every gate, chiefly because neither seat has much to infer (knowing the other side's type
-+is worth less than 1% of the value available in a deal to the best informed policy). The Procurement pack reported here passes
++and is partial at Gate 4. The Data-center comparison reported here (v2) passes Gate 3 for what it measures, pricing and
++bargaining against a fixed counterpart, and is partial at Gates 0, 1, 2, 4 and 5, chiefly because, as for Procurement,
++its environment's registration with the runtime awaits review and its code is not on the main branch, and no frozen
++control has screened its worlds. It is not a test of inference about the other side, whose type is worth less than 1%
++of the value available in a deal to the best informed policy. The Procurement pack reported here passes
 +Gate 0 and is partial at Gates 1 to 5, chiefly because its environment's registration with the runtime awaits review
 +and its code is not yet on the main branch; the earlier, saturated Procurement pack fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
  was run, with its analysis committed before any cell, not the case: the results compare the named
@@ -2972,7 +2980,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +price-only rule. An earlier declared comparison (v1) did none of these three; it is in Appendix E.4 (Table E.16),
 +and development results remain in Tables E.3 and E.7.
 +
-+**Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, $309k a world); intervals are 95%, with Holm correction across the four primaries. The gate review is pending.**
++**Table 5.4. Data center, the declared comparison (v2): Sol 6.1 (Codex) and Opus 5.5 (Claude Code). Differences in a seat's earnings above its outside option, at true costs, on the 72 deal worlds, in percentage points of the value available in a deal (the joint surplus of the best agreement, $309k a world); intervals are 95%, with Holm correction across the four primaries. Gate 3 passes for the integrator seat; Gates 0, 1, 2, 4 and 5 are partial (Section 5.1).**
 +
  | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
  |---|---:|---|---:|
@@ -3107,7 +3115,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
  case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
  names the counterparts it covers. What the brief states moves the score as much as the subject
-@@ -168,34 +311,89 @@
+@@ -168,34 +313,89 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -3637,10 +3645,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-10-20 18:39:33
++++ aeread_working_draft_20261018_v15/source/version.json	2026-10-20 19:22:48
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.28",
++  "version": "15.29",
 +  "date": "20 October 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}

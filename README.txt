@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.28 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.29 (20 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -305,3 +305,9 @@ current one saturated"):
   of 60 plays but closes -34%; 3 worlds degenerate, 18 trivial (shortcut 14, one-step 4), 2 of 20 pass; the control is
   weaker than the shortcut (P-J-09); Sol's better play beats every screened rule in 11 of 20, descriptively. Sources
   row added (with exactness 7ab8ff12 and draft PRs #294, #295). Gate 1 stays partial.
+- Version 15.29 (2026-10-20, owner: "finalize v2 review, do not report v1"): Section 5.1's gate sentence states the
+  Data-center v2 review (docs/families/datacenter/agreement_confirmatory_v2_qc.md, 8bdc14f9 on codex/datacenter-agreement):
+  Gate 3 passed for the integrator seat (pricing and bargaining against a fixed counterpart), Gates 0, 1, 2, 4 and 5
+  partial (registry row unreviewed and code not on main, as for Procurement; no frozen-control screen; client seat
+  DC-D-35); v1 is no longer named there. It says the case is not a test of inference. Table 5.4's caption, Table E.3's
+  row and Appendix F.1 follow; a new test plays the full-information pair through all 80 v2 worlds (loses 0).
