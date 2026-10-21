@@ -1,0 +1,344 @@
+{
+  "case_id": "procurement_allocation_v1.pay_or_test_v1.test_cheapest__loose__4",
+  "content_sha256": "6c8fac9ce56e7a1b0f83a24b9a917dcda8fd0efca596e08db6374039bc7d963e",
+  "episode": {
+    "max_logical_actions": 10,
+    "termination": [
+      "submitted",
+      "deferred",
+      "interaction_budget_exhausted",
+      "invalid_action"
+    ]
+  },
+  "family_id": "procurement_allocation_v1",
+  "family_version": "1.0.0",
+  "payload": {
+    "interaction": {
+      "counter_cost_usd": 1.0,
+      "counter_days": 1,
+      "inquiry_cost_usd": 1.0,
+      "inquiry_days": 1,
+      "max_actions": 10,
+      "quote_cost_usd": 2.0,
+      "quote_days": 1
+    },
+    "objective": {
+      "annual_financing_rate": 0.12,
+      "bom": {
+        "driver_board": 1
+      },
+      "cash_budget_usd": 2500.0,
+      "deadline_days": 18,
+      "defect_detection_days": 10,
+      "defer_value_usd": -600.0,
+      "minimum_service_kits": 40,
+      "product_id": "kit_7619",
+      "revenue_per_completed_kit_usd": 37.0,
+      "shortfall_penalty_per_kit_usd": 12.0,
+      "target_kits": 50,
+      "working_capital_horizon_days": 45
+    },
+    "policy": {
+      "award_requires": [
+        "unexpired_formal_offer",
+        "verified_sample",
+        "exact_variant"
+      ],
+      "inquiry_fields": [
+        "exact_variant",
+        "moq_capacity",
+        "lead_time",
+        "shipping",
+        "quality",
+        "sample_logistics",
+        "return_refund_policy"
+      ],
+      "process": {
+        "counter_days": 1,
+        "counter_fee_usd": 1.0,
+        "inquiry_days": 1,
+        "inquiry_fee_usd": 1.0,
+        "quote_days": 1,
+        "quote_fee_usd": 2.0
+      },
+      "required_variant_by_component": {
+        "driver_board": "driver_board_rev_c"
+      }
+    },
+    "suppliers": [
+      {
+        "component": "driver_board",
+        "listing": {
+          "claimed_lead_time_days": 8,
+          "claimed_variant": "driver board rev c",
+          "cohort_record": {
+            "cohort": "manufacturer, new to this marketplace",
+            "failed_inspection": 8,
+            "sellers_tracked": 40,
+            "unreliable_on_delivery": 8
+          },
+          "displayed_unit_price_usd": 20.71,
+          "evidence_status": "marketplace_listing_unverified",
+          "marketplace_record": {
+            "defective_units": null,
+            "largest_order_filled_units": null,
+            "late_deliveries": null,
+            "orders_reported": 0,
+            "units_inspected": 0
+          },
+          "sample_days": 3,
+          "sample_fee_usd": 40.0,
+          "seller_kind": "manufacturer",
+          "supplier_name": "Listing L258"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 20.71,
+          "capacity": 60,
+          "duty_rate": 0.0,
+          "lead_time_days": 8,
+          "moq": 50,
+          "negotiation": {
+            "floor_unit_price_usd": 20.71,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 50,
+            "supplier_paid_return_freight_available": false
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 0.55,
+          "order_step": 5,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 40.0,
+            "sample_lead_time_days": 3,
+            "sample_size": 100,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.9,
+            "refund_delay_days": 10,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.6,
+          "variant_id": "driver_board_rev_c",
+          "verbal_bias": {
+            "on_time_probability": 0.97,
+            "verified_yield_rate": 0.97
+          }
+        },
+        "supplier_id": "driver_board_l258"
+      },
+      {
+        "component": "driver_board",
+        "listing": {
+          "claimed_lead_time_days": 8,
+          "claimed_variant": "driver board rev c",
+          "cohort_record": {
+            "cohort": "trading company, new to this marketplace",
+            "failed_inspection": 8,
+            "sellers_tracked": 40,
+            "unreliable_on_delivery": 8
+          },
+          "displayed_unit_price_usd": 19.95,
+          "evidence_status": "marketplace_listing_unverified",
+          "marketplace_record": {
+            "defective_units": null,
+            "largest_order_filled_units": null,
+            "late_deliveries": null,
+            "orders_reported": 0,
+            "units_inspected": 0
+          },
+          "sample_days": 3,
+          "sample_fee_usd": 50.0,
+          "seller_kind": "trading company",
+          "supplier_name": "Listing L111"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 19.95,
+          "capacity": 60,
+          "duty_rate": 0.0,
+          "lead_time_days": 8,
+          "moq": 50,
+          "negotiation": {
+            "floor_unit_price_usd": 19.95,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 50,
+            "supplier_paid_return_freight_available": false
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 0.97,
+          "order_step": 5,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 50.0,
+            "sample_lead_time_days": 3,
+            "sample_size": 100,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.9,
+            "refund_delay_days": 10,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.6,
+          "variant_id": "driver_board_rev_c",
+          "verbal_bias": {
+            "on_time_probability": 0.97,
+            "verified_yield_rate": 0.97
+          }
+        },
+        "supplier_id": "driver_board_l111"
+      },
+      {
+        "component": "driver_board",
+        "listing": {
+          "claimed_lead_time_days": 6,
+          "claimed_variant": "driver board rev c",
+          "cohort_record": {
+            "cohort": "trading company, new to this marketplace",
+            "failed_inspection": 8,
+            "sellers_tracked": 40,
+            "unreliable_on_delivery": 8
+          },
+          "displayed_unit_price_usd": 21.46,
+          "evidence_status": "marketplace_listing_unverified",
+          "marketplace_record": {
+            "defective_units": null,
+            "largest_order_filled_units": null,
+            "late_deliveries": null,
+            "orders_reported": 0,
+            "units_inspected": 0
+          },
+          "sample_days": 3,
+          "sample_fee_usd": 60.0,
+          "seller_kind": "trading company",
+          "supplier_name": "Listing L834"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 21.46,
+          "capacity": 60,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 50,
+          "negotiation": {
+            "floor_unit_price_usd": 21.46,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 50,
+            "supplier_paid_return_freight_available": false
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 0.97,
+          "order_step": 5,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 60.0,
+            "sample_lead_time_days": 3,
+            "sample_size": 100,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.9,
+            "refund_delay_days": 10,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.6,
+          "variant_id": "driver_board_rev_c",
+          "verbal_bias": {
+            "on_time_probability": 0.97,
+            "verified_yield_rate": 0.97
+          }
+        },
+        "supplier_id": "driver_board_l834"
+      },
+      {
+        "component": "driver_board",
+        "listing": {
+          "claimed_lead_time_days": 6,
+          "claimed_variant": "driver board rev c",
+          "displayed_unit_price_usd": 25.25,
+          "evidence_status": "marketplace_listing_unverified",
+          "marketplace_record": {
+            "defective_units": 40,
+            "largest_order_filled_units": 60,
+            "late_deliveries": 2,
+            "orders_reported": 53,
+            "units_inspected": 1325
+          },
+          "sample_days": 2,
+          "sample_fee_usd": 30.0,
+          "seller_kind": "manufacturer",
+          "supplier_name": "Listing L180"
+        },
+        "private_terms": {
+          "base_unit_price_usd": 25.25,
+          "capacity": 60,
+          "duty_rate": 0.0,
+          "lead_time_days": 6,
+          "moq": 50,
+          "negotiation": {
+            "floor_unit_price_usd": 25.25,
+            "maximum_payment_terms_days": 30,
+            "maximum_refund_window_days": 30,
+            "minimum_moq": 50,
+            "supplier_paid_return_freight_available": false
+          },
+          "offer_valid_days": 60,
+          "on_time_probability": 0.97,
+          "order_step": 5,
+          "payment_terms_days": 30,
+          "quality": {
+            "observed_defects": 3,
+            "sample_cost_usd": 30.0,
+            "sample_lead_time_days": 2,
+            "sample_size": 100,
+            "verified_yield_rate": 0.97
+          },
+          "return_policy": {
+            "claim_acceptance_probability": 0.9,
+            "refund_delay_days": 10,
+            "refund_window_days": 30,
+            "restocking_fee_rate": 0.0,
+            "return_freight_payer": "supplier",
+            "return_freight_per_unit_usd": 0.0
+          },
+          "shipping_per_unit_usd": 0.6,
+          "variant_id": "driver_board_rev_c",
+          "verbal_bias": {
+            "on_time_probability": 0.97,
+            "verified_yield_rate": 0.97
+          }
+        },
+        "supplier_id": "driver_board_l180"
+      }
+    ]
+  },
+  "provenance": {
+    "generator_id": "procurement_allocation_pay_or_test_case_matrix_v1",
+    "generator_version": "1.0.0",
+    "review_status": "curated"
+  },
+  "seats": [
+    {
+      "id": "buyer",
+      "role": "buyer"
+    }
+  ],
+  "spec_version": "aeread.case/0.1",
+  "split": "pay_or_test_v1",
+  "visibility_policy": "procurement_allocation_public_listings_private_supplier_terms_v1",
+  "world_seed": 8885000
+}

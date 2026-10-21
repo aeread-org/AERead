@@ -1,0 +1,29 @@
+{
+ "claude_opus55": {
+  "cli": "claude_code",
+  "context_tokens": 1286,
+  "mcp_servers": [],
+  "runtime_version": "2.1.303",
+  "skills": [],
+  "tools": [
+   "StructuredOutput"
+  ],
+  "violations": [],
+  "working_directory_is_neutral": true
+ },
+ "codex_sol61": {
+  "cli": "codex_cli",
+  "context_tokens": null,
+  "mcp_servers": null,
+  "runtime_version": "0.162.1",
+  "skills": [
+   "imagegen",
+   "openai-docs",
+   "skill-creator",
+   "skill-installer"
+  ],
+  "tools": null,
+  "violations": [],
+  "working_directory_is_neutral": true
+ }
+}
