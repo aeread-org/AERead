@@ -157,6 +157,7 @@ Directory `refund/`, package `refund`.
 - [Refund V1.3 disclosure and negotiation state machine](refund/negotiation_state_machine_v1_3.md)
 - [Refund reasoning experiment](refund/reasoning_experiment.md)
 - [Refund V2.1 1:N Pilot](refund/refund_v2_1n_design.md)
+- [Refund V2.5 four-seat developmental release](refund/refund_v2_5_release.md)
 - [Refund V2.1 1:N Controlled Experiment Protocol](refund/refund_v2_1n_experiment_protocol.md)
 - [Refund V2.1 1:N Selectable-Agent Pilot](refund/refund_v2_1n_pr_draft.md)
 - [Refund V1.3 worked trajectories](refund/worked_transcripts_v1_3.md)

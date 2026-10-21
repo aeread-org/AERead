@@ -56,6 +56,7 @@ package that owns it.
 | [`procurement_grounding_v1/`](procurement_grounding_v1/) | Procurement grounding | [`procurement_grounding`](../src/aeread_families/procurement_grounding/) | 2 |
 | [`refund_v1/`](refund_v1/) | Refund | [`refund`](../src/aeread_families/refund/) | 25 |
 | [`refund_v2/`](refund_v2/) | Refund | [`refund`](../src/aeread_families/refund/) | 2 |
+| [`refund_v25/`](refund_v25/) | Refund | [`refund`](../src/aeread_families/refund/) | 3 |
 | [`steer/`](steer/) | STEER | [`steer`](../src/aeread_families/steer/) | 1598 |
 | [`tau3_retail/`](tau3_retail/) | Tau3 retail | [`tau3_retail`](../src/aeread_families/tau3_retail/) | 117 |
 | [`termsbench/`](termsbench/) | TERMS-Bench | [`termsbench`](../src/aeread_families/termsbench/) | 31 |
