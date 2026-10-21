@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.30 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.31 (20 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -317,3 +317,7 @@ current one saturated"):
   partial (control, replay through the CLI and baseline receipts under way, no seed). Data center's sentence drops
   "as for Procurement". Section 5.3: the declared TERMS-Bench reproduction was built and stopped at its first check
   (FC10 0.307 vs 0.266; code on main via #296/#297), and the scripted-seat runtime is on main.
+- Version 15.31 (2026-10-20): Procurement v3 now passes Gates 0, 2, 3 and 5 and is partial at 1 and 4 (qc.md 8.2 on
+  main after #298, 1dd48cf5): 12 bundles replay through main's CLI, 432 of 432 receipts incl. 100 scripted-baseline
+  receipts (one bundle re-checked here: 40 of 40). Section 5.1, the Procurement passage, Appendix F.1 and Table F.1
+  (Gates 2 and 5) say so; the registration merged on the owner's override is still stated. Sources row added.

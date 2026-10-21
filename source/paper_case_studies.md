@@ -54,12 +54,11 @@ bargaining against a fixed counterpart, and is partial at Gates 0, 1, 2, 4 and 5
 registration with the runtime awaits review and its code is not on the main branch, and no frozen control has screened
 its worlds. It is not a test of inference about the other side, whose type is worth less than 1%
 of the value available in a deal to the best informed policy. The Procurement pack reported here passes
-Gate 0 and is partial at Gates 1 to 5. Its environment and its registration with the runtime are now on the main
-branch; the registration was merged on the owner's override, without the independent review the process asks for. The
-gates stay partial because a frozen control could not certify the worlds' headroom (Gate 1), because replaying the
-published receipts through the runtime's command line and sealing the scripted baselines' receipts are still under way
-(Gates 2, 3 and 5), and because the command-line subjects take no seed (Gate 4). The earlier, saturated Procurement pack
-fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
+Gates 0, 2, 3 and 5 and is partial at Gates 1 and 4. Its environment and its registration with the runtime are on the
+main branch, the registration merged on the owner's override without the independent review the process asks for, and
+every published receipt, 432 including 100 from scripted baselines, replays through the runtime's command line. It is
+partial because a frozen control could not certify the worlds' headroom (Gate 1) and because the command-line subjects
+take no seed (Gate 4). The earlier, saturated Procurement pack fails Gates 1 and 3. Refund V2.5 fails Gate 3. "Declared" below describes how a comparison
 was run, with its analysis committed before any cell, not the case: the results compare the named
 subjects on these worlds and are not qualified benchmark scores.
 
@@ -182,7 +181,8 @@ One bears on why Opus never tests: in a check with no play, it was asked how lik
 sound once another newcomer of its kind has passed or failed a sample, with and without a clean quote of its
 own first, and answered all 18 questions within 0.05 of the exact value, as Sol did. Opus reads
 the sharing rule and does not plan with it. These runs used the case's environment from a development branch, which is
-now on the main branch with its registration (Appendix F.1). An earlier pack, in which quotes always
+now on the main branch with its registration; every published receipt replays through the runtime's command line
+(Appendix F.1). An earlier pack, in which quotes always
 arrive and newcomers never share a source, is saturated: a rule that looks one test ahead comes within 0.01% of
 the best policy (Appendix E.4, Table E.14).
 
@@ -400,6 +400,7 @@ support for the scripted seat this family uses is now on the main branch.
 | TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
 | Procurement harder version: pilot (Table E.15) and declared test (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
 | Procurement harder version: frozen control for Gate 1's measured headroom (Appendices E.4, F.1) | plan `docs/families/procurement-allocation/pay_or_test_v3_control_plan.md` declared in ec078a59 before any play; results 8fec9f68 (`pay_or_test_v3_control_results.md`, `evidence/procurement_allocation/pay_or_test_v3_control/`: 84 of 84 plays replayed, $0.76 charged by OpenRouter); incident P-J-09 (the control was chosen for testing often, not for testing well); the exactness test on all 20 declared worlds is 7ab8ff12; the registry row and the family code are in review as draft PRs #294 and #295; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row | diagnostic, declared |
+| Procurement harder version on main: registration, code, bundles and replay (§5.1, Appendix F.1) | registry row #294 (a97f3ade, owner override, incident RN-O-03), family code #295 (0d0adf7d), bundles and replay #298 (1dd48cf5): 12 bundles `evidence/procurement_allocation/procurement_allocation_pay_or_test_v3_*` verified by `aeread verify-replay` with `pay_or_test_v3_replay:setup_for_receipt`, 432 verified, 0 differ, 0 missing, including `..._confirm_v3_scripted_baselines_v1` (five fixed policies, 100 receipts); gate record `docs/families/procurement-allocation/qc.md` §8.2 | gate status |
 | Procurement harder version: Gemini 3.8 Flash and GPT-6 Luna (Table 5.3, Figures 5.1 and 5.2, Tables E.5, E.9, E.10) | plan `docs/families/procurement-allocation/pay_or_test_v3_flash_plan.md` declared in f3daae61 before any play; results 47594ab8 (`evidence/procurement_allocation/pay_or_test_v3_flash/`, 80 of 80 plays, OpenRouter charged $0.43); failure classes for all four subjects from `tools/paper/failure_taxonomy/procurement_pay_or_test_v3.py` (rules fixed in 51e9bfd3 before the flash plays; output ea9dcfdc), copied with `derive_panels.py` checking every world against the replayed read-outs; run from the tree carrying the registry row awaiting kernel review | declared, descriptive |
 | Procurement harder version: Sol on the odds twins (Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v3_twins_sol_plan.md` declared in 2fb0140a before any play; results 87e67702 (`pay_or_test_v3_twins_sol_results.md`, `evidence/procurement_allocation/pay_or_test_v3_twins_sol/`, 20 of 20 plays replayed); exact rule shares from the twin pack's rule values; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row awaiting kernel review | diagnostic, declared |
 | Procurement corrected brief and comprehension check (§5.1, Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
