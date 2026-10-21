@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.32 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.33 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -326,3 +326,7 @@ current one saturated"):
   replay-verified): Sol 90.4% (lemon 85.9%), +40.9 over inspect_then_sign, -5.0 vs inspect_lowball, holdout 88.0%;
   Opus 80.4% (71.2%), +30.9, -15.0, 80.1%; Sol - Opus +10.0 points; Opus vs Gemini +1.6 [-0.3, 3.6]. Outside v15's
   contrasts. Caption, a paragraph after the GLM sentence, a sources row and Table E.3's row.
+- Version 15.33 (2026-10-21): Section 5.3 states what TERMS-Bench v2 (downloaded 2026-10-21, 80 pp.) specifies for the
+  fixed-concession baselines (1%/10%/30% of the remaining distance per offer) and what it leaves out (how they open
+  and accept). Appendix E.4: read as a control on its two plays, Sol would pass Procurement's headroom check in only
+  9 of 20 worlds, so certifying headroom needs a pack screened by a well-testing control before freezing.

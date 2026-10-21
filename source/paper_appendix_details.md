@@ -223,7 +223,9 @@ tests. GPT-6 Luna at high reasoning was chosen on the pilot worlds because it te
 closed −34% of the gap on average, worse than paying the premium. Against it 3 worlds score the same at every seed and 18
 are matched by a screened rule (the kind-blind shortcut in 14, the one-step rule in 4), so only 2 of 20 pass: the
 control is weaker than the shortcut, which says more about the control than about the worlds. Beside it, and not
-declared, Sol's better play of each world beats every screened rule in 11 of 20.
+declared, Sol's better play of each world beats every screened rule in 11 of 20, and read as a control on its two plays
+Sol would pass the check in only 9 of 20 worlds: on a frozen pack the check can only count passing worlds, so certifying
+the headroom needs a pack screened by a control that tests well before it is frozen.
 
 The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
 alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes

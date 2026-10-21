@@ -359,8 +359,9 @@ against accepting above its reservation value; its observation differs from the 
 move removes the episode where the paper applies a fallback, under which GLM-5.1's surplus efficiency
 would be 0.520 over all 15 cases; and our price range and zone widths are wider than the paper's. A
 declared reproduction with those fixes has been built, and it stopped at its first check: one of the paper's
-fixed-concession baselines (FC10) scores 0.307 here against the paper's 0.266, while the other two match, and the paper
-does not define that baseline exactly. No agent has played it. The paper reports critical violations by GLM-5.1 in
+fixed-concession baselines (FC10) scores 0.307 here against the paper's 0.266, while the other two match. The paper
+states how much the baselines concede (1%, 10% or 30% of the remaining distance per offer) but not how they open or
+accept. No agent has played it. The paper reports critical violations by GLM-5.1 in
 5% of cases without a zone of agreement for these three families; at that rate 15 such cases would
 show none about half the time, and ours showed none. The port also exposed a harness effect. On one provider route, any declared
 reasoning budget suppressed deliberation, and GLM 5.3 Flash breached its own reservation value in
