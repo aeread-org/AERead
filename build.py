@@ -384,7 +384,9 @@ def main():
               'discussion_words':len(parts['discussion'].get_text(' ',strip=True).split())}
     assert checks['runtime_tables'] == 2
     title = 'AERead: Evaluating Economic Decisions in Interactive Environments'
-    subtitle = 'Research working paper · 18 October 2026 · Preliminary results; feedback and contributions welcome'
+    version = json.loads((SOURCE / 'version.json').read_text())
+    subtitle = (f"Research working paper · version {version['version']} · {version['date']} · "
+                'Preliminary results; feedback and contributions welcome')
     authors = json.loads((SOURCE / 'authors.json').read_text())
     full = document(title, subtitle, str(soup), styles, authors=authors)
     page = OUT.with_suffix('.html'); page.write_text(full)
@@ -392,7 +394,7 @@ def main():
     if not OUT.exists() or OUT.stat().st_mtime < page.stat().st_mtime:
         raise RuntimeError(result.stderr[-4000:])
     writer = PdfWriter(clone_from=PdfReader(OUT))
-    writer.add_metadata({'/Author': '; '.join(authors), '/Title': title})
+    writer.add_metadata({'/Author': '; '.join(authors), '/Title': title, '/Subject': f"Version {version['version']}, {version['date']}"})
     stamped = OUT.with_suffix('.metadata.pdf')
     writer.write(stamped)
     stamped.replace(OUT)

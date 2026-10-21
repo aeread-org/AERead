@@ -1,5 +1,9 @@
 AERead working draft v15 - 18 October 2026
 
+Current version: 15.27 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
+another push at the same number).
+
 Based on v14 (the shareable copy, no internal codes). Restructured so the paper leads with what
 distinguishes the environment. Not sent to anyone.
 
@@ -291,3 +295,8 @@ current one saturated"):
   j and surplus v -> g; stand-ins' share a -> h; reader intercept a, b -> b0, b1; mu-bar defined; CC -> C_C as in
   Section 5.1); B.3 defines V, the fee is 0 on move 1, and a price-only script keeps redlining (agreement_negotiator
   move()); C.1's two compressed sentences and C.2's "V counts only future spending" rewritten. No number changed.
+- Version 15.27 (2026-10-20): a version number now prints under the title (source/version.json; the sync script
+  refuses a push that does not raise it). Procurement's exactness check now covers all 20 declared worlds as well as
+  all 12 pilot worlds (7ab8ff12 on codex/procurement-pay-or-test); Section 6 and A.2.1 say so, and Section 6's
+  earlier "six pilot worlds" was wrong (the test covers 12). Section 6 also names the data-center oracle check as
+  v1's pack and says v2's 80 worlds were checked only by a 12-negotiation kernel dry run.

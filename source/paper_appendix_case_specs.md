@@ -205,7 +205,8 @@ three types, the kits owed, the action budget and the order sizes are unchanged.
 The best informed policy is computed exactly by backward induction over what the buyer has seen
 (each supplier's test results, which listings it looked up, and whether each kind's sharing is
 settled), with an unanswered quote and a lookup as chance outcomes; its value equals the
-environment's own average over 400 plays of each pilot world within four standard errors. The 20
+environment's own average over 400 plays within four standard errors on each of the 12 pilot worlds and each of
+the 20 worlds of the declared test. The 20
 worlds of the declared test are the first admitted seed of each of 20 blocks from seed 9,400,000
 (5,164 seeds scanned); their twins at the earlier pack's odds keep every listing, price, sample
 term, clock and sharing chance and redraw only the cohort records.
