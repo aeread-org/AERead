@@ -712,4 +712,5 @@ side's surplus is U_I or U_C. A side signs below its walk-away point if its surp
 ### Code and data availability
 
 All code, evaluation sets and sealed evidence are in the AERead repository (https://github.com/aeread-org/AERead).
-A replication note in the repository maps each formula in Appendices A–D to its implementation.
+A replication note in the repository (`docs/research/paper_replication_note.md`) maps each formula in Appendices A–D,
+and each procedure the paper reports, to its implementation.

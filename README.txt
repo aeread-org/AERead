@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.39 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.40 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -362,3 +362,11 @@ current one saturated"):
   corrected: E.7's run counts (Procurement and Data center have two plays per world), the Data center Gate 1 wording
   (a control on a frozen set cannot certify it; a new set is needed), and Appendix G's evidence locations
   (Procurement's bundles are on main). LaTeX export: long equations wrap; no line runs past the margin.
+- Version 15.40 (2026-10-21): reorganised for density after a second referee read. Section 5.1 has one results
+  paragraph per case (at most ten numbers, finding first) and a short "Further runs" paragraph; the rest moved to
+  Appendix E.4. Captions cut to what each table or figure shows (Table 5.2 and Figure 5.2 from nine and twelve lines
+  to about three). Each headline (42% vs 7%; 25 defects, 14 invisible; gates passed; worked examples) said once in
+  the abstract and once at its evidence. Gates introduced in Section 6 only; Section 4.1's taxonomy cut to the four
+  kinds the cases use; cross-references follow complete thoughts; two-idea sentences split; Section 6's reference-
+  run detail moved to Appendix F.2. A paper-wide check confirmed no number left the paper (847 distinct, 847 after).
+  The paper now cites the replication note at docs/research/paper_replication_note.md (on main, #308).

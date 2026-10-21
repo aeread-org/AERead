@@ -125,10 +125,30 @@ reduce to 174 distinct action sequences (four payments cases share one reference
 
 #### Housing
 
-Section 5.1 and Table 5.2 report v15, the pre-registered comparison. Its evidence bundle also records 0 invalid
-seat-0 actions for either model, and realized nets of $244.0 (Gemini) and $194.2 (Luna) beside the
-corrected-measure values. The rest of this subsection reports v14, the earlier comparison of three models
-(Table E.13).
+Section 5.1 and Table 5.2 report v15, the pre-registered comparison. Its inclusion screen rejected 119 of the 437
+candidate main worlds. Relative to the best informed tenant's value, the full-information ceiling is 121% and
+`inspect_then_sign` earns 49%. The A/A arm, in which Luna runs twice under two names with different seeds, differs by
+−1.6 points [−6.1, +2.9], inside the $50 band, which indicates that the band is calibrated. In the holdout, Gemini
+leads Luna by 18.2 points [5.8, 30.6]. In worlds whose favourite is a lemon, Luna signs without inspecting twice as
+often as Gemini (230 against 114 blind signings in 600 episodes). All 1,720 episodes completed and were verified by
+replay ($8.64). The evidence bundle also records 0 invalid seat-0 actions for either model, and realized nets of
+$244.0 (Gemini) and $194.2 (Luna) beside the corrected-measure values; the v15 results note in the repository gives
+every row of Table 5.2 in dollars.
+
+**The addenda.** GLM 5.3 Flash was excluded at the pre-run profile check, because its provider now serves a different
+quantization from the one v14 pinned. A pre-registered addendum ran it on another provider serving v14's quantization
+(600 of 600 episodes, verified by replay), and we report it beside v15 and outside its pre-registered contrasts. On
+the main evaluation set GLM keeps 53.9% of the best informed tenant's value. It does not beat `inspect_then_sign` at
+the pre-registered 98.3% level (+4.5 points [−4.4, +13.3]). Descriptively, it trails Luna by 8.9 points [1.6, 16.2]
+and Gemini by 24.8 [19.0, 30.5]. A second pre-registered addendum ran Sol 6.1 and Opus 5.5 through their command-line
+tools on the same 600 episodes each, all completed and verified by replay, likewise outside v15's contrasts. Sol keeps
+90.4% of the best informed tenant's value and comes closest to `inspect_lowball` (5.0 points below it); Opus keeps
+80.4%. Both beat `inspect_then_sign` at the 98.3% level. Sol leads Opus by 10.0 points [7.4, 12.6], and Opus cannot be
+distinguished from Gemini (+1.6 [−0.3, +3.6]). As with the flash models, nearly all of each model's shortfall arises
+in worlds whose favourite is a lemon.
+
+**The earlier comparison (v14).** The rest of this subsection reports v14, the earlier comparison of three models
+(Table E.13). v14's pre-registered measure conditioned on only one landlord kind.
 
 **Table E.13. Housing v14, main evaluation set, in dollars per world with 95% intervals over worlds. The corrected block is a post-run reanalysis that we reproduced from sealed records on 16 October; the pre-registered measure remains visible.**
 
@@ -218,9 +238,12 @@ required 326 to 3,464 worlds against a cap of 96, so no confirmatory run followe
 evaluation set of Section 5.1 followed instead. The flash models give up as much as always paying the premium does:
 their loss arises in the worlds where a newcomer was worth testing.
 
-**Further runs on the harder evaluation set (Table E.15).** Section 5.1 reports the 20 pre-registered worlds. The
-runs below are a development pilot and three diagnostics, each pre-registered before its plays; none of them tests a
-claim.
+**Further runs on the harder evaluation set (Table E.15).** Section 5.1 reports the 20 pre-registered worlds. On
+them, Sol opens with the kind-blind shortcut's move in 2 of 40 plays, tests a second newcomer in 7 of 40 and looks up
+a source in 4, so the moves the case is built around are rare in its play. The runs below are a development pilot
+and three diagnostics, each pre-registered before its plays; none of them tests a claim. These runs, like the
+pre-registered test, used the case's environment from a development branch, which is now on the main branch with its
+registration, and every published receipt replays through the runtime's command line (Appendix F.1).
 
 **Table E.15. Procurement's harder evaluation set: runs beyond Table 5.3. Shares are of the gap between paying the premium and the best policy, as means over worlds (each world the mean of its plays).**
 
@@ -264,7 +287,15 @@ because its provider route changed price before any call.
 
 #### Data center
 
-The counterpart and probing results below use the development sets. Which model sits in which seat changes the
+**v2 (Table 5.4).** All freeze and run probes were clean, and all 640 negotiations are valid and replayed ($55.41 at
+list price). With the walk-away point stated, neither model signs below it as client (0 of 80 for either), and the
+client seat separates nothing (+0.8 points [−3.2, 4.9]). On v2's deal worlds the best informed turn-by-turn policy
+gives the integrator 63.5% of the value available at the true client type, whereas Sol earned 33.8%, Opus 26.3% and
+the price-only rule 26.5%. Sol therefore captures about 20% of the room between the rule and that policy. The earlier
+comparison (v1) is reported at the end of this subsection (Tables E.16 and E.17), and development results are in
+Tables E.3 and E.7.
+
+**Development sets.** The counterpart and probing results below use the development sets. Which model sits in which seat changes the
 pair's total by +3 [−11, +18] thousand dollars a world, and in head-to-head play Sol is ahead of Opus in 51 of 52
 worlds in each seat. Table E.3 reports every counterpart, and Appendix B gives each counterpart style's rule and
 parameters.
@@ -738,10 +769,15 @@ later under their own configuration, and Procurement's corrected schema ran unde
   environment and verifier with no model. The Housing reference and a full-information tenant play all 600 v14
   episodes, reproducing the published per-episode values and reaching the ceiling in every episode (offline, against
   the same functions that wrote the bundle). Procurement's best policy equals the environment's average over the 27
-  type profiles in all 24 worlds. The data-center oracle pair loses nothing in all 116 worlds of both development
-  sets, against an optimum that the test computes independently, and a scripted dry run of 120 negotiations covered
-  all 60 included agreement worlds before the confirmatory run. Refund V2.5's release requires the reference to
-  receive full credit on every case.
+  type profiles in all 24 worlds of the earlier evaluation set. On the harder evaluation set, the best policy and the
+  one-step rule equal their averages over 400 plays through the environment, within four standard errors, on all 12
+  pilot worlds and all 20 worlds of the pre-registered test; we checked those 20 worlds on 20 October, after the runs.
+  The Housing full-information tenant reaches the ceiling on all 320 v15 worlds. The data-center oracle pair loses
+  nothing in all 116 worlds of both development sets, against an optimum that the test computes independently, in
+  all 60 worlds of v1's evaluation set and in all 80 of v2's; we checked v2's worlds on 20 October, after its runs. A
+  scripted dry run of 120 negotiations covered all 60 included agreement worlds before the confirmatory run. Refund
+  V2.5's release requires the reference to receive full credit on every case. The initial tests were written after
+  development.
 - **Replay.** The kernel's replay recomputes each receipt's own score from its sealed events without any provider
   call. It covers the 1,764 completed Housing v14 receipts (the other 36 rows are verified exclusions for operational
   failure), the development agreement receipts, which were replayed in-line, and all 1,295 scored receipts from the

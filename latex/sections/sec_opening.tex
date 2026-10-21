@@ -28,9 +28,7 @@ AERead provides a framework for constructing and evaluating such cases.
 Each case specifies the parties, their observations and legal actions,
 the world distribution, and checks on behavior and outcomes. A shared
 runtime executes play and records evidence. Case-specific references give
-scores an economic interpretation: a feasible policy, an optimal policy
-under the deciding seat's information, or a labelled full-information
-upper bound. Results retain their native units and reference types.
+scores an economic interpretation, and results keep their native units.
 
 \begin{figure}[htbp]\centering\renewcommand{\thefigure}{1.1}
 \includegraphics[width=\linewidth]{figures/evaluation_levels.png}
@@ -54,10 +52,8 @@ environment on every included world (Section~\ref{sec:qc}).
 \item \textbf{The counterpart is part of the case.} Other parties are seats
 with their own information and interests, played by scripted policies,
 another model or the same model, and each claim names its counterpart. In
-the Data-center case, the earnings gap between two agents is 42\% of the
-value available in a deal when they negotiate against each other, and 7\% when each faces the same fixed scripted
-counterpart
-(Section~\ref{sec:cases}).
+the Data-center case, the measured gap between two agents depends strongly on
+which counterpart they face (Section~\ref{sec:cases}).
 \item \textbf{Typed shortfall.} The gap to the reference is split into
 observed action classes, such as tests not taken, worse terms, harmful
 agreements and negotiation fees, so a result states where value was lost
@@ -65,21 +61,18 @@ as well as how much (Section~\ref{sec:cases}).
 \item \textbf{World generators with an inclusion criterion.} A case is a generator of
 worlds, and its evaluation sets regenerate from their seeds. An inclusion criterion,
 computed before any agent plays, keeps only worlds in which simple
-shortcuts lose a stated margin. The Data-center comparison used 80 worlds
-included from 5,436 scanned. Housing's v15 evaluation set includes a world only if the best-informed tenant
-beats a simple inspect-then-sign rule by \$25. The reported Procurement evaluation set includes a world only if a rule
-that plans one newcomer's test exactly pays the premium while the best policy beats paying the premium by
-10\%; this criterion kept 20 worlds from 5,164 scanned (Section~\ref{sec:cases}).
+shortcuts lose a stated margin. The Data-center comparison, for example, used 80
+worlds included from 5,436 scanned (Section~\ref{sec:cases}).
 \item \textbf{Quality control over populations of worlds.} Cases are
-qualified through typed quality-control gates. We score simple-rule ceilings beside the
-agents and audit the task prompts. Of 25 defects selected from our record, 14
-were invisible in any single world (Section~\ref{sec:qc}).
+qualified through quality-control gates (Section~\ref{sec:qc}). We score simple-rule ceilings beside the
+agents and audit the task prompts. More than half of the defects we selected
+from our record were invisible in any single world.
 \item \textbf{Scores recomputed from sealed evidence.} The kernel hashes a
 plan before execution, seals the events, and replays each receipt to
 recompute its scores without calling a model; no model judges a score
 (Section~\ref{sec:runtime}).
 \item \textbf{One runtime for several activities.} Families supply only the
-economic rules. Four cases built by the maintainers and a reimplementation of three
+economic rules. Four cases and a reimplementation of three
 TERMS-Bench counterpart families run on the same kernel
 (Section 5.3).
 \end{enumerate}
@@ -88,10 +81,8 @@ rules, worlds and reference. Execution, sealing, replay, counterpart seats
 and the quality-control gates come with the runtime, so a new case starts
 with the same evidence and checks as the existing ones.
 Sections 3 and 4 describe the case design and the runtime, Section 5 the
-cases, and Section 6 the quality control. The cases are worked examples built by the
-maintainers. Housing and Procurement pass four of the five quality-control
-gates, and no case passes all five; Section 7
-states what their results do and do not establish.
+cases, and Section 6 the quality control. Section 7 states what the results
+do and do not establish.
 
 \section{Related work}
 \label{sec:related-work}
@@ -227,11 +218,11 @@ The author then provides a world generator or a fixed evaluation set, an inclusi
 criterion, and a reference whose access to information is explicit. The inclusion criterion
 screens each candidate world before any agent plays and before hidden
 types are drawn. It is computed exactly from the public world and the stated
-prior, and it keeps a world only if simple shortcuts, such as accepting the
+prior. It keeps a world only if simple shortcuts, such as accepting the
 default terms or ignoring private information, fall short of the reference
 by a stated margin. Whether the reference can be reached is a separate
-check: executable controls play it through the actual environment and
-verifier on every included world, alongside simple policies that reveal
+check. Executable controls play the reference through the actual environment and
+verifier on every included world. Simple policies are played beside it, to reveal
 shortcuts or ceiling effects that the screen missed. The evaluation set must also be
 valid, free of duplicates, and split into disjoint development and holdout
 ranges. A full-information bound is labelled separately from a policy
@@ -242,13 +233,13 @@ Before a confirmatory comparison, the campaign freezes the worlds,
 seat assignments, prompts, agent settings, budgets and analysis, and pre-registers them. Its
 evidence package should connect each reported measure to the retained
 actions and outcomes, the scoring implementation, and a command that
-reproduces it. Section 4 describes the shared execution path; Appendix H
-records where the current drivers and headline analyses extend beyond
-the receipt's coverage.
+reproduces it. Section 4 describes the shared execution path. The current drivers
+and headline analyses extend beyond what a receipt covers in places, which
+Appendix H records.
 
-This is the contribution and qualification standard. Implementation
-support and completed checks vary across the four examples, as Section 6
-and Appendix F document. Cases can be useful for development before
+This is the contribution and qualification standard. The four examples meet it
+to different degrees: their implementation support and completed checks vary
+(Section 6). Cases can be useful for development before
 qualification, provided their reports identify missing checks, preserve
 failed attempts, and distinguish analyses pre-registered before execution from
 later corrections. The current examples demonstrate the workflow and
