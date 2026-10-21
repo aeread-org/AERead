@@ -161,6 +161,13 @@ TRUSTED_BUILTIN_PLUGIN_KEYS = frozenset(
             "1.0.0",
             "procurement_allocation_environment",
         ),
+        # Pay or test version 3 (``pay_or_test_v3_environment.PayOrTestV3Plugin``, a subclass of the 1.0.0
+        # environment): the pack the paper's Procurement case reports. Its module arrives with the family PR.
+        (
+            "procurement_allocation_v1",
+            "1.1.0",
+            "procurement_pay_or_test_v3_environment",
+        ),
         (
             "procurement_grounding_v1",
             "1.0.0",
