@@ -10,7 +10,8 @@ from aeread_families.refund import v2_5_payment_units_v51 as units
 
 EXPECTED = {"core": 24, "policy": 76, "v3_common": 8, "v3_intake": 24,
             "v3_payments": 18, "v3_customer": 16, "v4_payments": 8,
-            "v4_customer": 4, "v5_intake": 8, "v51_payments": 12, "v5_customer": 6}
+            "v4_customer": 4, "v5_intake": 8, "v51_payments": 12, "v5_customer": 6,
+            "v71_intake": 32, "v71_customer": 32}
 
 
 @pytest.mark.parametrize("panel", release.PANELS)

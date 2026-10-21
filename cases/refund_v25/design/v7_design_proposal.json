@@ -1,0 +1,96 @@
+{
+  "design_revision": "refund_v25_customer_intake_expansion/7-proposal",
+  "status": "design_only_not_runnable",
+  "baseline_revision": "refund_v25_seat_extension/6.2.1",
+  "baseline_source": "src/aeread_families/refund/v2_5_seat_extension_v6_2_1.py",
+  "paid_execution_authorized": false,
+  "human_normative_qc_approved": false,
+  "models": [],
+  "budget_usd": null,
+  "time_limit_minutes": null,
+  "controlled_active_seats": ["intake", "customer"],
+  "active_seats_per_episode": 1,
+  "other_seats": "observation_only_scripted_reference",
+  "seeds": [301, 302, 303],
+  "proposed_calibration_repetitions": 2,
+  "pairs_per_structure": 2,
+  "development": {
+    "intake_structures": 8,
+    "customer_structures": 8,
+    "intake_pairs": 16,
+    "customer_pairs": 16,
+    "variants_per_seed": 64,
+    "episodes_per_model": 384
+  },
+  "reserved": {
+    "intake_structures": 2,
+    "customer_structures": 2,
+    "variants_per_seed": 16,
+    "paid_execution_authorized": false,
+    "rule": "No model-driven tuning or paid calibration on reserved templates; authoring/conformance is permitted and does not make templates secret."
+  },
+  "difficulty_structure_counts_per_seat": {"easy": 2, "medium": 3, "hard": 3},
+  "intake_structures": [
+    {"id": "I01", "difficulty": "easy", "nodes": 3, "edges": [], "scenario": "wrong_item_received", "axes": ["total_budget", "max_rounds"], "purpose": "Affordable subset selection without dependencies"},
+    {"id": "I02", "difficulty": "easy", "nodes": 3, "edges": [[0, 1]], "scenario": "policy_payment_reconcile", "axes": ["total_budget", "max_rounds"], "purpose": "One prerequisite plus an independent alternative"},
+    {"id": "I03", "difficulty": "medium", "nodes": 4, "edges": [[0, 1], [2, 3]], "scenario": "missing_parts_partial_refund", "axes": ["total_budget", "max_rounds"], "purpose": "Competing two-chain investments"},
+    {"id": "I04", "difficulty": "medium", "nodes": 4, "edges": [[0, 1], [1, 2]], "scenario": "policy_identity_override", "axes": ["total_budget", "max_rounds"], "purpose": "Delayed three-step payoff versus an independent fact"},
+    {"id": "I05", "difficulty": "medium", "nodes": 4, "edges": [[0, 1], [0, 2]], "scenario": "missing_parts_partial_refund", "axes": ["total_budget", "max_rounds"], "purpose": "Shared prerequisite unlocks two facts, competing with an independent fact"},
+    {"id": "I06", "difficulty": "hard", "nodes": 4, "edges": [[0, 2], [1, 2]], "scenario": "policy_identity_followup", "axes": ["total_budget", "max_rounds"], "purpose": "AND-join payoff versus an independent fact"},
+    {"id": "I07", "difficulty": "hard", "nodes": 4, "edges": [[0, 2], [1, 2], [2, 3]], "scenario": "missing_parts_partial_refund", "axes": ["total_budget", "max_rounds"], "purpose": "AND-join followed by a delayed terminal fact"},
+    {"id": "I08", "difficulty": "hard", "nodes": 4, "edges": [[0, 2], [0, 3], [1, 3]], "scenario": "policy_identity_override", "axes": ["total_budget", "max_rounds"], "purpose": "Asymmetric overlapping prerequisite sets"}
+  ],
+  "reserved_intake_structures": [
+    {"id": "IH01", "nodes": 4, "edges": [[0, 2], [0, 3], [1, 2], [1, 3]], "scenario": "policy_identity_followup"},
+    {"id": "IH02", "nodes": 5, "edges": [[0, 2], [1, 2], [0, 3], [1, 3], [2, 4], [3, 4]], "scenario": "late_defect_identity_conflict"}
+  ],
+  "customer_structures": [
+    {"id": "C01", "difficulty": "easy", "scenario": "policy_time_anchor", "structure": "One authorized document, two snapshot cutoffs", "pair_effects": ["disclosure_value_change", "disclosure_value_change"], "interventions": ["contract.as_of", "contract.as_of"]},
+    {"id": "C02", "difficulty": "easy", "scenario": "wrong_item_received", "structure": "Two live authorities disagree; priority outranks revision", "pair_effects": ["disclosure_value_change", "disclosure_value_change"], "interventions": ["contract.authorities.primary.priority", "contract.authorities.primary.priority"]},
+    {"id": "C03", "difficulty": "medium", "scenario": "missing_parts_partial_refund", "structure": "Fact-scoped primary revocation with live fallback", "pair_effects": ["disclosure_value_change", "disclosure_value_change"], "interventions": ["contract.as_of", "contract.as_of"]},
+    {"id": "C04", "difficulty": "medium", "scenario": "policy_evidence_inconclusive", "structure": "Live-revoked-live history; snapshot selects revision before status", "pair_effects": ["disclosure_value_change", "disclosure_value_change"], "interventions": ["contract.as_of", "contract.as_of"]},
+    {"id": "C05", "difficulty": "medium", "scenario": "policy_payment_reconcile", "structure": "Different requested facts legitimately resolve to different documents", "pair_effects": ["disclosure_value_change", "disclosure_value_change"], "interventions": ["contract.as_of", "contract.authorities.primary.priority"]},
+    {"id": "C06", "difficulty": "hard", "scenario": "policy_perishable_verification", "structure": "Scope filtering before revision/status; foreign-scope revocation must not spread", "pair_effects": ["disclosure_value_change", "source_invariance"], "interventions": ["contract.request_scope", "records.foreign_record.status"]},
+    {"id": "C07", "difficulty": "hard", "scenario": "policy_bundle_boundary", "structure": "Future primary record versus currently live fallback and unrelated future distractor", "pair_effects": ["disclosure_value_change", "source_invariance"], "interventions": ["contract.as_of", "records.future_distractor.revision"]},
+    {"id": "C08", "difficulty": "hard", "scenario": "policy_identity_override", "structure": "Current proposal binding after supersession; larger or lexically later archived IDs are not authoritative", "pair_effects": ["confirmation_binding_change", "confirmation_binding_change"], "interventions": ["proposal_binding.current_id", "proposal_binding.current_id"]}
+  ],
+  "reserved_customer_structures": [
+    {"id": "CH01", "structure": "Three authorities with mixed per-fact revocation and snapshot filtering", "scenario": "policy_evidence_conflict"},
+    {"id": "CH02", "structure": "Two sequential proposal deliveries with current-ID rebinding and stale confirmation rejection", "scenario": "policy_payment_hold_precedence"}
+  ],
+  "witness_search": {
+    "budgets": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    "horizons": [1, 2, 3, 4],
+    "batch_caps": [1, 2, 3],
+    "selection": "Lexicographic enumeration of authored finite parameter grid; no LLM results used. Keep only one-coordinate contrasts with feasible plans and different optimal first batches; at least one cross-variant first batch must be objectively suboptimal or illegal, not merely another optimal ordering.",
+    "scope": "Public planning witnesses only, not admitted refund cases or shared-runner trajectory conformance."
+  },
+  "seed_variation": {
+    "intake": ["public cost/utility profiles and permission configurations, fixed identically within each pair except its declared intervention"],
+    "customer": ["typed policy-determinative facts", "evidence status", "recorded_at and snapshot boundary", "authority/status layouts"],
+    "non_independence": "Renaming IDs, reordering records, prices and repetitions do not create independent structural units."
+  },
+  "admission_requirements": [
+    "Existing category policy, rule precedence and compiled oracle must agree.",
+    "Each pair changes one authored primitive coordinate; derived authoritative facts/reference outputs are separately verified, never counted as additional independent interventions.",
+    "Material intake nodes map to real required fact IDs; dependencies are public collection/access prerequisites, not hidden policy rules.",
+    "Canonical transitive-closure graph signatures reject isomorphic renaming and redundant-edge fake diversity.",
+    "Disclosure pairs must change authoritative requested values and expected policy meaning.",
+    "Confirmation pairs must change reference proposal binding; policy meaning may remain unchanged.",
+    "Invariance pairs must preserve authoritative disclosure, policy resolution and binding; report separately, never as sensitivity.",
+    "All facts must have an unambiguous live authorized source at every requested snapshot.",
+    "No prompt/schema/guard conflict; schema-only errors remain contract-only.",
+    "Four-seat full trajectory conformance, independent references, negative controls, and replay pass before paid execution.",
+    "Review utility weights and source-access prerequisites normatively; provider-free success is not human QC.",
+    "Expand intake phase/action bounds to four rounds and verify all loops before instantiating witnesses that require four rounds."
+  ],
+  "measurement_plan": {
+    "primary": "Seat-scoped strict compliance including own contract; never substitute policy_semantic for an active intake/customer outcome.",
+    "diagnostics": ["seat collaboration integrity with coverage", "semantic versus contract-only failure taxonomy", "pair joint pass by effect type"],
+    "weighting": "Predeclare equal authored structure weights within seat; deduplicate reference trajectory groups within structure; average matched seeds/repetitions inside groups, not as additional independent units.",
+    "dependence": "Graph families are structural diversity targets, not an assertion of IID samples. Cluster related policy scenarios and shared canonical graphs conservatively; inspect cross-family overlaps before any inferential plan.",
+    "inference_allowed": false,
+    "statistics": "Descriptive developmental calibration only until real instances, complete equivalence/deduplication audit, balanced-model calibration and power planning are approved."
+  },
+  "next_gate": "Implement and review V7 case instantiation/reference bindings, then provider-free gates; a separately approved model/budget/profile/stop contract is required for any paid smoke."
+}

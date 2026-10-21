@@ -19,11 +19,12 @@ from . import v2_5_seat_design_v3 as v3
 from . import v2_5_seat_extension_v4 as v4
 from . import v2_5_seat_extension_v5 as v5
 from . import v2_5_payment_units_v51 as units
+from . import v2_5_seat_extension_v7_1 as v71
 
 RELEASE_ID = "refund_v25_public_developmental_1"
 PANELS = ("core", "policy", "v3_common", "v3_intake", "v3_payments",
           "v3_customer", "v4_payments", "v4_customer", "v5_intake",
-          "v51_payments", "v5_customer")
+          "v51_payments", "v5_customer", "v71_intake", "v71_customer")
 ROLES = core.legacy.ROLES
 
 
@@ -33,6 +34,9 @@ def build_setup(panel="core", seat="policy", seed=301):
         raise ValueError("Unknown public panel or active seat")
     if type(seed) is not int or seed < 0:
         raise ValueError("seed must be a nonnegative integer")
+    if panel.startswith("v71_"):
+        name = panel.split("_", 1)[1]
+        return v71.build_run(v71.build_panels(seed)[name], active_agents=(seat,))
     if panel in ("core", "policy"):
         options = dict(include_policy_stress_extension=True,
                        include_policy_frontier_extension=True,
@@ -49,6 +53,8 @@ def build_setup(panel="core", seat="policy", seed=301):
 
 
 def provider_for(panel):
+    if panel.startswith("v71_"):
+        return v71.ScriptedProvider()
     if panel in ("core", "policy"):
         return core.legacy.ScriptedV25Provider()
     if panel.startswith("v3_"):

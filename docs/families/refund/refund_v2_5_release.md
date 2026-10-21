@@ -3,9 +3,14 @@
 ## Compatibility verdict
 
 The family environment is compatible with the shared-runner APIs on
-`main@dec1a40f`: qualified registration, resolved plans, controlled-seat context,
+the original `main@dec1a40f` target: qualified registration, resolved plans, controlled-seat context,
 phase scheduling, typed score leaves, durable receipts and independent replay.
 It does not replace the existing Refund V1/V2.1 environments.
+
+The 2026-10-21 refresh also checks the exact shared-runner source snapshot from
+GitHub `main@1dd48cf5a443c94eccdd0597144fbf1c0e693525`; see the
+[V7.1 port note](refund_v2_5_v71_port.md) for fresh results and their scope.
+No kernel source changes are proposed by this PR.
 
 **This release is provider-free.** The historical Arena campaign adapter is not
 shipped or silently copied into the kernel. Paid execution through the public
@@ -17,6 +22,17 @@ A future paid campaign needs a separately reviewed adapter, a sealed full-trajec
 gate, declared spend/time/call limits and the kernel operational halt rule.
 No paid-equivalence, published model ranking or normative benchmark promotion is
 claimed here.
+
+### Publication QC is not satisfied
+
+This is a developmental release, not a publication-qualified benchmark.
+[Issue #290](https://github.com/aeread-org/AERead/issues/290) records unresolved
+Gate 3 concerns about trivial/legal-path baselines, evidence discrimination,
+Customer action-space difficulty, payment-verifier scope and independent human
+QC provenance. Scripted full scores and receipt replay do not resolve those
+construct-validity concerns. The subsequent Refund V3 redesign is separate,
+paused work and is not included in this V2.5 PR. Legacy module names such as
+`v2_5_seat_design_v3` are V2.5 component revisions, not Refund V3.
 
 The user separately approved **developmental design QC** for this public release.
 Its records live under `cases/refund_v25/qc/`; V2.1's approval is not reused.
@@ -108,9 +124,15 @@ into approve/deny.
 | v51_payments | 12 | Multi-tender waterfall/fallback with explicit wire units |
 | v5_customer | 6 | Per-fact source authority, revision ceilings and revocations |
 
-For seed 301 these are **204 cohort placements, 180 distinct case IDs**; core is
+The V7.1 port additionally exposes `v71_intake` and `v71_customer`, each with
+32 developmental variants per seed. Their synthetic release checkpoints,
+multi-round planning and source/proposal binding are documented in
+[the V7.1 port note](refund_v2_5_v71_port.md). Reserved templates are not included
+in these public default panels.
+
+For seed 301 these are **268 cohort placements, 244 distinct case IDs**; core is
 already included in policy. `--panel all` deliberately tests that overlap under
-both interfaces: **816 trajectories**, not 816 distinct cases. The original
+both interfaces: **1,072 trajectories**, not 1,072 distinct cases. The original
 reduced four-seat calibration panel (132 seat-case instances and repeated
 measurements) is a different, historical selection and is not silently recreated.
 
@@ -140,7 +162,8 @@ must be inspected per cohort; it is not equivalent to sampling new templates.
 V5.1 explicitly states that ledger calculations use integer cents, while
 `amount` and every allocation are **major currency units** at the output boundary.
 The clarification does not alter reducers, policy references or scoring.
-Customer/intake difficulty was not redesigned for this PR.
+The earlier Customer/Intake panels are unchanged; V7.1 is a separately named
+extension, not a silent replacement of those panels or historical results.
 
 Admission checks minimal pair changes, meaningful contrasts or explicitly typed
 invariance controls, fact-domain completeness, unique branch/precedence paths,
