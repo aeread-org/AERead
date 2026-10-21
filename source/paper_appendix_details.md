@@ -216,6 +216,14 @@ development pilot and three diagnostics, each declared before its plays; none te
 | A brief corrected for four wording defects (diagnostic) | the 20 declared worlds, two plays each | no change shown: +7.8 points [−5.6, +21.2] | touched no newcomer in 40 plays | as Table 5.3 |
 | How likely a newcomer is to be sound once another of its kind has passed or failed a sample, with and without a clean quote of its own first, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; earlier attempts, whose schema asked for the model's working, were refused | |
 
+A further diagnostic, declared before its plays, tried to certify Gate 1's measured headroom with a frozen control that
+tests. GPT-6 Luna at high reasoning was chosen on the pilot worlds because it tested a newcomer in 5 of 12 plays (Gemini
+3.8 Flash at high reasoning tested in none). On the declared worlds, three plays each, it tested in 26 of 60 plays but
+closed −34% of the gap on average, worse than paying the premium. Against it 3 worlds score the same at every seed and 18
+are matched by a screened rule (the kind-blind shortcut in 14, the one-step rule in 4), so only 2 of 20 pass: the
+control is weaker than the shortcut, which says more about the control than about the worlds. Beside it, and not
+declared, Sol's better play of each world beats every screened rule in 11 of 20.
+
 The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
 alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes
 33% against Sol's 35%. No comparison with it was declared.
@@ -614,7 +622,9 @@ and none passes Gates 1 to 5: Housing v14 is `partial` throughout (v15, below, p
 used in Table 5.3, passes Gate 0 and is `partial` at Gates 1 to 5: every gate that rests on live
 play is held at `partial` because its environment's registration with the runtime awaits a non-author review
 and its code is not on the main branch, and Gate 2's replay through the runtime's command line could not
-yet run there (profile section 8.2). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
+yet run there (profile section 8.2). Gate 1's measured headroom was then tried with a frozen control that tests,
+declared before its plays: it tested but lost to the kind-blind shortcut, so only 2 of the 20 declared worlds pass
+that check and the gate stays `partial` (Appendix E.4). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
 the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
 packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
 the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and

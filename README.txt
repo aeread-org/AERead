@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.27 (20 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.28 (20 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -300,3 +300,8 @@ current one saturated"):
   all 12 pilot worlds (7ab8ff12 on codex/procurement-pay-or-test); Section 6 and A.2.1 say so, and Section 6's
   earlier "six pilot worlds" was wrong (the test covers 12). Section 6 also names the data-center oracle check as
   v1's pack and says v2's 80 worlds were checked only by a 12-negotiation kernel dry run.
+- Version 15.28 (2026-10-20): Appendix E.4 (after Table E.15) and F.1 report the frozen-control diagnostic for
+  Procurement's Gate 1 measured headroom (plan ec078a59, results 8fec9f68): GPT-6 Luna at high reasoning tests in 26
+  of 60 plays but closes -34%; 3 worlds degenerate, 18 trivial (shortcut 14, one-step 4), 2 of 20 pass; the control is
+  weaker than the shortcut (P-J-09); Sol's better play beats every screened rule in 11 of 20, descriptively. Sources
+  row added (with exactness 7ab8ff12 and draft PRs #294, #295). Gate 1 stays partial.

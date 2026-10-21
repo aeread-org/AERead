@@ -1,6 +1,6 @@
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 18:29:21
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-20 18:39:49
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -2067,7 +2067,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 17:04:26
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-20 18:39:33
 @@ -42,14 +42,28 @@
  (favourite is a lemon, or sound) is read only after admission. Seeds are taken in order until
  each quota is full: a main pack of 200 favourite-lemon and 60 favourite-sound worlds, and a
@@ -2214,7 +2214,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  becomes −79, −142 and −144. The published bundle is not edited.
  
  Two CLI agents played the first 20 worlds of the main pack (40 cells each). Sol 6.1 earns $313
-@@ -118,11 +178,48 @@
+@@ -118,11 +178,56 @@
  
  The reference is reachable, not best. An exact best informed tenant (Appendix C) earns $307 a
  world on the main pack when it knows the two landlord kinds and how each prices; the v14 subjects
@@ -2258,6 +2258,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| A brief corrected for four wording defects (diagnostic) | the 20 declared worlds, two plays each | no change shown: +7.8 points [−5.6, +21.2] | touched no newcomer in 40 plays | as Table 5.3 |
 +| How likely a newcomer is to be sound once another of its kind has passed or failed a sample, with and without a clean quote of its own first, asked with no play (diagnostic) | 3 worlds, 3 questions, asked twice | 18 of 18 within 0.05 of the exact value | 18 of 18 within 0.05; earlier attempts, whose schema asked for the model's working, were refused | |
 +
++A further diagnostic, declared before its plays, tried to certify Gate 1's measured headroom with a frozen control that
++tests. GPT-6 Luna at high reasoning was chosen on the pilot worlds because it tested a newcomer in 5 of 12 plays (Gemini
++3.8 Flash at high reasoning tested in none). On the declared worlds, three plays each, it tested in 26 of 60 plays but
++closed −34% of the gap on average, worse than paying the premium. Against it 3 worlds score the same at every seed and 18
++are matched by a screened rule (the kind-blind shortcut in 14, the one-step rule in 4), so only 2 of 20 pass: the
++control is weaker than the shortcut, which says more about the control than about the worlds. Beside it, and not
++declared, Sol's better play of each world beats every screened rule in 11 of 20.
++
 +The pilot's go rule sized a comparison of the two models past the 96-world cap, so the declared test was on Sol
 +alone. In the pilot worlds the kind-blind shortcut closes 8% against Sol's 50%; on the declared worlds it closes
 +33% against Sol's 35%. No comparison with it was declared.
@@ -2265,7 +2273,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  Fixed rules, scored exactly over the 24 worlds: comparing each untested newcomer with paying, one
  test ahead and keeping the recorded supplier reachable, gives up $0.06 a world; testing the best
  odds once $45.7; always paying $75.2; testing the cheapest once $81.4; working up the price list
-@@ -198,6 +295,41 @@
+@@ -198,6 +303,41 @@
  bundles keep them as missing, and 16 were played again under separate identities by an explicit, recorded
  decision.
  
@@ -2307,7 +2315,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### E.5 Failure classes: rules and full tables
  
  **Table E.4. The shared classes.**
-@@ -215,18 +347,21 @@
+@@ -215,18 +355,21 @@
  The priority order makes the decomposition an accounting identity, not a causal attribution.
  
  **Rules per case.** *Housing:* the unit is the cell (one world, one landlord kind), the shortfall is
@@ -2333,7 +2341,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  (deciding before a required fact to not acquired, a wrong decision to contrary to information held, re-asked or unknown
  facts and the null-method format to procedure).
  
-@@ -240,19 +375,19 @@
+@@ -240,19 +383,19 @@
  scoring sensitivity by replaying the same actions at alternative fees; measuring behavioral
  adaptation would require new model runs under declared fee settings.
  
@@ -2363,7 +2371,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
  
-@@ -273,7 +408,7 @@
+@@ -273,7 +416,7 @@
  
  ### E.6 Two frontier agents across three cases
  
@@ -2372,7 +2380,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Case (worlds) | Measure | Opus 5.5 | Sol 6.1 | Sol relative to Opus | Reference |
  |---|---|---:|---:|---:|---|
-@@ -286,34 +421,37 @@
+@@ -286,34 +429,37 @@
  
  ### E.7 Current shortfall panels: scope and uncertainty
  
@@ -2430,7 +2438,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
  | Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
  
-@@ -329,54 +467,56 @@
+@@ -329,54 +475,56 @@
  component-level intervals, distributions, per-world amounts and input digests in
  `analysis_evidence/shortfall_panels/panels.json`, with a provider-free reproduction script.
  
@@ -2513,7 +2521,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **(d) Refund**
  
-@@ -391,21 +531,23 @@
+@@ -391,21 +539,23 @@
  120 cells per model, averaged within each of six fixed cases and then across cases.
  
  Rows that are zero for every displayed subject are omitted; rounded components may not add to
@@ -2545,7 +2553,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  "Deal-feasible" describes those worlds, including negotiations that ended without agreement;
  it does not select only signed contracts. Means first average both focal seats within a world,
  then worlds. The independent unit is the world, not each correlated seat observation.
-@@ -427,7 +569,7 @@
+@@ -427,7 +577,7 @@
  per redline. This threshold describes the recorded actions, not an optimal fee or how either
  agent would respond to a changed fee.
  
@@ -2554,7 +2562,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Fee per redline | Sol joint loss | Opus joint loss |
  |---|---:|---:|
-@@ -468,13 +610,31 @@
+@@ -468,13 +618,33 @@
  The QC standard defines six gates and the rule that a changed bound input reopens them; a repository
  test rejects a registered family without a profile. Each of the four current designs
  now has a section in its family's profile with a typed status and a blocker per gate (Table F.1),
@@ -2565,7 +2573,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +used in Table 5.3, passes Gate 0 and is `partial` at Gates 1 to 5: every gate that rests on live
 +play is held at `partial` because its environment's registration with the runtime awaits a non-author review
 +and its code is not on the main branch, and Gate 2's replay through the runtime's command line could not
-+yet run there (profile section 8.2). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
++yet run there (profile section 8.2). Gate 1's measured headroom was then tried with a frozen control that tests,
++declared before its plays: it tested but lost to the kind-blind shortcut, so only 2 of the 20 declared worlds pass
++that check and the gate stays `partial` (Appendix E.4). The earlier pay-or-test v1 pack (Table E.14) fails Gates 1 and 3; v2 passes
 +the scripted Gate 3 checks but remains `partial` at Gate 1 after its pilot stopped at sizing (Appendix F.4). The agreement's development
  packs fail Gate 1 because admission and type assignment were confounded. Its confirmatory used
  the admitted pack, still `partial` at Gate 1 because of the client-seat construct limit and
@@ -2590,7 +2600,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  identity, and Procurement's corrected schema ran under new identities.
  
  **Table F.1. Benchmark QC gates.**
-@@ -524,7 +684,7 @@
+@@ -524,7 +694,7 @@
    Procurement's original report read an unsealed action list through an unpinned reference.
    The 16 October reanalysis audits all 144 receipts (96 final-brief and 48 earlier-brief), reads
    parsed actions from their sealed logs, and pins the extraction, reference, report and case inputs.
@@ -2599,7 +2609,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    derivation; decision loss has not been inserted into the original receipts. The Housing
    receipts also name the model for the five tenant seats a script played; the true seat map is in
    an unsealed log.
-@@ -534,9 +694,11 @@
+@@ -534,9 +704,11 @@
    cell (χ² p 0.46; the same test rejects the development packs' pattern). Tests play every
    shortcut through the environment for every type pair and confirm the loss admission assigned,
    and the oracle pair loses nothing in all 60 worlds. A separate 12-world pilot and the
@@ -2614,7 +2624,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Visibility.** Named hidden fields are tested absent from the observations in Housing,
    Procurement and Refund; the agreement case has no such test.
  - **Paired plans.** A Housing test rebuilds the six v14 plans that ran, matches their ids, and
-@@ -560,11 +722,11 @@
+@@ -560,11 +732,11 @@
  ### F.4 Adversarial checks applied
  
  - **Trivial agents** are reported beside the subjects: signing the draft unchanged recovers 14% of
@@ -2629,7 +2639,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    is the finding that fails Gates 1 and 3. A v2 pack built after the runs adds one mechanism: new
    listings of one seller kind share a source with a stated chance, so a cheap test of one listing
    tells the buyer about another. Admitted on what a buyer sees, with types drawn afterwards, its 24
-@@ -575,7 +737,9 @@
+@@ -575,7 +747,9 @@
    Its separate 12-world gate/pilot used 50 cells ($0.2193). Gemini never tested a newcomer
    and matched the premium rule; Luna touched one in 1 of 24 pilot plays, and neither model
    reached the planned probe. Required sizes were 326, 3,464 and 2,047 worlds, beyond the
@@ -2640,7 +2650,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Brief audits** found instructions that decided outcomes in Procurement
    and a schema that contradicts its verifier in Refund.
  - **Lower controls for Refund V2.5** were scored under a beatability rule committed before any
-@@ -600,13 +764,14 @@
+@@ -600,13 +774,14 @@
  plays as independent made intervals 1.47 to 1.65 times too narrow, and more worlds beat more
  repeats: a $50k gap needs 83 to 91 negotiations an arm at one play a world against 159 to 162 at
  three. Counterparts are named and reported per type: in the agreement case the counterpart
@@ -2658,7 +2668,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  (`aeread.design.sizing`), frozen plans, paired world-level intervals and Holm
  correction were applied. Eight departures are documented: CLI versions; an added wall-time stop;
  run-plan labels; the pack-module change for pilot generation; the permitted sizing-code copy;
-@@ -694,7 +859,7 @@
+@@ -694,7 +869,7 @@
  | T.7 Ground truth verified | partly | each reference is played on every admitted world through the environment and reaches its declared result, initially by tests added after development; the admitted agreement pack also had a pre-confirmatory dry run (Appendix F.2) |
  | T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
  | T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
@@ -2667,7 +2677,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures |
  | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |
  | R.2 Open evaluation harness | met | the shared runner is in the public repository |
-@@ -720,8 +885,9 @@
+@@ -720,8 +895,9 @@
    repository.
  - **Evidence.** Sealed, digest-bound bundles under `evidence/`: the Housing v14 confirmatory and
    its declared fill, the data-center agreement bundles, and the Refund V2.1 bundles with their gap
@@ -2679,7 +2689,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - **Quality control.** Each family's QC profile and incident log, kept with its code; the
    reference-run tests named in §6.
  - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map
-@@ -738,7 +904,7 @@
+@@ -738,7 +914,7 @@
  The Housing analysis re-extracts its committed trajectory table from the sealed run roots and
  regenerates both measures exactly. Procurement's `pay_or_test_reanalysis` checks all 144 original
  receipts, then reconstructs decision loss from their sealed parsed actions; its public projection
@@ -2690,7 +2700,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 17:11:40
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-20 18:39:33
 @@ -2,21 +2,22 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -3097,7 +3107,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Across the cases.** Four things hold. The gap sits in a stratum the design fixes in advance, so every
  case reports by stratum and pools last. The counterpart is part of the measurement, so a claim
  names the counterparts it covers. What the brief states moves the score as much as the subject
-@@ -168,34 +311,88 @@
+@@ -168,34 +311,89 @@
  signatures from 15 of 60 to 1 of 60), so the brief is a versioned part of the case. And a pattern
  found by looking back is a hypothesis until a declared test confirms it.
  
@@ -3193,6 +3203,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Procurement grounding (§5.1) | frozen sourcing workbook `cases/procurement_grounding_v1/dev/procurement_grounding_231_projects.json` (as of 2026-08-31): `oracle.source_counts` (231 projects, 341 search-card suppliers, 236 sent requests to 28 suppliers, 9 quote suppliers) and `visible_evidence.priority_matrix` (51 original listings: 1 accepted, 20 conditional, 30 rejected) | record of the authors' own sourcing |
 +| TERMS-Bench review (§5.3) | incident rows TB-J-01, TB-D-06 to TB-D-09 (port review, 2026-10-18); TERMS-Bench Table 16 Panels A and C | review after the runs |
 +| Procurement harder version: pilot (Table E.15) and declared test (§5.1, Table 5.3, Figure 5.1) | figure inputs copied with their digests to `analysis_evidence/procurement_v3/` (`SOURCES.json`), drawn by `figures/plot_procurement_v3.py`, which recomputes and asserts every plotted summary; pilot: `docs/families/procurement-allocation/pay_or_test_v3_pilot_results.md` and `evidence/procurement_allocation/pay_or_test_v3_pilot/` at f4a69caf (48 of 48 plays); confirmatory: plan declared in e67df11d before any play, results ff65a230 (`pay_or_test_v3_confirmatory_results.md`, `evidence/procurement_allocation/pay_or_test_v3_confirmatory/`, 100 of 100 plays replayed), all on `codex/procurement-pay-or-test`; both ran from a tree carrying one registry row awaiting kernel review | pilot: development; confirmatory: one declared test of Sol's gap closed, Opus a diagnostic control with no claim |
++| Procurement harder version: frozen control for Gate 1's measured headroom (Appendices E.4, F.1) | plan `docs/families/procurement-allocation/pay_or_test_v3_control_plan.md` declared in ec078a59 before any play; results 8fec9f68 (`pay_or_test_v3_control_results.md`, `evidence/procurement_allocation/pay_or_test_v3_control/`: 84 of 84 plays replayed, $0.76 charged by OpenRouter); incident P-J-09 (the control was chosen for testing often, not for testing well); the exactness test on all 20 declared worlds is 7ab8ff12; the registry row and the family code are in review as draft PRs #294 and #295; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row | diagnostic, declared |
 +| Procurement harder version: Gemini 3.8 Flash and GPT-6 Luna (Table 5.3, Figures 5.1 and 5.2, Tables E.5, E.9, E.10) | plan `docs/families/procurement-allocation/pay_or_test_v3_flash_plan.md` declared in f3daae61 before any play; results 47594ab8 (`evidence/procurement_allocation/pay_or_test_v3_flash/`, 80 of 80 plays, OpenRouter charged $0.43); failure classes for all four subjects from `tools/paper/failure_taxonomy/procurement_pay_or_test_v3.py` (rules fixed in 51e9bfd3 before the flash plays; output ea9dcfdc), copied with `derive_panels.py` checking every world against the replayed read-outs; run from the tree carrying the registry row awaiting kernel review | declared, descriptive |
 +| Procurement harder version: Sol on the odds twins (Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v3_twins_sol_plan.md` declared in 2fb0140a before any play; results 87e67702 (`pay_or_test_v3_twins_sol_results.md`, `evidence/procurement_allocation/pay_or_test_v3_twins_sol/`, 20 of 20 plays replayed); exact rule shares from the twin pack's rule values; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row awaiting kernel review | diagnostic, declared |
 +| Procurement corrected brief and comprehension check (§5.1, Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
@@ -3626,10 +3637,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-10-20 18:28:58
++++ aeread_working_draft_20261018_v15/source/version.json	2026-10-20 18:39:33
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.27",
++  "version": "15.28",
 +  "date": "20 October 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}
