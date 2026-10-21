@@ -133,6 +133,20 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Approved recovery: complete 36-row confirmation](procurement-allocation/unified_recovery_results.md)
 - [Unified continuous procurement execution plan](procurement-allocation/unified_run_plan.md)
 - [Unified regret campaign: observed execution](procurement-allocation/unified_run_results.md)
+- [Pay or test v2: confirmatory campaign plan](procurement-allocation/pay_or_test_v2_confirmatory_plan.md) (stopped at sizing: no confirmatory run)
+- [Pay or test v2: results](procurement-allocation/pay_or_test_v2_results.md)
+- [Pay or test v3: design note](procurement-allocation/pay_or_test_v3_design_note.md) (routes after v2, and the option-value probe)
+- [Pay or test v3: parameter specification](procurement-allocation/pay_or_test_v3_parameters.md)
+- [Pay or test v3: plan](procurement-allocation/pay_or_test_v3_plan.md) (pilot declared and run from a tree carrying the unreviewed registry row)
+- [Pay or test v3: pilot results](procurement-allocation/pay_or_test_v3_pilot_results.md) (Opus pays in 24 of 24; Sol closes 50% of the option-value gap; sizes past the cap)
+- [Pay or test v3: confirmatory plan and odds diagnostic](procurement-allocation/pay_or_test_v3_confirmatory_plan.md) (Sol's gap closed on 20 fresh option-value worlds; Opus under v1's cohort odds)
+- [Pay or test v3: confirmatory and diagnostic results](procurement-allocation/pay_or_test_v3_confirmatory_results.md) (Sol closes 35% [18, 52]; Opus pays in 84 of 84 v3 plays, odds alone do not explain it)
+- [Pay or test v3: Sol on the odds twins (plan)](procurement-allocation/pay_or_test_v3_twins_sol_plan.md)
+- [Pay or test v3: Sol on the odds twins (results)](procurement-allocation/pay_or_test_v3_twins_sol_results.md) (59% [19, 100], median 83%; one walk-away)
+- [Pay or test v3: flash models on the declared worlds (plan)](procurement-allocation/pay_or_test_v3_flash_plan.md)
+- [Pay or test v3: flash models on the declared worlds (results)](procurement-allocation/pay_or_test_v3_flash_results.md) (neither touches a newcomer; Luna −14%)
+- [Pay or test v3: a frozen control that tests (plan)](procurement-allocation/pay_or_test_v3_control_plan.md)
+- [Pay or test v3: a frozen control that tests (results)](procurement-allocation/pay_or_test_v3_control_results.md) (tests but loses to the shortcut; 2 of 20 worlds meet the headroom ground)
 
 ## Refund
 
@@ -170,7 +184,9 @@ Directory `tau3-retail/`, package `tau3_retail`.
 
 Directory `termsbench/`, package `termsbench`.
 
+- [QC profile](termsbench/qc.md) (the reproduction, `termsbench_repro_v1`)
 - [Adapter specification](termsbench/adapter_spec.md)
 - [Adapter status](termsbench/adapter_status.md)
 - [TERMS-Bench live campaign (#92): what is done, and the blocker](termsbench/campaign_scoping.md)
+- [TERMS-Bench reproduction: declared plan, v1](termsbench/reproduction_plan.md)
 - Review trail: [Claude review](termsbench/reviews/termsbench_review_claude.md), [Codex review](termsbench/reviews/termsbench_review_codex.md), [Codex triage](termsbench/reviews/termsbench_codex_triage.md), [disposition](termsbench/reviews/termsbench_review_disposition.md)

@@ -21,6 +21,7 @@ the role-specific tracks only when you need them.
 After stage 8, choose the track closest to your work:
 
 - **Runner or harness author:** read the [portability contract](architecture/shared_runner_portability_contract.md),
+  the [scripted-seat design](architecture/kernel_scripted_seats_design.md),
   then the [architecture walkthroughs](walkthroughs/README.md).
 - **Benchmark family author:** read the [verifier taxonomy](research/verifier_taxonomy.md),
   [verifier-to-case mapping](research/verifier_case_mapping.md), and
@@ -48,6 +49,7 @@ not intended as a second reading order.
 - [Source package layout](architecture/source_layout.md)
 - [Run and publication artifact layout](architecture/artifact_layout.md)
 - [Receipt-derived research harness](architecture/research_runner_harness.md)
+- [Provider-call reliability: decision record](architecture/provider_reliability.md)
 - [Architecture walkthroughs](walkthroughs/README.md)
 
 ## Operations
@@ -148,8 +150,10 @@ identities, so their citations are redirected, not rewritten.
 - [Problem-to-bound case audit](research/problem_bound_case_audit.md)
 - [Benchmark saturation](research/benchmark_saturation.md)
 - [Reasoning conditions and diagnostics](research/reasoning_condition_and_diagnostics.md)
+- [Stratum splits: which carry signal, and what they cost](research/strata_audit_2026-09.md)
 - [Multi-agent experiment design](research/multiagent_experiment_design.md)
 - [Representative trajectory analysis, 2026-09-05](research/representative_trajectory_analysis_2026-09-05.md)
+- [Full bibliography (BibTeX)](../references.bib)
 
 Generated evidence belongs under [`evidence/`](../evidence/). Checked-in family-specific
 receipts that document adapter parity remain beside the corresponding family documentation.

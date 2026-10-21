@@ -58,6 +58,11 @@ something true by construction; three defects fixed on 2026-09-05 passed every
 existing suite for exactly that reason. Where a mutation does not kill a check,
 record that rather than glossing it.
 
+This standard's task and outcome validity checks align with the
+[Agentic Benchmark Checklist (Zhu et al., 2025)](https://arxiv.org/abs/2507.02825).
+The mutation requirement above is AERead's concrete check that a claimed guard
+can detect the defect it is meant to catch.
+
 Every machine-consumed evidence reference records the artifact type, path,
 SHA-256 digest, family ID and version, profile ID, and explicit required and
 observed coverage IDs. At admission, the path is resolved inside an explicitly
@@ -132,8 +137,19 @@ duplicate leakage across independent clusters, or development/holdout overlap.
 
 #### Measured headroom
 
-A panel is *informative* only if the declared control leaves rows it can fail.
-Establish this by measurement, not by inspecting world definitions:
+A panel is *informative* only if its worlds leave room for the subject to do
+better or worse. The checks below exist to catch two failures: a world where
+behaviour cannot change the score (*degenerate*), and a world a simple rule
+already solves, so the subject is not under test (*trivial*). Establish both by
+measurement, not by inspecting world definitions. There are two routes, and a
+case takes the one its reference allows: the frozen-control route below, and the
+exact-reference route after it. Each route's checks are there to find these
+failures, not to be satisfied; what a check finds is reported where the claim is
+read even when it does not block the gate.
+
+**Frozen-control route.** Required when the case's reference is estimated, a
+bound, or depends on a model, so the room above simple rules can only be seen in
+play:
 
 1. Before freezing a panel, run **the frozen control itself** across every
    candidate world, at one seed if budget is tight. A cheaper proxy policy is not
@@ -185,6 +201,50 @@ Establish this by measurement, not by inspecting world definitions:
 
 7. A holdout must additionally preserve the difficulty of the panel it holds out
    from. Matching a panel's failure *themes* does not match its difficulty.
+
+**Exact-reference route.** Available when the case computes its reference, the
+best policy given the seat's information, exactly in every world by committed
+code that Gate 2 verifies. Then the room above a simple rule is not estimated:
+it is the exact difference between the rule and the reference, and a model
+control adds only its own noise. A control weaker than the simple rules makes
+the trivial ground read the control instead of the worlds (procurement P-J-09:
+18 of 20 worlds "trivial" against a control that closed −34% of the gap).
+
+1. Before screening, the profile names the case's **shortcuts**: deterministic
+   policies that read only the seat's observations and skip the decision the
+   case measures (ignore the information, take the default, decide on a cue the
+   construct says should not decide). Every shortcut found in an earlier version
+   of the case is on the list. Each named rule is classed as a shortcut or as a
+   competent simple policy, one that does exercise the construct, with a one-line
+   reason.
+2. Admit a world only if **every shortcut loses at least a declared margin to the
+   reference in that world**, in the quantity the family scores (item 6 above).
+   This rejects trivial worlds exactly, and degenerate ones with them: where a
+   shortcut loses the margin, behaviour changes the score. The screen runs on
+   every candidate world before the pack is frozen, and the pack's tests rebuild
+   it.
+3. Report, beside the gate, the per-world gap of every competent simple policy.
+   A competent rule that comes near the reference says the construct is easy to
+   execute once understood; that is a Gate 3 reading and belongs in the claim,
+   not a reason to reject the world.
+4. Report what play shows, once subjects have played: worlds where a subject's
+   repeated plays are identical (seeds are then repeats and the effective sample
+   is the number of worlds, item 4 above), and worlds where a subject reaches the
+   reference in every play (a panel saturated at the top cannot rank stronger
+   subjects). These are flags on the claim, not admission rules, because they
+   describe the subject as much as the world.
+5. A shortcut found after the freeze is scored on the frozen pack, the worlds it
+   makes trivial are counted and reported with every claim on that pack, and an
+   incident row is written. The list was incomplete; the worlds stay as frozen.
+   Procurement's `pay_or_test_v1` is the worked example: admission screened the
+   fixed rules but not the one-step rule, which matched the best policy in 23 of
+   24 worlds.
+
+The route's weak point is the list in item 1: a screen proves nothing about a
+rule nobody named. A case on this route therefore states its list's provenance
+(which rules, why each is a shortcut, which earlier findings put it there), and
+a reviewer who can name a cheaper rule that scores near the reference has found
+a defect, not a matter of taste.
 
 If a family cannot produce worlds that pass all three grounds, the finding is
 about the environment and not about the panel. Check whether the rule admitting a

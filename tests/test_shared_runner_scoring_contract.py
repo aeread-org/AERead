@@ -1422,8 +1422,10 @@ def _build_reference_setup(
     family_manifest: FamilyManifest | None = None,
     subject_seats: Sequence[str] | None = None,
     extra_pins: tuple[ImplementationPin, ...] = (),
+    scripted_seats: Mapping[str, str] | None = None,
 ) -> _ReferenceSetup:
     case = case if case is not None else _reference_case()
+    scripted = dict(scripted_seats or {})
     family = family_manifest if family_manifest is not None else _reference_family_manifest()
     seat_ids = tuple(seat.id for seat in case.seats)
     sampling = SamplingPlan.from_dict(
@@ -1549,7 +1551,10 @@ def _build_reference_setup(
             "suite_id": suite.suite_id,
             "evaluation_block_ids": [block.block_id],
             "agent_profile_ids": [profile.profile_id],
-            "seat_assignments": {seat_id: profile.profile_id for seat_id in seat_ids},
+            "seat_assignments": {
+                seat_id: profile.profile_id for seat_id in seat_ids if seat_id not in scripted
+            },
+            **({"scripted_seats": scripted} if scripted else {}),
             "execution_mode": "evaluate",
             "replicate_override": None,
             "budget_overrides": None,
@@ -1641,6 +1646,7 @@ async def _run_reference_episode(
     family_manifest: FamilyManifest | None = None,
     subject_seats: Sequence[str] | None = None,
     extra_pins: tuple[ImplementationPin, ...] = (),
+    scripted_seats: Mapping[str, str] | None = None,
 ):
     setup = _build_reference_setup(
         plugin_factory=plugin_factory,
@@ -1648,6 +1654,7 @@ async def _run_reference_episode(
         family_manifest=family_manifest,
         subject_seats=subject_seats,
         extra_pins=extra_pins,
+        scripted_seats=scripted_seats,
     )
     execution = await execute_plan_cell(
         plan=setup.plan,
@@ -3152,6 +3159,12 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # the joint venture): its scorer takes FamilyScoringInput; a
         # scoring-contract fixture is the same follow-up as the others here.
         ("datacenter_risk_allocation_v1", "0.1.0"),
+        # Pay or test version 3: its plugin subclasses the 1.0.0 environment and
+        # arrives with the family PR; a scoring-contract fixture follows it.
+        ("procurement_allocation_v1", "1.1.0"),
+        # The TERMS-Bench reproduction's protocol (0.2.0) reuses 0.1.0's scorer;
+        # its own scoring-contract fixture follows the family PR.
+        ("termsbench", "0.2.0"),
         # #63 enrols the datacenter sub-families and a 2.1.0 of the base
         # family as trusted. Their scorers now take FamilyScoringInput
         # (#144), but none has a scoring-contract fixture yet; that is the

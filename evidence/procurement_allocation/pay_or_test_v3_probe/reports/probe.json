@@ -1,0 +1,294 @@
+[
+ {
+  "campaign_id": "procurement_allocation_pay_or_test_v2_pilot_shared_claude_code_opus55_v1",
+  "failed": [],
+  "by_kind": {
+   "myopic_pays": {
+    "plays": 6,
+    "first_request_to_newcomer": 0,
+    "first_action_is_best": 0,
+    "mean_decision_loss_usd": 23.61,
+    "mean_one_step_loss_usd": 23.61,
+    "mean_pay_premium_loss_usd": 23.61,
+    "rows": [
+     {
+      "slug": "myopic_pays__loose__1",
+      "trace": "q:l212 s:l212(-8) AWARD(-19)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 27.2417,
+      "one_step_loss_usd": 27.24,
+      "pay_premium_loss_usd": 27.24
+     },
+     {
+      "slug": "myopic_pays__loose__2",
+      "trace": "q:l876 s:l876(-6) AWARD(-12)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 18.0557,
+      "one_step_loss_usd": 18.06,
+      "pay_premium_loss_usd": 18.06
+     },
+     {
+      "slug": "myopic_pays__loose__3",
+      "trace": "q:l526 s:l526(-6) AWARD(-4)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 10.0821,
+      "one_step_loss_usd": 10.08,
+      "pay_premium_loss_usd": 10.08
+     },
+     {
+      "slug": "myopic_pays__tight__1",
+      "trace": "q:l718(-6) s:l718(-10) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 16.2841,
+      "one_step_loss_usd": 16.28,
+      "pay_premium_loss_usd": 16.28
+     },
+     {
+      "slug": "myopic_pays__tight__2",
+      "trace": "q:l288 s:l288(-22) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 22.6711,
+      "one_step_loss_usd": 22.67,
+      "pay_premium_loss_usd": 22.67
+     },
+     {
+      "slug": "myopic_pays__tight__3",
+      "trace": "q:l671 s:l671(-47) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 47.3091,
+      "one_step_loss_usd": 47.31,
+      "pay_premium_loss_usd": 47.31
+     }
+    ]
+   },
+   "myopic_tests": {
+    "plays": 6,
+    "first_request_to_newcomer": 0,
+    "first_action_is_best": 0,
+    "mean_decision_loss_usd": 90.95,
+    "mean_one_step_loss_usd": 36.26,
+    "mean_pay_premium_loss_usd": 114.87,
+    "rows": [
+     {
+      "slug": "myopic_tests__loose__1",
+      "trace": "q:l154(-12) s:l154(-29) q:l122 s:l122 AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 41.5861,
+      "one_step_loss_usd": 28.14,
+      "pay_premium_loss_usd": 185.1
+     },
+     {
+      "slug": "myopic_tests__loose__2",
+      "trace": "q:l295(-1) s:l295(-16) AWARD(-59)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 75.6763,
+      "one_step_loss_usd": 46.26,
+      "pay_premium_loss_usd": 75.68
+     },
+     {
+      "slug": "myopic_tests__loose__3",
+      "trace": "q:l646(-1) s:l646(-18) AWARD(-107)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 126.1942,
+      "one_step_loss_usd": 44.83,
+      "pay_premium_loss_usd": 126.19
+     },
+     {
+      "slug": "myopic_tests__tight__1",
+      "trace": "q:l700(-20) s:l700(-50) AWARD(-6)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 76.1697,
+      "one_step_loss_usd": 60.62,
+      "pay_premium_loss_usd": 76.17
+     },
+     {
+      "slug": "myopic_tests__tight__2",
+      "trace": "q:l382(-17) s:l382(-18) AWARD(-61)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 95.6174,
+      "one_step_loss_usd": 19.14,
+      "pay_premium_loss_usd": 95.62
+     },
+     {
+      "slug": "myopic_tests__tight__3",
+      "trace": "q:l572(-19) s:l572(-14) AWARD(-98)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 130.4651,
+      "one_step_loss_usd": 18.55,
+      "pay_premium_loss_usd": 130.47
+     }
+    ]
+   }
+  }
+ },
+ {
+  "campaign_id": "procurement_allocation_pay_or_test_v2_pilot_shared_codex_cli_sol61_v1",
+  "failed": [],
+  "by_kind": {
+   "myopic_pays": {
+    "plays": 6,
+    "first_request_to_newcomer": 0,
+    "first_action_is_best": 0,
+    "mean_decision_loss_usd": 23.61,
+    "mean_one_step_loss_usd": 23.61,
+    "mean_pay_premium_loss_usd": 23.61,
+    "rows": [
+     {
+      "slug": "myopic_pays__loose__1",
+      "trace": "q:l212 s:l212(-8) AWARD(-19)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 27.2417,
+      "one_step_loss_usd": 27.24,
+      "pay_premium_loss_usd": 27.24
+     },
+     {
+      "slug": "myopic_pays__loose__2",
+      "trace": "q:l876 s:l876(-6) AWARD(-12)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 18.0557,
+      "one_step_loss_usd": 18.06,
+      "pay_premium_loss_usd": 18.06
+     },
+     {
+      "slug": "myopic_pays__loose__3",
+      "trace": "q:l526 s:l526(-6) AWARD(-4)",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 10.0821,
+      "one_step_loss_usd": 10.08,
+      "pay_premium_loss_usd": 10.08
+     },
+     {
+      "slug": "myopic_pays__tight__1",
+      "trace": "q:l718(-6) s:l718(-10) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 16.2841,
+      "one_step_loss_usd": 16.28,
+      "pay_premium_loss_usd": 16.28
+     },
+     {
+      "slug": "myopic_pays__tight__2",
+      "trace": "q:l288 s:l288(-22) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 22.6711,
+      "one_step_loss_usd": 22.67,
+      "pay_premium_loss_usd": 22.67
+     },
+     {
+      "slug": "myopic_pays__tight__3",
+      "trace": "q:l671 s:l671(-47) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 47.3091,
+      "one_step_loss_usd": 47.31,
+      "pay_premium_loss_usd": 47.31
+     }
+    ]
+   },
+   "myopic_tests": {
+    "plays": 6,
+    "first_request_to_newcomer": 5,
+    "first_action_is_best": 1,
+    "mean_decision_loss_usd": 21.24,
+    "mean_one_step_loss_usd": 36.26,
+    "mean_pay_premium_loss_usd": 114.87,
+    "rows": [
+     {
+      "slug": "myopic_tests__loose__1",
+      "trace": "q:l122 s:l122 AWARD",
+      "first_action": "request_quote",
+      "first_is_best": true,
+      "first_request_to_newcomer": true,
+      "decision_loss_usd": 0.0,
+      "one_step_loss_usd": 28.14,
+      "pay_premium_loss_usd": 185.1
+     },
+     {
+      "slug": "myopic_tests__loose__2",
+      "trace": "q:l480 s:l118 s:l794 q:l794 AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": true,
+      "decision_loss_usd": 0.4342,
+      "one_step_loss_usd": 46.26,
+      "pay_premium_loss_usd": 75.68
+     },
+     {
+      "slug": "myopic_tests__loose__3",
+      "trace": "q:l646(-1) q:l228 s:l228(-47) AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": false,
+      "decision_loss_usd": 48.4248,
+      "one_step_loss_usd": 44.83,
+      "pay_premium_loss_usd": 126.19
+     },
+     {
+      "slug": "myopic_tests__tight__1",
+      "trace": "s:l661(-1) q:l131(-43) s:l131 AWARD",
+      "first_action": "request_sample",
+      "first_is_best": false,
+      "first_request_to_newcomer": true,
+      "decision_loss_usd": 44.3588,
+      "one_step_loss_usd": 60.62,
+      "pay_premium_loss_usd": 76.17
+     },
+     {
+      "slug": "myopic_tests__tight__2",
+      "trace": "q:l744(-16) s:l744 AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": true,
+      "decision_loss_usd": 15.6587,
+      "one_step_loss_usd": 19.14,
+      "pay_premium_loss_usd": 95.62
+     },
+     {
+      "slug": "myopic_tests__tight__3",
+      "trace": "q:l132(-19) s:l132 q:l572 s:l572 AWARD",
+      "first_action": "request_quote",
+      "first_is_best": false,
+      "first_request_to_newcomer": true,
+      "decision_loss_usd": 18.5527,
+      "one_step_loss_usd": 18.55,
+      "pay_premium_loss_usd": 130.47
+     }
+    ]
+   }
+  }
+ }
+]

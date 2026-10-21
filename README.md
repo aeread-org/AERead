@@ -2,7 +2,7 @@
   <a href="https://aeread.org"><img src="assets/logo.svg" alt="AERead" width="96"></a>
 </p>
 
-# AERead — an agentic economic environment for LLM agents
+# AERead — Agent Economic Readiness
 
 [![CI](https://github.com/aeread-org/AERead/actions/workflows/ci.yml/badge.svg)](https://github.com/aeread-org/AERead/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -17,13 +17,19 @@
 [Experiment SOP](docs/operations/experiment_campaign_sop.md) ·
 [Artifact layout](docs/architecture/artifact_layout.md) · [Source layout](docs/architecture/source_layout.md)
 
-AERead (AgentEcon Readiness) is an open environment + benchmark for studying how
-LLM agents behave in **economic and stateful decision environments**: bilateral
-trade, multiparty clearing, hidden-counterparty discovery, consent under hidden
-information, procurement, housing allocation, bundle-purchase worlds, and
-refund/return tasks. It asks deployment questions about attainable welfare,
-policy-correct state changes, and evidence-grounded decisions, then records the
-case-native result in an auditable receipt.
+AERead (Agent Economic Readiness) is an open environment and benchmark for AI
+agents' readiness for **value delivery rather than just task completion**.
+Benchmarks like Terminal-Bench and GDPval evaluate whether AI can complete a
+technical task or produce professional-quality work; AERead evaluates whether AI
+can turn information, resources, and delegated authority into beneficial economic
+outcomes through interaction with other actors. Its cases cover deal structuring
+and contract negotiation: bilateral trade, multiparty clearing,
+hidden-counterparty discovery, consent under hidden information, procurement,
+real estate market transactions, bundle-purchase worlds, and refund/return
+tasks. Agents get a mandate rather than an assignment and are scored on the
+outcome their decisions produce, realized surplus, principal outcomes and
+constraint adherence, recorded in an auditable receipt. A benchmark maintained
+by Rationale.
 
 Results and methodology: https://aeread.org · **Capability coverage map:**
 [CAPABILITIES.md](CAPABILITIES.md) — what is covered, partial, and planned,
@@ -253,7 +259,7 @@ stateful-agent evaluations:
 | Case | What it measures | Current scope |
 |---|---|---|
 | **Procurement** | Evidence-grounded sourcing plus interactive supplier qualification, negotiation, and allocation across quality, lead time, landed cost, margin, and return/refund terms | [`procurement_grounding_v1`](cases/procurement_grounding_v1/) tests the frozen 231-project evidence snapshot. [`procurement_allocation_v1`](cases/procurement_allocation_v1/) adds a synthetic objective-reference case with formal quotes, verified samples, and an actual award decision. The catalog also includes the specialized [`procurement_electronics_q3`](cases/exchange_v1/specialized/procurement_electronics_q3.json) exchange case. |
-| **Housing** | Multi-round housing search and assignment under private tenant preferences and listing capacity | [`housing_v1`](cases/housing_v1/) generates deterministic worlds from case parameters and seeds; it intentionally has no static JSON fixtures. |
+| **Housing** | Multi-round real estate market transactions, tenants searching and signing under private preferences and listing capacity | [`housing_v1`](cases/housing_v1/) generates deterministic worlds from case parameters and seeds; it intentionally has no static JSON fixtures. |
 | **Refund and return** | Policy-constrained customer-service actions, exact final database state, required communication, and unintended mutations | [`tau3_retail`](cases/tau3_retail/) pins 114 upstream retail tasks and an [18-task refund/return pilot](cases/tau3_retail/base/pilot_manifest.json). The [integration plan](docs/families/tau3-retail/refund_external_benchmark_integration.md) keeps deterministic database-state results separate from judge-dependent assertions. |
 
 Case-specific READMEs document the authoritative runner, scorer, provenance,
@@ -286,15 +292,15 @@ evidence. It is generated from the tree and the plugin registry
 | GovSim | external adapter | [`govsim`](src/aeread_families/govsim/) | `govsim@0.1.0` | [`govsim/`](cases/govsim/) | [`govsim/`](docs/families/govsim/) | [3](evidence/govsim/) |
 | Housing | native | [`housing`](src/aeread_families/housing/) | `housing_v1@1.0.0` | [`housing_v1/`](cases/housing_v1/) | [`housing/`](docs/families/housing/) | [16](evidence/housing/) |
 | NegotiationArena | external adapter | [`negarena`](src/aeread_families/negarena/) | `negarena@0.1.0` | [`negarena/`](cases/negarena/) | [`negarena/`](docs/families/negarena/) | 0 |
-| Procurement allocation | native | [`procurement_allocation`](src/aeread_families/procurement_allocation/) | `procurement_allocation_v1@1.0.0` | [`procurement_allocation_v1/`](cases/procurement_allocation_v1/) | [`procurement-allocation/`](docs/families/procurement-allocation/) | [22](evidence/procurement_allocation/) |
+| Procurement allocation | native | [`procurement_allocation`](src/aeread_families/procurement_allocation/) | `procurement_allocation_v1@1.0.0`, `procurement_allocation_v1@1.1.0` | [`procurement_allocation_v1/`](cases/procurement_allocation_v1/) | [`procurement-allocation/`](docs/families/procurement-allocation/) | [40](evidence/procurement_allocation/) |
 | Procurement grounding | native | [`procurement_grounding`](src/aeread_families/procurement_grounding/) | `procurement_grounding_v1@1.0.0` | [`procurement_grounding_v1/`](cases/procurement_grounding_v1/) | none | [3](evidence/procurement_grounding/) |
 | Refund | native | [`refund`](src/aeread_families/refund/) | none | [`refund_v1/`](cases/refund_v1/), [`refund_v2/`](cases/refund_v2/) | [`refund/`](docs/families/refund/) | [8](evidence/refund/) |
 | Single offer | kernel smoke test | [`single_offer`](src/aeread_families/single_offer/) | `single_offer_v1@1.0.0` | none | none | 0 |
 | STEER | external adapter | [`steer`](src/aeread_families/steer/) | `steer@0.1.0` | [`steer/`](cases/steer/) | [`steer/`](docs/families/steer/) | 0 |
 | Tau3 retail | external adapter | [`tau3_retail`](src/aeread_families/tau3_retail/) | `tau3.retail@0.1.0` | [`tau3_retail/`](cases/tau3_retail/) | [`tau3-retail/`](docs/families/tau3-retail/) | 0 |
-| TERMS-Bench | external adapter | [`termsbench`](src/aeread_families/termsbench/) | `termsbench@0.1.0` | [`termsbench/`](cases/termsbench/) | [`termsbench/`](docs/families/termsbench/) | 0 |
+| TERMS-Bench | external adapter | [`termsbench`](src/aeread_families/termsbench/) | `termsbench@0.1.0`, `termsbench@0.2.0` | [`termsbench/`](cases/termsbench/) | [`termsbench/`](docs/families/termsbench/) | 5 |
 
-22 families, 26 case directories, 92 published bundles. A registered identity is a `family_id@version` in the kernel's trusted plugin keys.
+22 families, 26 case directories, 115 published bundles. A registered identity is a `family_id@version` in the kernel's trusted plugin keys.
 
 Registered with no family package on this tree: `datacenter_risk_allocation_v1@0.1.0`, `kernel_contract_reference_v1@1.0.0`, `kernel_contract_sequential_v1@1.0.0`.
 
@@ -441,3 +447,7 @@ Building on AERead, or want your framework listed? Open a
 
 Apache-2.0. A methodology preprint is in preparation; until then, cite this
 repository and https://aeread.org.
+
+The [full bibliography](references.bib) records the methodology, economics,
+and external benchmarks referenced in the design. Its entries include related
+work that is not claimed as an implemented AERead mechanism.
