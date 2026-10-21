@@ -10,6 +10,7 @@ and gives the recomputation recorded in HL-D-07 under v2.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -20,6 +21,63 @@ from aeread_families.housing import price_reference as pr
 from aeread_families.housing import price_reply_conditioned as rc
 from aeread_families.housing import price_reply_posterior as post
 from aeread_families.housing.price_reply_posterior import Reply, Trajectory
+
+
+#: Regenerated files are compared with their committed copies with every float to this relative tolerance and every
+#: other value exactly (HL-T-12). The p-values come from scipy's t distribution: CI's Python 3.10 job installs scipy
+#: 1.14 (scipy 1.16 dropped 3.10) and the committed files were written under 1.18, so p-values differ by at most
+#: 1e-14 relative, while counts, labels, means and intervals agree exactly.
+REL_TOL = 1e-9
+
+
+def _close(left: Any, right: Any) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return left is right
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        if isinstance(left, float) or isinstance(right, float):
+            return left == right or math.isclose(left, right, rel_tol=REL_TOL, abs_tol=0.0)
+        return left == right
+    if isinstance(left, Mapping) and isinstance(right, Mapping):
+        return left.keys() == right.keys() and all(_close(left[k], right[k]) for k in left)
+    if isinstance(left, (list, tuple)) and isinstance(right, (list, tuple)):
+        return len(left) == len(right) and all(_close(a, b) for a, b in zip(left, right))
+    return left == right
+
+
+def _regenerates(files: Mapping[str, bytes], out: Path) -> bool:
+    """Each regenerated file equals its committed copy: JSON and JSONL value by value under ``_close``, the rest byte
+    for byte."""
+    for name, payload in files.items():
+        committed = (out / name).read_bytes() if (out / name).is_file() else None
+        if committed is None:
+            return False
+        if name.endswith(".jsonl"):
+            ours, theirs = payload.decode().splitlines(), committed.decode().splitlines()
+            if len(ours) != len(theirs) or not all(_close(json.loads(a), json.loads(b)) for a, b in zip(ours, theirs)):
+                return False
+        elif name.endswith(".json"):
+            if not _close(json.loads(payload), json.loads(committed)):
+                return False
+        elif payload != committed:
+            return False
+    return True
+
+
+class _Tolerant(dict):
+    """A canonical v1 analysis that equals the published one under ``_close``, for ``analyse``'s reproduction guard."""
+
+    def __eq__(self, other: object) -> bool:
+        return _close(dict(self), other)
+
+    def __ne__(self, other: object) -> bool:
+        return not self.__eq__(other)
+
+
+@pytest.fixture
+def tolerant(monkeypatch):
+    """``analyse`` refuses a v1 analysis that does not reproduce the published one; compare it under ``_close``."""
+    canonical = rc._canonical
+    monkeypatch.setattr(rc, "_canonical", lambda value: _Tolerant(canonical(value)))
 
 SEED = 300000  # qualities sound, sound, lemon, lemon; sound floors 2552.31, 2125.78, 3138.5, 3018.15
 LEAKY, POOLED = (pr.make_world(SEED, arm) for arm in ("true_cost", "pooled"))
@@ -188,8 +246,9 @@ def report() -> dict[str, Any]:
     return json.loads((rc.OUT / "reports/reply_conditioned.json").read_text())
 
 
-def test_the_analysis_regenerates_to_the_committed_bytes() -> None:
-    assert rc.check(from_runs=False)
+def test_the_analysis_regenerates_to_the_committed_bytes(tolerant) -> None:
+    """Every float to ``REL_TOL``, everything else exactly (HL-T-12); ``--check`` still compares bytes."""
+    assert _regenerates(rc._files(rc.committed_rows()), rc.OUT)
 
 
 def test_v2_gives_the_recomputation_recorded_in_hl_d_07(report) -> None:
@@ -218,14 +277,14 @@ def test_invalid_seat0_actions_are_counted(report) -> None:
     assert all(not report["counts"][m]["invalid_seat0_actions_by_code"] for m in ("Luna", "Gemini", "Gemini fill"))
 
 
-def test_the_check_fails_when_the_measure_ignores_a_sound_counter(monkeypatch) -> None:
+def test_the_check_fails_when_the_measure_ignores_a_sound_counter(monkeypatch, tolerant) -> None:
     # Counterexample: drop gap (1) from v2 and the committed analysis no longer regenerates.
     original = post.reply_quality
     monkeypatch.setattr(post, "reply_quality", lambda world, reply, margin=price_bargaining.LANDLORD_MARGIN:
                         None if original(world, reply, margin) == post.SOUND else original(world, reply, margin))
     report, _ = rc.analyse(rc.committed_rows())
     assert {m: report["counts"][m]["changed_signings"] for m in ("GLM", "Luna", "Gemini")} == {"GLM": 0, "Luna": 0, "Gemini": 0}
-    assert not rc.check(from_runs=False)
+    assert not _regenerates(rc._files(rc.committed_rows()), rc.OUT)
 
 
 RUN_ROOTS = [rc.RUNS / cid / "live" for cid in rc.CAMPAIGNS]

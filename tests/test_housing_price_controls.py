@@ -3,10 +3,54 @@
 from __future__ import annotations
 
 import json
+import math
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 import pytest
 
 from aeread_families.housing import price_controls as pc
+
+
+#: Regenerated files are compared with their committed copies with every float to this relative tolerance and every
+#: other value exactly (HL-T-12). The p-values come from scipy's t distribution: CI's Python 3.10 job installs scipy
+#: 1.14 (scipy 1.16 dropped 3.10) and the committed files were written under 1.18, so p-values differ by at most
+#: 1e-14 relative, while counts, labels, means and intervals agree exactly.
+REL_TOL = 1e-9
+
+
+def _close(left: Any, right: Any) -> bool:
+    if isinstance(left, bool) or isinstance(right, bool):
+        return left is right
+    if isinstance(left, (int, float)) and isinstance(right, (int, float)):
+        if isinstance(left, float) or isinstance(right, float):
+            return left == right or math.isclose(left, right, rel_tol=REL_TOL, abs_tol=0.0)
+        return left == right
+    if isinstance(left, Mapping) and isinstance(right, Mapping):
+        return left.keys() == right.keys() and all(_close(left[k], right[k]) for k in left)
+    if isinstance(left, (list, tuple)) and isinstance(right, (list, tuple)):
+        return len(left) == len(right) and all(_close(a, b) for a, b in zip(left, right))
+    return left == right
+
+
+def _regenerates(files: Mapping[str, bytes], out: Path) -> bool:
+    """Each regenerated file equals its committed copy: JSON and JSONL value by value under ``_close``, the rest byte
+    for byte."""
+    for name, payload in files.items():
+        committed = (out / name).read_bytes() if (out / name).is_file() else None
+        if committed is None:
+            return False
+        if name.endswith(".jsonl"):
+            ours, theirs = payload.decode().splitlines(), committed.decode().splitlines()
+            if len(ours) != len(theirs) or not all(_close(json.loads(a), json.loads(b)) for a, b in zip(ours, theirs)):
+                return False
+        elif name.endswith(".json"):
+            if not _close(json.loads(payload), json.loads(committed)):
+                return False
+        elif payload != committed:
+            return False
+    return True
 
 
 @pytest.fixture(scope="module")
@@ -15,7 +59,8 @@ def report():
 
 
 def test_the_controls_regenerate_to_the_committed_bytes() -> None:
-    assert pc.check()
+    """Every float to ``REL_TOL``, everything else exactly (HL-T-12); ``--check`` still compares bytes."""
+    assert _regenerates(pc._files(), pc.OUT)
 
 
 def test_controls_are_ordered_as_their_information_says(report) -> None:
