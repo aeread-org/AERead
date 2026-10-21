@@ -19,6 +19,8 @@ from collections import Counter
 
 import pytest
 
+from tests import full_regeneration
+
 from aeread_families.procurement_allocation import pay_or_test_reference as v1_reference
 from aeread_families.procurement_allocation import pay_or_test_v2_case_matrix as pack_module
 from aeread_families.procurement_allocation import pay_or_test_v2_reference as reference
@@ -79,13 +81,13 @@ def _award(sid: str, quantity: int) -> dict:
 # Regenerating the pack takes minutes, so the check is split by world and spread across workers:
 # each world is the first admitted seed of its block and is rebuilt byte for byte, and the
 # manifest is rebuilt from those worlds.
-@pytest.mark.parametrize("index", range(WORLD_COUNT))
+@pytest.mark.parametrize("index", full_regeneration.indices(WORLD_COUNT))
 def test_each_world_is_the_first_admitted_seed_of_its_block_reproduced_byte_for_byte(manifest, index) -> None:
     spec = pack_module.world_specs()[index]
     entry = manifest["worlds"][index]
     assert entry["slug"] == spec["slug"]
     assert entry["seeds_scanned"] == entry["world_seed"] - spec["seed_block"] + 1
-    for seed in range(spec["seed_block"], entry["world_seed"]):
+    for seed in full_regeneration.seeds(spec["seed_block"], entry["world_seed"]):
         admitted, _ = pack_module.admit(spec, seed, pack_module.draw_structure(spec, seed))
         assert not admitted, (spec["slug"], seed)
     case, rebuilt = pack_module.world_at(spec, entry["world_seed"], entry["seeds_scanned"])
@@ -105,14 +107,14 @@ def test_the_manifest_is_rebuilt_from_its_worlds_byte_for_byte(manifest, worlds)
 PILOT = pack_module.PILOT_PACK_ID
 
 
-@pytest.mark.parametrize("index", range(len(pack_module.CELLS) * pack_module.SPLITS[PILOT]["worlds_per_cell"]))
+@pytest.mark.parametrize("index", full_regeneration.indices(len(pack_module.CELLS) * pack_module.SPLITS[PILOT]["worlds_per_cell"]))
 def test_each_pilot_world_is_the_first_admitted_seed_of_its_block_reproduced_byte_for_byte(index) -> None:
     """The pilot split is the same generator and admission on its own seed range, under its own pack id."""
     manifest = json.loads((pack_module.pack_root(PILOT) / "pack.json").read_text(encoding="utf-8"))
     spec = pack_module.world_specs(PILOT)[index]
     entry = manifest["worlds"][index]
     assert entry["slug"] == spec["slug"] and entry["case_id"] == f"procurement_allocation_v1.{PILOT}.{spec['slug']}"
-    for seed in range(spec["seed_block"], entry["world_seed"]):
+    for seed in full_regeneration.seeds(spec["seed_block"], entry["world_seed"]):
         admitted, _ = pack_module.admit(spec, seed, pack_module.draw_structure(spec, seed))
         assert not admitted, (spec["slug"], seed)
     case, rebuilt = pack_module.world_at(spec, entry["world_seed"], entry["seeds_scanned"])

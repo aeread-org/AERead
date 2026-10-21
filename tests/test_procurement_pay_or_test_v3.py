@@ -18,6 +18,8 @@ from collections import Counter
 
 import pytest
 
+from tests import full_regeneration
+
 from aeread.shared_runner.task.scheduler import ActionEnvelope
 from aeread_families.procurement_allocation import environment as v1_environment
 from aeread_families.procurement_allocation import pay_or_test_v2_reference as v2_reference
@@ -305,7 +307,7 @@ def worlds(manifest) -> list[dict]:
     return [{**world, "case": cases[world["slug"]]} for world in manifest["worlds"]]
 
 
-@pytest.mark.parametrize("index", range(12))
+@pytest.mark.parametrize("index", full_regeneration.indices(12))
 def test_each_pilot_world_is_rebuilt_from_its_seed_byte_for_byte(manifest, index) -> None:
     world = manifest["worlds"][index]
     spec = next(s for s in pack_module.world_specs() if s["slug"] == world["slug"])
@@ -322,7 +324,7 @@ def test_no_earlier_seed_of_any_block_is_admitted(manifest) -> None:
     jobs = []
     for world in manifest["worlds"]:
         spec = next(s for s in pack_module.world_specs() if s["slug"] == world["slug"])
-        jobs += [(spec, seed) for seed in range(spec["seed_block"], world["world_seed"])]
+        jobs += [(spec, seed) for seed in full_regeneration.seeds(spec["seed_block"], world["world_seed"])]
     with ProcessPoolExecutor(8) as pool:
         admitted = [job[1] for job, ok in zip(jobs, pool.map(pack_module._admits, jobs, chunksize=4)) if ok]
     assert admitted == []
@@ -509,7 +511,7 @@ def _confirm_manifest() -> dict:
     return json.loads((pack_module.pack_root(pack_module.CONFIRM_PACK_ID) / "pack.json").read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("index", range(20))
+@pytest.mark.parametrize("index", full_regeneration.indices(20))
 def test_each_confirmatory_world_is_rebuilt_from_its_seed_byte_for_byte(index) -> None:
     world = _confirm_manifest()["worlds"][index]
     spec = next(s for s in pack_module.world_specs(pack_module.CONFIRM_PACK_ID) if s["slug"] == world["slug"])
@@ -534,7 +536,7 @@ def test_no_earlier_seed_of_any_confirmatory_block_is_admitted() -> None:
     jobs = []
     for world in _confirm_manifest()["worlds"]:
         spec = next(s for s in pack_module.world_specs(pack_module.CONFIRM_PACK_ID) if s["slug"] == world["slug"])
-        jobs += [(spec, seed) for seed in range(spec["seed_block"], world["world_seed"])]
+        jobs += [(spec, seed) for seed in full_regeneration.seeds(spec["seed_block"], world["world_seed"])]
     with ProcessPoolExecutor(8) as pool:
         admitted = [job[1] for job, ok in zip(jobs, pool.map(pack_module._admits, jobs, chunksize=4)) if ok]
     assert admitted == []
@@ -559,10 +561,11 @@ def test_the_confirmatory_pack_is_twenty_fresh_option_value_worlds_that_pass_adm
 def test_each_odds_twin_is_its_confirmatory_world_with_only_the_cohort_records_redrawn() -> None:
     root = pack_module.pack_root(pack_module.DIAGNOSTIC_PACK_ID)
     committed = json.loads((root / "pack.json").read_text(encoding="utf-8"))
-    rebuilt = pack_module.build_diagnostic_pack()
-    assert rebuilt["manifest"] == committed
-    for case in rebuilt["cases"]:
-        assert case == json.loads((root / f"{case['case_id'].rsplit('.', 1)[-1]}.json").read_text(encoding="utf-8"))
+    if full_regeneration.FULL:  # the rebuild values every twin exactly: minutes, so a full run's check
+        rebuilt = pack_module.build_diagnostic_pack()
+        assert rebuilt["manifest"] == committed
+        for case in rebuilt["cases"]:
+            assert case == json.loads((root / f"{case['case_id'].rsplit('.', 1)[-1]}.json").read_text(encoding="utf-8"))
     for twin in committed["worlds"]:
         spec = {"slug": twin["slug"], "kind": "myopic_pays", "pack_id": pack_module.CONFIRM_PACK_ID}
         original = pack_module.draw_structure(spec, twin["world_seed"])
