@@ -3159,6 +3159,9 @@ _NOT_YET_MIGRATED_TRUSTED_KEYS: "frozenset[tuple[str, str]]" = frozenset(
         # the joint venture): its scorer takes FamilyScoringInput; a
         # scoring-contract fixture is the same follow-up as the others here.
         ("datacenter_risk_allocation_v1", "0.1.0"),
+        # Pay or test version 3: its plugin subclasses the 1.0.0 environment and
+        # arrives with the family PR; a scoring-contract fixture follows it.
+        ("procurement_allocation_v1", "1.1.0"),
         # The TERMS-Bench reproduction's protocol (0.2.0) reuses 0.1.0's scorer;
         # its own scoring-contract fixture follows the family PR.
         ("termsbench", "0.2.0"),
