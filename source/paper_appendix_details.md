@@ -431,6 +431,12 @@ templates dependent, and a single world per seat, sequential model collection an
 limit inference. These are exploratory intervals on this panel, not population rankings or the confirmation of an
 original primary hypothesis, and more seeds or repeats would not substitute for new independent templates.
 
+![Refund V2.5 calibration: weighted strict compliance, both-variant pass rates, policy-active diagnostics and active-seat collaboration for Gemini 2.5 Flash Lite, Gemini 2.5 Pro and GPT-6-sol.](figures/refund_v25_compliance.png)
+
+**Figure E.1. Refund V2.5 calibration, by evaluated seat and model (Lite = Gemini 2.5 Flash Lite, Pro = Gemini 2.5
+Pro, GPT = GPT-6-sol).** (a) Weighted strict compliance, with episodes per model in parentheses; (b) share of template
+repeats in which both variants pass; (c, d) conditional score / weighted coverage, in percent. Panels are not added.
+
 **Table E.19. Refund V2.5 calibration: the eight frozen paired contrasts, in percentage points of weighted strict compliance, with 95% template-bootstrap intervals.**
 
 | Seat | Contrast | Difference [95% interval] | Holm p |
@@ -447,13 +453,13 @@ original primary hypothesis, and more seeds or repeats would not substitute for 
 The customer, intake, policy and payments seats have 52, 64, 72 and 76 episodes per model, and all 792 included
 episodes have replay-audited receipts; the denominator is valid episodes, not every provider attempt. Unweighted
 strict pass counts are 52, 32, 24 and 32 for Flash Lite, 52, 63, 71 and 75 for Pro, and 52, 64, 72 and 75 for
-GPT-6-sol; these counts do not replace the frozen weights of Figure 5.3. Requiring both variants of a pair to pass
+GPT-6-sol; these counts do not replace the frozen weights of Figure E.1. Requiring both variants of a pair to pass
 within a repetition gives 100.0%, 31.3%, 0.0% and 36.8% for Flash Lite, 100.0%, 96.9%, 97.2% and 97.4% for Pro, and
 100.0%, 100.0%, 100.0% and 97.4% for GPT-6-sol. The zero-width interval in the customer seat reflects a saturated
 template pool, not certainty of equal performance on unseen worlds. In the intake seat, the scripted downstream checks
 pass whenever they are reached, but Flash Lite reaches them in only 38.3% of weighted trajectories, so that
 conditional full score does not measure its policy ability. Because the counterparts are scripted, a full downstream
-score in Figure 5.3 does not show a capability of the evaluated model; the figure's operational row covers the 792
+score in Figure E.1 does not show a capability of the evaluated model; the figure's operational row covers the 792
 included episodes, not every provider attempt.
 
 **Failure checks.** Pro has three strict failures: an intake request that names three relevant facts despite a batch
@@ -1125,7 +1131,7 @@ for a quality measure, since no case is scored by string matching, unit tests or
 ## Appendix G. Artifacts
 
 Everything on which the numbers in Sections 5 and 6 rest is in the public AERead repository
-(https://github.com/aeread-org/AERead), or is named here when it is not.
+(<https://github.com/aeread-org/AERead>), or is named here when it is not.
 
 - **Code and cases.** The shared runner and the case families, with each case's generator, reference, verifiers,
   evaluation sets and tests. Each case is developed on its own branch of the repository.

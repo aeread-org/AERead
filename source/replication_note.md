@@ -118,11 +118,14 @@ the AERead repository (https://github.com/aeread-org/AERead) unless stated.
 
 ## Refund V2.5 calibration and release (ported from the Refund revision, 2026-10-21)
 
-- Source: the Refund revision of working draft 15.36 (PDF built 2026-10-21 by Yuchen Fang). Figure 5.3 is cropped
-  from its page 14; `analysis_evidence/refund_v25/policy_seat_panel.json` transcribes the counts behind Figure 5.2(d)
-  and Table E.10(d). The calibration's measurement files are not on a pushed branch.
+- Source: Yuchen Fang's Refund revision of working draft 15.36, its LaTeX source and his data record
+  `refund_v25.json` (in the paper package at `analysis_evidence/refund_v25/`), which binds the SHA-256 digests of
+  his frozen configuration, merged measurements, analysis and audit. Figure E.1 (Figure 5.3 until 15.43) is his original figure, built by his
+  `scripts/build_refund_figures.py` from that record. `policy_seat_panel.json` holds the counts behind Figure 5.2(d)
+  and Table E.10(d), and the panel derivation asserts that they equal the data record's. The per-episode records are
+  in his experiment repository, not yet in AERead (issue #309).
 - Bootstrap: 20,000 stratified paired template-bootstrap draws with seed 20261011.
 - Release: draft PR #269 (`codex/refund-v25-shared-runner`), synced to main 1dd48cf5; documents
-  `docs/families/refund/refund_v2_5_release.md` and `refund_v2_5_v71_port.md`; panels `v71_intake` and `v71_customer`;
+  `refund_v2_5_release.md` and `refund_v2_5_v71_port.md` in the Refund family's documentation on that branch; panels `v71_intake` and `v71_customer`;
   `python -m aeread_families.refund.v2_5_release --panel all --seed 301`.
 - Payment-unit contract version 5.1: `src/aeread_families/refund/v2_5_payment_units_v51.py`.

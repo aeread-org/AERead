@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.43 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.44 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -398,3 +398,12 @@ current one saturated"):
   Refund number was checked against his data record (analysis_evidence/refund_v25/refund_v25.json) and matches, and
   derive_panels.py asserts the Refund panel's counts and compliance against it. Issue #309 asks him to push the
   per-episode records and to confirm the 1,072 conformance count.
+- Version 15.44 (2026-10-21): the saturated Refund calibration figure leaves the main text. Section 5.1 states the
+  saturation in one sentence (above Flash Lite the panel cannot rank the stronger models), and Yuchen's figure is kept
+  whole as Figure E.1 in Appendix E.4, beside Table E.19. References updated; the replication note's Refund
+  sources (Yuchen's data record, issue #309) included.
+  Also, from a second referee read of 15.42: one head-to-head comparison (20.8 against the pre-registered 7.5, and
+  why 7.5 rather than the seat average 4.1); Appendix A.3's statement that the client's charge is fixed by stratum
+  corrected (true of the development set only; v1 and v2 draw it); the leaky lemon target's upper bound a - 995, not
+  a - 996; the state's omission of offer expiry explained; the Refund paragraph split into case, run, result and
+  further runs; the repository URL set so it cannot break at its hyphen.

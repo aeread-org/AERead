@@ -142,3 +142,5 @@ figure svg { display:block; width:100%; }
 .equation { position:relative; text-align:center; margin:6pt 0 8pt; padding:0 3.2em; break-inside:avoid; }
 .equation .eq-number { position:absolute; right:0; top:0; }
 .equation .eq-body { display:inline-block; text-align:left; max-width:100%; }
+
+a[href^="http"] { white-space:nowrap; hyphens:none; color:inherit; text-decoration:none; }

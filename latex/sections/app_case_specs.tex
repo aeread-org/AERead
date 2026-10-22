@@ -334,8 +334,11 @@ its playbook (coordination, managed or turnkey) sets; the integrator's private t
 risk charge ρ\_I ∈ \{0.3, 1.2\}, and the six types are equally likely. The type fixes the playbook: ρ\_I ≥ 1 gives
 coordination; otherwise t ≤ 40 gives turnkey, and every other type gives managed. The draft therefore narrows the
 client's prior, and in 22 of the 58 worlds of the development set (Appendix E.2) it reveals the type. The client
-has a risk charge ρ\_C ∈ \{0.15, 0.75, 1.55\}, with a stated prior of one third on each value. In the evaluation sets,
-ρ\_C is fixed by the world's stratum (one of eleven outside-option situations, Appendix E.2) rather than drawn.
+has a risk charge ρ\_C ∈ \{0.15, 0.75, 1.55\}, with a stated prior of one third on each value. In the development set,
+ρ\_C was fixed by the world's stratum (one of eleven outside-option situations, Appendix E.2), which tied comparisons by
+type to strata. In the v1 and v2 evaluation sets it is drawn on its own random stream with the stated prior, after a
+world is included on its public structure; v2's headroom screen reads the drawn charge, so the mix of charges differs
+by stratum (Appendix E.2).
 
 \renewcommand{\thetable}{A.5}
 \begin{longtable}[]{@{}
@@ -540,9 +543,9 @@ kind, and ρ\_ℓ = c\^{}S\_ℓ for every listing under the \emph{pooled} kind. 
 \[ \text{τ\textsubscript{ℓ} = max(ρ\textsubscript{ℓ}, min(a\textsubscript{ℓ}, ρ\textsubscript{ℓ} + μ)).} \tag{B.1} \]
 
 Given the highest offer x* in its inbox (ties go to the lower seat), the landlord accepts, creating a hold at x*,
-if x* ≥ τ\_ℓ, and otherwise counters at τ\_ℓ. A \$0 offer therefore always draws a counter at τ\_ℓ. In the main
-evaluation set, a sound listing's target lies in {[}a − 55, a{]}, a lemon's target under the leaky kind lies in
-{[}a − 1055, a − 996{]}, and a lemon's target under the pooled kind equals that of a sound listing. A reply reveals
+if x* ≥ τ\_ℓ, and otherwise counters at τ\_ℓ. A \$0 offer therefore always draws a counter at τ\_ℓ. Because a sound cost lies \$20 to \$80 under the ask (Table A.1),
+a sound listing's target lies in {[}a − 55, a{]}, a lemon's target under the leaky kind lies in
+{[}a − 1055, a − 995{]}, and a lemon's target under the pooled kind equals that of a sound listing. A reply reveals
 quality only to an offer below the sound floor min(a\_ℓ, c\^{}S\_ℓ + 25); any offer at or above the floor is accepted
 whether the listing is sound or a lemon.
 
@@ -800,7 +803,8 @@ best policy for the v14 task prompt.
 
 \textbf{State.} The state is s = (σ, n, t), where σ ∈ \{U, Q, S, K, B\}⁴ records each supplier as untouched, quoted (on
 time), sampled (good yield), qualified or bad; n is the number of actions left; and t is the elapsed day, capped at
-t̄ = T − min lead + 1. A quote moves a supplier from U to B with probability λ and to Q otherwise, and from S to B
+t̄ = T − min lead + 1. Formal offers stay valid for 60 days, longer than any deadline (Table A.3), so the state
+need not record when an offer expires. A quote moves a supplier from U to B with probability λ and to Q otherwise, and from S to B
 with probability λ/(γ + λ) and to K otherwise. A sample moves a supplier from U to B with probability ρ and to S
 otherwise, and from Q to B with probability ρ/(γ + ρ) and to K otherwise.
 
@@ -956,6 +960,6 @@ side's surplus is U\_I or U\_C. A side signs below its walk-away point if its su
 
 \subsection{Code and data availability}\label{code-and-data-availability}
 
-All code, evaluation sets and sealed evidence are in the AERead repository (https://github.com/aeread-org/AERead).
+All code, evaluation sets and sealed evidence are in the AERead repository (\url{https://github.com/aeread-org/AERead}).
 A replication note in the repository (\texttt{docs/\allowbreak{}research/\allowbreak{}paper\_\allowbreak{}replication\_\allowbreak{}note.\allowbreak{}md}) maps each formula in Appendices A--D,
 and each procedure the paper reports, to its implementation.

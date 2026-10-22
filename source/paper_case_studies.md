@@ -226,9 +226,12 @@ The counterpart changes the measured gap. Head to head, Sol's earnings exceed Op
 available, and against the same scripted firm client by 7.5 points (Table 5.4). Both gaps are significant under the
 Holm correction, and neither is shown to reach its pre-registered minimum. The two numbers are not on one scale. Head
 to head, a dollar that Sol takes from Opus raises Sol's earnings and lowers Opus's, so it counts twice in the
-difference; against the script, a dollar that Sol gains leaves Opus's earnings unchanged. Counting each transfer
-between the two agents once halves the head-to-head gap to 20.8 points [15.7, 26.0], still about three times the gap
-against the script; the paired difference, which we computed after the runs, is 13.4 points [6.4, 20.3]. As
+difference; against the script, a dollar that Sol gains leaves Opus's earnings unchanged. Counting each transfer between the two agents once halves the head-to-head gap to 20.8 points [15.7, 26.0], and
+this is the number we compare with the script. Against the script we use the pre-registered integrator-seat gap,
+7.5 points, rather than an average over both seats (4.1 points, Appendix E.4), because the client seat separates
+nothing against the script, as shown below; using 7.5 makes the comparison conservative. The head-to-head gap is
+therefore about three times the script gap, and the paired difference, which we computed after the runs, is 13.4
+points [6.4, 20.3]. As
 integrator, Sol beats the price-only rule, and Opus earns what the rule earns. As client, with its walk-away point
 stated, neither model signs below that point, and the client seat separates nothing. After both runs we computed the
 best informed turn-by-turn policy against the same scripted client (Appendix C.3). Sol captures about 20% of the room
@@ -247,27 +250,22 @@ amount is a field to verify, not a welfare measure. A world combines a product c
 electronics, software or apparel) with an interaction rule, such as conflicting identity records, a pending payment
 or an evidence threshold. The public policy states the precedence of its rules, which facts each branch requires, the
 allowed outcomes and the amount formulae. The customer holds the private facts, and no evaluated seat sees the answer
-key. Each world comes as a counterfactual pair that changes the stated facts and keeps the rest of the world fixed. We
-evaluate one seat at a time while the other three follow fixed scripts. The comparison reported here is an amended,
-sequential developmental calibration, not a pre-registered comparison: Gemini 2.5 Flash Lite, Gemini 2.5 Pro and
-GPT-6-sol each played a frozen selection of 66 seat-specific pair templates, both variants twice, for 792 episodes in
-all. Appendix A.4 specifies the case.
+key. Each world comes as a counterfactual pair that changes the stated facts and keeps the rest of the world fixed.
+Appendix A.4 specifies the case.
 
-Flash Lite separates from the two stronger models in three of the four seats, and the panel cannot separate the
-stronger models from each other (Figure 5.3). Strict trajectory compliance requires the evaluated seat's decisions
-and protocol obligations to hold together. Flash Lite reaches 38.3% of it as intake, 33.3% as policy and 35.6% as
-payments, whereas Gemini 2.5 Pro and GPT-6-sol reach at least 98.6% in every seat. The differences between Pro and
-Flash Lite in those three seats, from 60.8 to 65.3 percentage points, have template-cluster bootstrap intervals that
-exclude zero and remain significant after Holm adjustment across the eight frozen contrasts. No contrast between
-GPT-6-sol and Pro separates them. That is not evidence that they are equivalent: both stronger models pass 62 of the
-66 templates on both variants in both repetitions, and all three models pass every customer episode, so the panel
-leaves little room above them.
+We evaluate one seat at a time while the other three follow fixed scripts. The comparison reported here is an
+amended, sequential developmental calibration, not a pre-registered comparison. Gemini 2.5 Flash Lite, Gemini 2.5
+Pro and GPT-6-sol each played a frozen selection of 66 seat-specific pair templates, both variants twice, for 792
+episodes in all. The score is strict trajectory compliance: the evaluated seat's decisions and its protocol
+obligations must all hold in the same episode.
 
-![Refund V2.5 calibration: weighted strict compliance, both-variant pass rates, policy-active diagnostics and active-seat collaboration for Gemini 2.5 Flash Lite, Gemini 2.5 Pro and GPT-6-sol.](figures/refund_v25_compliance.png)
-
-**Figure 5.3. Refund V2.5 calibration, by evaluated seat and model (Lite = Gemini 2.5 Flash Lite, Pro = Gemini 2.5
-Pro, GPT = GPT-6-sol).** (a) Weighted strict compliance, with episodes per model in parentheses; (b) share of template
-repeats in which both variants pass; (c, d) conditional score / weighted coverage, in percent. Panels are not added.
+Flash Lite separates from the two stronger models in three of the four seats. It reaches 38.3% strict compliance as
+intake, 33.3% as policy and 35.6% as payments, while Gemini 2.5 Pro and GPT-6-sol reach at least 98.6% in every
+seat. Pro's lead over Flash Lite in those seats, 60.8 to 65.3 percentage points, remains significant after Holm
+adjustment across the eight frozen contrasts. Above Flash Lite the panel is saturated: both stronger models pass 62
+of the 66 templates on both variants in both repetitions, and every model passes every customer episode. The panel
+therefore cannot rank the stronger models, and no contrast between them is evidence that they are equivalent.
+Figure E.1 in Appendix E.4 shows every seat and diagnostic.
 
 **Further runs.** A later public release of the environment adds customer and intake panels. Its 1,072 scripted
 trajectories on the current runtime pass with full scores, which establishes the environment's conformance, not model
@@ -294,7 +292,7 @@ E.10 the intervals and exact values.
 **Figure 5.2. Shortfall to each case's reference, divided by observed action class.** Labels give mean totals (lower
 is better); each panel has its own reference, units and scale. Housing uses the 260 main worlds of Table 5.2,
 Procurement the 20 worlds of Table 5.3, Data center the 80 worlds of Table 5.4, and Refund the 72 policy-seat
-episodes per model of Figure 5.3.
+episodes per model of the calibration (Appendix E.4).
 
 The labels name what happened. The mechanism behind each large segment is as follows.
 
@@ -347,7 +345,7 @@ propose a decision before the required evidence has been collected, including pr
 correct. Another 4 end with an invalid request or no scoreable final resolution, and 18 reach a resolution that
 does not match the policy, the workflow or the prescribed payment. Counted once each in that order, these classes
 account for 36.1, 5.6 and 25.0 points of its 66.7-point shortfall. Pro's 1.4-point shortfall is a single error in the
-liability field, and GPT-6-sol has none in this selection. Figure 5.3 shows why the diagnostic measures stay beside
+liability field, and GPT-6-sol has none in this selection. Figure E.1 shows why the diagnostic measures stay beside
 strict compliance: Flash Lite passes a third of the individual policy episodes, but in no pair do both variants pass
 within a repetition.
 
@@ -403,7 +401,7 @@ until a pre-registered test confirms it.
 | Data center v1 (Tables E.16, E.17; Appendix E.9) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
 | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
-| Refund V2.5 calibration (Section 5.1, Figures 5.2d and 5.3, Tables E.10(d) and E.19) | Yuchen Fang's Refund revision of working draft 15.36 and its LaTeX source (2026-10-21), with his packaged data record, copied to `analysis_evidence/refund_v25/refund_v25.json`: per-seat strict compliance and pair rates, the eight contrasts with intervals and Holm-adjusted p, and the policy-seat class counts, binding the SHA-256 digests of his frozen configuration, merged measurements, analysis and audit. Every number in the paper matches that record, and `derive_panels.py` asserts the panel's agreement with it. Figure 5.3 is his original. The per-episode records are in his experiment repository, not yet in AERead (issue #309), and the 1,072 conformance count awaits his confirmation there | exploratory |
+| Refund V2.5 calibration (Section 5.1, Figures 5.2d and E.1, Tables E.10(d) and E.19) | Yuchen Fang's Refund revision of working draft 15.36 and its LaTeX source (2026-10-21), with his packaged data record, copied to `analysis_evidence/refund_v25/refund_v25.json`: per-seat strict compliance and pair rates, the eight contrasts with intervals and Holm-adjusted p, and the policy-seat class counts, binding the SHA-256 digests of his frozen configuration, merged measurements, analysis and audit. Every number in the paper matches that record, and `derive_panels.py` asserts the panel's agreement with it. Figure E.1 is his original. The per-episode records are in his experiment repository, not yet in AERead (issue #309), and the 1,072 conformance count awaits his confirmation there | exploratory |
 | Historical Refund V2.1 rows (Tables E.6 and E.9) | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
 | Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch (Housing's addendum B subjects added in 2443c035, reading the run roots of `codex/housing-v15-cli`), built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
 | Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |

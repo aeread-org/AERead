@@ -281,11 +281,11 @@ def main():
     v3_figure.append(v3_figcaption)
     v3_caption.decompose()
     v3_marker.replace_with(v3_figure)
-    # Figure 5.3 (Refund V2.5 calibration) is the Refund owner's figure, copied unchanged from the Refund revision.
+    # Figure E.1 (Refund V2.5 calibration, Appendix E.4) is the Refund owner's figure, copied unchanged from his source.
     r_image = soup.find('img', src='figures/refund_v25_compliance.png')
     r_marker = r_image.find_parent('p')
     r_caption = r_marker.find_next_sibling('p')
-    assert r_caption.get_text().startswith('Figure 5.3.')
+    assert r_caption.get_text().startswith('Figure E.1.')
     r_figure = soup.new_tag('figure', attrs={'id':'fig-refund-v25','class':'procurement-figure'})
     r_figure.append(r_image.extract())
     r_figcaption = soup.new_tag('figcaption')
