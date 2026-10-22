@@ -98,6 +98,9 @@ class ProviderFailure(RuntimeError):
         self.cached_input_tokens = 0
         self.output_tokens = 0
         self._complete_reported_tokens = False
+        # Token fields the provider reported validly; an invalid or absent
+        # count is unknown, not zero.
+        self._valid_token_fields: frozenset[str] = frozenset()
 
     def with_reported_usage(self, raw_response: Any) -> "ProviderFailure":
         """Record what a chat-completions response reported for this call.
@@ -131,6 +134,14 @@ class ProviderFailure(RuntimeError):
             input_tokens is not None and output_tokens is not None
             and cached is not None and cached <= input_tokens
         )
+        valid = set()
+        if input_tokens is not None:
+            valid.add("input_tokens")
+        if output_tokens is not None:
+            valid.add("output_tokens")
+        if cached is not None and (input_tokens is None or cached <= input_tokens):
+            valid.add("cached_input_tokens")
+        self._valid_token_fields = frozenset(valid)
         self.input_tokens = input_tokens or 0
         self.output_tokens = output_tokens or 0
         self.cached_input_tokens = cached or 0
@@ -178,7 +189,9 @@ def failed_call_event_fields(
     ``cost_usd`` is a number when the cost is known and the string
     ``"unknown"`` when it is not. The token counts appear only for a call
     the provider reported usage for, so the event of a call that was never
-    billed is byte for byte what it always was.
+    billed is byte for byte what it always was. When the reported counts are
+    not all valid, only the valid ones are written and ``token_accounting``
+    is ``"incomplete"``.
     """
 
     fields: dict[str, Any] = {
@@ -187,11 +200,20 @@ def failed_call_event_fields(
     if outcome_unknown and cost is not None:
         fields.update(known_cost_usd=cost, cost_accounting="lower_bound")
     if failure.billing in {"reported", "unknown"}:
-        fields.update(
-            input_tokens=failure.input_tokens,
-            cached_input_tokens=failure.cached_input_tokens,
-            output_tokens=failure.output_tokens,
-        )
+        counts = {
+            "input_tokens": failure.input_tokens,
+            "cached_input_tokens": failure.cached_input_tokens,
+            "output_tokens": failure.output_tokens,
+        }
+        if failure._complete_reported_tokens:
+            fields.update(counts)
+        else:
+            # Counts the provider did not report validly are unknown: only the
+            # valid ones are written, never a fabricated zero.
+            fields.update(
+                {k: v for k, v in counts.items() if k in failure._valid_token_fields}
+            )
+            fields["token_accounting"] = "incomplete"
     return fields
 
 
