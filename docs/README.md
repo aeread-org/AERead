@@ -52,6 +52,21 @@ not intended as a second reading order.
 - [Provider-call reliability: decision record](architecture/provider_reliability.md)
 - [Architecture walkthroughs](walkthroughs/README.md)
 
+## Redesign themes (proposed)
+
+The open problems were grouped by root cause into seven themes; each charter proposes one direction and asks the owner for a ruling, and none has been reviewed by a maintainer yet.
+
+- [Themes README](architecture/themes/README.md)
+- [T1 charter: call-outcome contract](architecture/themes/T1_call_outcome_contract.md), with its [design](architecture/themes/T1_call_outcome_design.md) and [decision drafts](architecture/themes/T1_call_outcome_decisions.md)
+- [T2 charter: run-control contract](architecture/themes/T2_run_control_contract.md)
+- [T3 charter: verifiable identity](architecture/themes/T3_verifiable_identity.md)
+- [T4 charter: publication and QC](architecture/themes/T4_publication_and_qc.md)
+- [T5 charter: statistical design](architecture/themes/T5_statistical_design.md)
+- [T6 charter: case construct validity](architecture/themes/T6_case_construct_validity.md)
+- [T7 charter: other](architecture/themes/T7_other.md)
+- Evidence ledgers: [T2](architecture/themes/ledgers/T2_ledger.md), [T3](architecture/themes/ledgers/T3_ledger.md), [T4](architecture/themes/ledgers/T4_ledger.md), [T5](architecture/themes/ledgers/T5_ledger.md), [T6](architecture/themes/ledgers/T6_ledger.md), [T7](architecture/themes/ledgers/T7_ledger.md)
+- [Rulings register](architecture/themes/ledgers/rulings_register.md)
+
 ## Operations
 
 - [Benchmark quality-control standard](operations/benchmark_qc.md)
