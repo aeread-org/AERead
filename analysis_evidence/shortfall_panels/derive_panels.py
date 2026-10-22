@@ -279,9 +279,20 @@ def main():
             fixed_cases=6, cells=120, missing_cells=0,
             per_case_cell_totals={k:[r['total'] for r in rs] for k,rs in by_case.items()})
     # Refund V2.5 (Figure 5.2d): the calibration's policy seat, 72 episodes per model, each failed episode counted once
-    # under its first applicable class. The measurement files are not on a pushed branch; the record transcribes the
-    # published counts, and each total must equal 100 minus the published strict compliance.
+    # under its first applicable class. The panel record's counts must equal Yuchen Fang's data record (refund_v25.json,
+    # which binds the digests of his measurements, analysis and audit), and each total 100 minus the strict compliance.
     v25 = read(EVIDENCE/'refund_v25/policy_seat_panel.json')
+    record = read(EVIDENCE/'refund_v25/refund_v25.json')
+    keys = {'Gemini 2.5 Flash Lite': 'gemini-2.5-flash-lite', 'Gemini 2.5 Pro': 'gemini-2.5-pro', 'GPT-6-sol': 'gpt-6-sol'}
+    rename = {'information_not_acquired': 'required_facts_skipped', 'contrary_to_information_held': 'resolution_mismatch',
+              'procedure_and_format': 'procedure_or_format'}
+    for name, key in keys.items():
+        counts = record['policy_exclusive_counts'][key]
+        assert v25['models'][name]['strict_pass'] == counts.get('pass', 0) == record['seats']['policy'][key]['strict_passes']
+        for ours, theirs in rename.items():
+            assert v25['models'][name]['classes'][ours] == counts.get(theirs, 0), (name, ours)
+        close(100*record['seats']['policy'][key]['metrics']['end_to_end']['score_among_observed'],
+              v25['weighted_strict_compliance_policy'][name], .051)
     for name, model in v25['models'].items():
         n = v25['episodes_per_model']
         counts = model['classes']

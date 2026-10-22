@@ -1,0 +1,2852 @@
+{
+  "label": "Amended sequential developmental/exploratory calibration",
+  "models": [
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-pro",
+    "gpt-6-sol"
+  ],
+  "seats": {
+    "customer": {
+      "gemini-2.5-flash-lite": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 32,
+            "raw_strict": 1.0
+          },
+          "v4_extension": {
+            "episodes": 8,
+            "raw_strict": 1.0
+          },
+          "v5_extension": {
+            "episodes": 12,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 52,
+        "leave_one_source_policy_family_out": {
+          "policy_bundle_boundary": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_evidence_conflict": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_evidence_inconclusive": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_identity_followup": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_identity_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_payment_reconcile": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_time_anchor": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 48,
+            "raw_strict": 1.0
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 1.0,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 52,
+        "taxonomy_counts_overlapping": {}
+      },
+      "gemini-2.5-pro": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 32,
+            "raw_strict": 1.0
+          },
+          "v4_extension": {
+            "episodes": 8,
+            "raw_strict": 1.0
+          },
+          "v5_extension": {
+            "episodes": 12,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 52,
+        "leave_one_source_policy_family_out": {
+          "policy_bundle_boundary": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_evidence_conflict": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_evidence_inconclusive": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_identity_followup": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_identity_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_payment_reconcile": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_time_anchor": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 48,
+            "raw_strict": 1.0
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 1.0,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 52,
+        "taxonomy_counts_overlapping": {}
+      },
+      "gpt-6-sol": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 32,
+            "raw_strict": 1.0
+          },
+          "v4_extension": {
+            "episodes": 8,
+            "raw_strict": 1.0
+          },
+          "v5_extension": {
+            "episodes": 12,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 52,
+        "leave_one_source_policy_family_out": {
+          "policy_bundle_boundary": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_evidence_conflict": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_evidence_inconclusive": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_identity_followup": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_identity_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_payment_reconcile": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_time_anchor": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 48,
+            "raw_strict": 1.0
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 1.0,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 52,
+        "taxonomy_counts_overlapping": {}
+      }
+    },
+    "intake": {
+      "gemini-2.5-flash-lite": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 48,
+            "raw_strict": 0.5833333333333334
+          },
+          "v5_extension": {
+            "episodes": 16,
+            "raw_strict": 0.25
+          }
+        },
+        "episodes": 64,
+        "leave_one_source_policy_family_out": {
+          "policy_bundle_cap": {
+            "estimable": true,
+            "score_among_observed": 0.4045454545454546,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_evidence_conflict": {
+            "estimable": true,
+            "score_among_observed": 0.37000000000000005,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_identity_override": {
+            "estimable": false,
+            "score_among_observed": null,
+            "weighted_coverage": null
+          },
+          "policy_payment_hold_precedence": {
+            "estimable": true,
+            "score_among_observed": 0.41000000000000003,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_perishable_verification": {
+            "estimable": true,
+            "score_among_observed": 0.3681818181818182,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_return_liability": {
+            "estimable": true,
+            "score_among_observed": 0.41000000000000003,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 0.3681818181818182,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_time_anchor": {
+            "estimable": true,
+            "score_among_observed": 0.3681818181818182,
+            "weighted_coverage": 0.9999999999999998
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 0.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 60,
+            "raw_strict": 0.5333333333333333
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.38333333333333314,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 0.38333333333333314,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.38333333333333325
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.3125,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 32,
+        "taxonomy_counts_overlapping": {
+          "intake_dependency_authorization_budget_error": 12,
+          "intake_fact_request_quality_error": 32,
+          "intake_public_scope_or_priority_error": 20,
+          "protocol_upstream_intake_failure": 32,
+          "strict_trajectory_incomplete": 32
+        }
+      },
+      "gemini-2.5-pro": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 48,
+            "raw_strict": 0.9791666666666666
+          },
+          "v5_extension": {
+            "episodes": 16,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 64,
+        "leave_one_source_policy_family_out": {
+          "policy_bundle_cap": {
+            "estimable": true,
+            "score_among_observed": 0.9909090909090909,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_evidence_conflict": {
+            "estimable": true,
+            "score_among_observed": 0.99,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_identity_override": {
+            "estimable": false,
+            "score_among_observed": null,
+            "weighted_coverage": null
+          },
+          "policy_payment_hold_precedence": {
+            "estimable": true,
+            "score_among_observed": 0.99,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_perishable_verification": {
+            "estimable": true,
+            "score_among_observed": 0.9909090909090909,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_return_liability": {
+            "estimable": true,
+            "score_among_observed": 0.99,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 0.9909090909090909,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_time_anchor": {
+            "estimable": true,
+            "score_among_observed": 0.9909090909090909,
+            "weighted_coverage": 0.9999999999999998
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 60,
+            "raw_strict": 0.9833333333333333
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.9916666666666665,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 0.9916666666666665,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9916666666666667
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.96875,
+        "raw_within_variant_repetition_disagreement": 0.03125,
+        "strict_passes": 63,
+        "taxonomy_counts_overlapping": {
+          "intake_fact_request_quality_error": 1,
+          "intake_invalid_fact_request_batch": 1,
+          "protocol_upstream_intake_failure": 1,
+          "strict_trajectory_incomplete": 1
+        }
+      },
+      "gpt-6-sol": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 48,
+            "raw_strict": 1.0
+          },
+          "v5_extension": {
+            "episodes": 16,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 64,
+        "leave_one_source_policy_family_out": {
+          "policy_bundle_cap": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_evidence_conflict": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_identity_override": {
+            "estimable": false,
+            "score_among_observed": null,
+            "weighted_coverage": null
+          },
+          "policy_payment_hold_precedence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_perishable_verification": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_return_liability": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999999
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          },
+          "policy_time_anchor": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999998
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 60,
+            "raw_strict": 1.0
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000002
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 1.0,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 64,
+        "taxonomy_counts_overlapping": {}
+      }
+    },
+    "payments": {
+      "gemini-2.5-flash-lite": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 36,
+            "raw_strict": 0.8888888888888888
+          },
+          "v4_extension": {
+            "episodes": 16,
+            "raw_strict": 0.0
+          },
+          "v5_extension": {
+            "episodes": 24,
+            "raw_strict": 0.0
+          }
+        },
+        "episodes": 76,
+        "leave_one_source_policy_family_out": {
+          "missing_parts_partial_refund": {
+            "estimable": true,
+            "score_among_observed": 0.3555555555555552,
+            "weighted_coverage": 1.000000000000001
+          },
+          "payments_idempotency_retry": {
+            "estimable": true,
+            "score_among_observed": 0.3499999999999999,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_prior_refund_reconciliation": {
+            "estimable": true,
+            "score_among_observed": 0.34285714285714275,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payments_proportional_tender": {
+            "estimable": true,
+            "score_among_observed": 0.3499999999999999,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_rail_fallback": {
+            "estimable": true,
+            "score_among_observed": 0.37499999999999994,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_residual_waterfall": {
+            "estimable": true,
+            "score_among_observed": 0.3499999999999999,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_three_tender_rounding": {
+            "estimable": true,
+            "score_among_observed": 0.37499999999999994,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "policy_payment_reconcile": {
+            "estimable": true,
+            "score_among_observed": 0.3499999999999999,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "refund_already_issued_chargeback_pending": {
+            "estimable": true,
+            "score_among_observed": 0.3499999999999999,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "seller_fault_unverified_evidence": {
+            "estimable": true,
+            "score_among_observed": 0.355555555555555,
+            "weighted_coverage": 1.0000000000000016
+          },
+          "wrong_item_received": {
+            "estimable": true,
+            "score_among_observed": 0.3555555555555554,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 0.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 72,
+            "raw_strict": 0.4444444444444444
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.3555555555555554,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 0.3555555555555554,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 0.43055555555555547,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.3684210526315789,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 32,
+        "taxonomy_counts_overlapping": {
+          "payment_allocation_rule_error": 44,
+          "payment_amount_mismatch": 32,
+          "payment_duplicate_mutation": 12,
+          "payment_execution_mode_error": 8,
+          "payment_proposal_binding_error": 44,
+          "payment_refund_method_error": 22,
+          "strict_trajectory_incomplete": 44
+        }
+      },
+      "gemini-2.5-pro": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 36,
+            "raw_strict": 0.9722222222222222
+          },
+          "v4_extension": {
+            "episodes": 16,
+            "raw_strict": 1.0
+          },
+          "v5_extension": {
+            "episodes": 24,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 76,
+        "leave_one_source_policy_family_out": {
+          "missing_parts_partial_refund": {
+            "estimable": true,
+            "score_among_observed": 0.9888888888888889,
+            "weighted_coverage": 1.000000000000001
+          },
+          "payments_idempotency_retry": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_prior_refund_reconciliation": {
+            "estimable": true,
+            "score_among_observed": 0.9857142857142859,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payments_proportional_tender": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_rail_fallback": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_residual_waterfall": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_three_tender_rounding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "policy_payment_reconcile": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "refund_already_issued_chargeback_pending": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "seller_fault_unverified_evidence": {
+            "estimable": true,
+            "score_among_observed": 0.9888888888888889,
+            "weighted_coverage": 1.0000000000000016
+          },
+          "wrong_item_received": {
+            "estimable": true,
+            "score_among_observed": 0.9888888888888889,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 72,
+            "raw_strict": 0.9861111111111112
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.988888888888889,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 0.988888888888889,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 0.988888888888889,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.9736842105263158,
+        "raw_within_variant_repetition_disagreement": 0.02631578947368421,
+        "strict_passes": 75,
+        "taxonomy_counts_overlapping": {
+          "payment_allocation_rule_error": 1,
+          "payment_proposal_binding_error": 1,
+          "strict_trajectory_incomplete": 1
+        }
+      },
+      "gpt-6-sol": {
+        "cohort_sensitivity": {
+          "v3_baseline": {
+            "episodes": 36,
+            "raw_strict": 0.9722222222222222
+          },
+          "v4_extension": {
+            "episodes": 16,
+            "raw_strict": 1.0
+          },
+          "v5_extension": {
+            "episodes": 24,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 76,
+        "leave_one_source_policy_family_out": {
+          "missing_parts_partial_refund": {
+            "estimable": true,
+            "score_among_observed": 0.9888888888888889,
+            "weighted_coverage": 1.000000000000001
+          },
+          "payments_idempotency_retry": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_prior_refund_reconciliation": {
+            "estimable": true,
+            "score_among_observed": 0.9857142857142859,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payments_proportional_tender": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_rail_fallback": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_residual_waterfall": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "payments_three_tender_rounding": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "policy_payment_reconcile": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "refund_already_issued_chargeback_pending": {
+            "estimable": true,
+            "score_among_observed": 0.9875,
+            "weighted_coverage": 1.0000000000000007
+          },
+          "seller_fault_unverified_evidence": {
+            "estimable": true,
+            "score_among_observed": 0.9888888888888889,
+            "weighted_coverage": 1.0000000000000016
+          },
+          "wrong_item_received": {
+            "estimable": true,
+            "score_among_observed": 0.9888888888888889,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 4,
+            "raw_strict": 1.0
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 72,
+            "raw_strict": 0.9861111111111112
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.988888888888889,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 0.988888888888889,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 0.988888888888889,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.9736842105263158,
+        "raw_within_variant_repetition_disagreement": 0.02631578947368421,
+        "strict_passes": 75,
+        "taxonomy_counts_overlapping": {
+          "payment_proposal_binding_error": 1,
+          "payment_refund_method_error": 1,
+          "strict_trajectory_incomplete": 1
+        }
+      }
+    },
+    "policy": {
+      "gemini-2.5-flash-lite": {
+        "cohort_sensitivity": {
+          "branch_v2_full_policy": {
+            "episodes": 72,
+            "raw_strict": 0.3333333333333333
+          }
+        },
+        "episodes": 72,
+        "leave_one_source_policy_family_out": {
+          "frontier_hard_authority_flip": {
+            "estimable": true,
+            "score_among_observed": 0.3166666666666669,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_evidence_reversal": {
+            "estimable": true,
+            "score_among_observed": 0.3166666666666669,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_payment_identity": {
+            "estimable": true,
+            "score_among_observed": 0.35000000000000026,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_piecewise_tax": {
+            "estimable": true,
+            "score_among_observed": 0.35000000000000026,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_refund_reconciliation": {
+            "estimable": true,
+            "score_among_observed": 0.35000000000000026,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_window_override": {
+            "estimable": true,
+            "score_among_observed": 0.3166666666666669,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "late_defect_identity_conflict": {
+            "estimable": true,
+            "score_among_observed": 0.3277777777777784,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "missing_parts_partial_refund": {
+            "estimable": true,
+            "score_among_observed": 0.3611111111111118,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "multiple_missing_components": {
+            "estimable": true,
+            "score_among_observed": 0.3277777777777784,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "policy_bundle_boundary": {
+            "estimable": true,
+            "score_among_observed": 0.35555555555555546,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_evidence_inconclusive": {
+            "estimable": true,
+            "score_among_observed": 0.32222222222222213,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_identity_followup": {
+            "estimable": true,
+            "score_among_observed": 0.35555555555555546,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_payment_hold_precedence": {
+            "estimable": true,
+            "score_among_observed": 0.32222222222222213,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_perishable_verification": {
+            "estimable": true,
+            "score_among_observed": 0.32222222222222213,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 0.32222222222222213,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "returnless_refund_high_value_exception": {
+            "estimable": true,
+            "score_among_observed": 0.3277777777777784,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "seller_fault_unverified_evidence": {
+            "estimable": true,
+            "score_among_observed": 0.3277777777777784,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "wrong_item_received": {
+            "estimable": true,
+            "score_among_observed": 0.3277777777777784,
+            "weighted_coverage": 0.9999999999999982
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 0,
+            "raw_strict": null
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 72,
+            "raw_strict": 0.3333333333333333
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 0.8235294117647063,
+            "weighted_coverage": 0.944444444444443
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.5833333333333331
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.333333333333334,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 0.6000000000000008,
+            "weighted_coverage": 0.9722222222222207
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 0.7647058823529417,
+            "weighted_coverage": 0.944444444444443
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.5833333333333331
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 0.7352941176470594,
+            "weighted_coverage": 0.944444444444443
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 0.7647058823529417,
+            "weighted_coverage": 0.944444444444443
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.0,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 24,
+        "taxonomy_counts_overlapping": {
+          "contract_reason_code_noncanonical": 12,
+          "decision_before_required_facts": 26,
+          "evidence_insufficient_before_decision": 26,
+          "invalid_action": 2,
+          "payment_mutation_error": 16,
+          "payment_refund_method_error": 16,
+          "policy_amount_calculation_error": 32,
+          "policy_category_override_error": 2,
+          "policy_conditional_fact_plan_error": 2,
+          "policy_eligibility_boundary_error": 12,
+          "policy_invalid_fact_request": 2,
+          "policy_liability_assignment_error": 16,
+          "policy_missing_decisive_fact": 26,
+          "policy_no_final_resolution": 2,
+          "policy_overcollection_after_terminal_route": 2,
+          "policy_remedy_selection_error": 12,
+          "protocol_policy_action_invalid": 2,
+          "strict_trajectory_incomplete": 48,
+          "workflow_routing_error": 16
+        }
+      },
+      "gemini-2.5-pro": {
+        "cohort_sensitivity": {
+          "branch_v2_full_policy": {
+            "episodes": 72,
+            "raw_strict": 0.9861111111111112
+          }
+        },
+        "episodes": 72,
+        "leave_one_source_policy_family_out": {
+          "frontier_hard_authority_flip": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_evidence_reversal": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_payment_identity": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_piecewise_tax": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_refund_reconciliation": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_window_override": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "late_defect_identity_conflict": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "missing_parts_partial_refund": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "multiple_missing_components": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "policy_bundle_boundary": {
+            "estimable": true,
+            "score_among_observed": 0.9833333333333334,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_evidence_inconclusive": {
+            "estimable": true,
+            "score_among_observed": 0.9833333333333334,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_identity_followup": {
+            "estimable": true,
+            "score_among_observed": 0.9833333333333334,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_payment_hold_precedence": {
+            "estimable": true,
+            "score_among_observed": 0.9833333333333334,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_perishable_verification": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 0.9833333333333334,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "returnless_refund_high_value_exception": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "seller_fault_unverified_evidence": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "wrong_item_received": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999982
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 0,
+            "raw_strict": null
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 72,
+            "raw_strict": 0.9861111111111112
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 0.9861111111111112,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 0.9965277777777778,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 0.9722222222222222,
+        "raw_within_variant_repetition_disagreement": 0.027777777777777776,
+        "strict_passes": 71,
+        "taxonomy_counts_overlapping": {
+          "policy_liability_assignment_error": 1,
+          "strict_trajectory_incomplete": 1
+        }
+      },
+      "gpt-6-sol": {
+        "cohort_sensitivity": {
+          "branch_v2_full_policy": {
+            "episodes": 72,
+            "raw_strict": 1.0
+          }
+        },
+        "episodes": 72,
+        "leave_one_source_policy_family_out": {
+          "frontier_hard_authority_flip": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_evidence_reversal": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_payment_identity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_piecewise_tax": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_refund_reconciliation": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "frontier_hard_window_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999994
+          },
+          "late_defect_identity_conflict": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "missing_parts_partial_refund": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "multiple_missing_components": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "policy_bundle_boundary": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_evidence_inconclusive": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_identity_followup": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_payment_hold_precedence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_perishable_verification": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "policy_seller_fault_override": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 1.0000000000000004
+          },
+          "returnless_refund_high_value_exception": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "seller_fault_unverified_evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999982
+          },
+          "wrong_item_received": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999982
+          }
+        },
+        "mechanism_sensitivity": {
+          "composed": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 0,
+            "raw_strict": null
+          },
+          "isolated": {
+            "definition": "Published seat_context mechanism contains composed; policy templates have no such marker and remain isolated by this descriptive definition.",
+            "episodes": 72,
+            "raw_strict": 1.0
+          }
+        },
+        "metrics": {
+          "contract": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "customer_confirmation_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "customer_disclosure_integrity": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "end_to_end": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "evidence": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "intake_fact_request_quality": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "operational": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "payment": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "payment_proposal_binding": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "policy_semantic": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          },
+          "workflow": {
+            "estimable": true,
+            "score_among_observed": 1.0,
+            "weighted_coverage": 0.9999999999999983
+          }
+        },
+        "raw_counterfactual_pair_both_pass_rate": 1.0,
+        "raw_within_variant_repetition_disagreement": 0.0,
+        "strict_passes": 72,
+        "taxonomy_counts_overlapping": {}
+      }
+    }
+  },
+  "contrasts": [
+    {
+      "ci95_pp": [
+        0.0,
+        0.0
+      ],
+      "difference_pp": 0.0,
+      "holm_adjusted_p": 1.0,
+      "left": "gemini-2.5-pro",
+      "p_value": 1.0,
+      "paired_template_differences": [
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_bundle_boundary"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_evidence_conflict"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_evidence_inconclusive"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_identity_followup"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_identity_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_seller_fault_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_time_anchor"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_customer_policy_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_customer_policy_seller_fault_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_customer_composed_confirmation"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_customer_source_authority"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_customer_typed_partial_request"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": null,
+          "0.1": null,
+          "0.15": null
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-flash-lite",
+      "seat": "customer",
+      "signflip_enumerations": 8192,
+      "template_clusters": 13
+    },
+    {
+      "ci95_pp": [
+        0.0,
+        0.0
+      ],
+      "difference_pp": 0.0,
+      "holm_adjusted_p": 1.0,
+      "left": "gpt-6-sol",
+      "p_value": 1.0,
+      "paired_template_differences": [
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_bundle_boundary"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_evidence_conflict"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_evidence_inconclusive"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_identity_followup"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_identity_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_seller_fault_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_customer_v25_customer_challenge_time_anchor"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_customer_policy_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_customer_policy_seller_fault_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_customer_composed_confirmation"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_customer_source_authority"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_customer_typed_partial_request"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": null,
+          "0.1": null,
+          "0.15": null
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-pro",
+      "seat": "customer",
+      "signflip_enumerations": 8192,
+      "template_clusters": 13
+    },
+    {
+      "ci95_pp": [
+        44.166666666666664,
+        78.33333333333333
+      ],
+      "difference_pp": 60.83333333333333,
+      "holm_adjusted_p": 0.005859375,
+      "left": "gemini-2.5-pro",
+      "p_value": 0.0009765625,
+      "paired_template_differences": [
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_bundle_cap"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_evidence_conflict"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_identity_override"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_payment_hold_precedence"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_perishable_verification"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_return_liability"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_seller_fault_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_time_anchor"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_evidence_conflict"
+        },
+        {
+          "difference": 0.25,
+          "episode_discordance": 0.75,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_identity_override"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_payment_hold_precedence"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_return_liability"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_budget_tradeoff"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_composed_collection"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_dependencies"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_source_permission"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": 806,
+          "0.1": 202,
+          "0.15": 90
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-flash-lite",
+      "seat": "intake",
+      "signflip_enumerations": 65536,
+      "template_clusters": 16
+    },
+    {
+      "ci95_pp": [
+        0.0,
+        2.5
+      ],
+      "difference_pp": 0.8333333333333334,
+      "holm_adjusted_p": 1.0,
+      "left": "gpt-6-sol",
+      "p_value": 1.0,
+      "paired_template_differences": [
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_bundle_cap"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_evidence_conflict"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_identity_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_payment_hold_precedence"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_perishable_verification"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_return_liability"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_seller_fault_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_controls_v25_intake_challenge_time_anchor"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_evidence_conflict"
+        },
+        {
+          "difference": 0.25,
+          "episode_discordance": 0.25,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_identity_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_payment_hold_precedence"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_intake_observable_policy_return_liability"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_budget_tradeoff"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_composed_collection"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_dependencies"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_intake_source_permission"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": 6,
+          "0.1": 2,
+          "0.15": 1
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-pro",
+      "seat": "intake",
+      "signflip_enumerations": 65536,
+      "template_clusters": 16
+    },
+    {
+      "ci95_pp": [
+        54.166666666666664,
+        76.38888888888889
+      ],
+      "difference_pp": 65.27777777777779,
+      "holm_adjusted_p": 6.103515625e-05,
+      "left": "gemini-2.5-pro",
+      "p_value": 7.62939453125e-06,
+      "paired_template_differences": [
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "core",
+          "template": "late_defect_identity_conflict"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "core",
+          "template": "missing_parts_partial_refund"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "core",
+          "template": "multiple_missing_components"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "core",
+          "template": "returnless_refund_high_value_exception"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "core",
+          "template": "seller_fault_unverified_evidence"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "core",
+          "template": "wrong_item_received"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "frontier",
+          "template": "frontier_hard_authority_flip"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "frontier",
+          "template": "frontier_hard_evidence_reversal"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_payment_identity"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_piecewise_tax"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_refund_reconciliation"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "frontier",
+          "template": "frontier_hard_window_override"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "stress",
+          "template": "policy_bundle_boundary"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "stress",
+          "template": "policy_evidence_inconclusive"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "stress",
+          "template": "policy_identity_followup"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "stress",
+          "template": "policy_payment_hold_precedence"
+        },
+        {
+          "difference": 0.25,
+          "episode_discordance": 0.75,
+          "stratum": "stress",
+          "template": "policy_perishable_verification"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "stress",
+          "template": "policy_seller_fault_override"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": 359,
+          "0.1": 90,
+          "0.15": 40
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-flash-lite",
+      "seat": "policy",
+      "signflip_enumerations": 262144,
+      "template_clusters": 18
+    },
+    {
+      "ci95_pp": [
+        0.0,
+        4.166666666666666
+      ],
+      "difference_pp": 1.3888888888888888,
+      "holm_adjusted_p": 1.0,
+      "left": "gpt-6-sol",
+      "p_value": 1.0,
+      "paired_template_differences": [
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "core",
+          "template": "late_defect_identity_conflict"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "core",
+          "template": "missing_parts_partial_refund"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "core",
+          "template": "multiple_missing_components"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "core",
+          "template": "returnless_refund_high_value_exception"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "core",
+          "template": "seller_fault_unverified_evidence"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "core",
+          "template": "wrong_item_received"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_authority_flip"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_evidence_reversal"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_payment_identity"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_piecewise_tax"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_refund_reconciliation"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "frontier",
+          "template": "frontier_hard_window_override"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "stress",
+          "template": "policy_bundle_boundary"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "stress",
+          "template": "policy_evidence_inconclusive"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "stress",
+          "template": "policy_identity_followup"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "stress",
+          "template": "policy_payment_hold_precedence"
+        },
+        {
+          "difference": 0.25,
+          "episode_discordance": 0.25,
+          "stratum": "stress",
+          "template": "policy_perishable_verification"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "stress",
+          "template": "policy_seller_fault_override"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": 18,
+          "0.1": 5,
+          "0.15": 2
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-pro",
+      "seat": "policy",
+      "signflip_enumerations": 262144,
+      "template_clusters": 18
+    },
+    {
+      "ci95_pp": [
+        60.0,
+        67.77777777777779
+      ],
+      "difference_pp": 63.33333333333333,
+      "holm_adjusted_p": 0.00341796875,
+      "left": "gemini-2.5-pro",
+      "p_value": 0.00048828125,
+      "paired_template_differences": [
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_payment_state"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_reversal_v25_customer_challenge_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_idempotency"
+        },
+        {
+          "difference": 0.5,
+          "episode_discordance": 0.5,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_rail"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_residual_boundary"
+        },
+        {
+          "difference": 0.25,
+          "episode_discordance": 0.25,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_rounding"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_tender"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_waterfall"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_line_item_residual"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_order_scope"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_pending_finality"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_revision_precedence"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_capacity_shortfall"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_composed_reversal"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_pending_release"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_rail_fallback"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_revision_partial"
+        },
+        {
+          "difference": 1.0,
+          "episode_discordance": 1.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_scope_capacity"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": 54,
+          "0.1": 14,
+          "0.15": 6
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-flash-lite",
+      "seat": "payments",
+      "signflip_enumerations": 524288,
+      "template_clusters": 19
+    },
+    {
+      "ci95_pp": [
+        -3.3333333333333335,
+        3.3333333333333335
+      ],
+      "difference_pp": 0.0,
+      "holm_adjusted_p": 1.0,
+      "left": "gpt-6-sol",
+      "p_value": 1.0,
+      "paired_template_differences": [
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_payment_state"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_reversal_v25_customer_challenge_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_idempotency"
+        },
+        {
+          "difference": -0.25,
+          "episode_discordance": 0.25,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_rail"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_reconcile"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_residual_boundary"
+        },
+        {
+          "difference": 0.25,
+          "episode_discordance": 0.25,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_rounding"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_tender"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "baseline",
+          "template": "seat_v3_payments_v25_payment_waterfall"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_line_item_residual"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_order_scope"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_pending_finality"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v4_payments_revision_precedence"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_capacity_shortfall"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_composed_reversal"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_pending_release"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_rail_fallback"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_revision_partial"
+        },
+        {
+          "difference": 0.0,
+          "episode_discordance": 0.0,
+          "stratum": "difficult",
+          "template": "seat_v5_payments_scope_capacity"
+        }
+      ],
+      "planning": {
+        "assumptions": "Normal empirical variance, same strata proportions, Bonferroni alpha=.05/8 planning bound; extrapolate to NEW independent templates, not duplicate worlds/repetitions. Zero observed variance is insufficient for planning, so report null.",
+        "confirmatory_sample_size_frozen": false,
+        "empirical_total_templates_for_80pct_power": {
+          "0.05": 27,
+          "0.1": 7,
+          "0.15": 3
+        },
+        "world_variance_unmeasured": true
+      },
+      "right": "gemini-2.5-pro",
+      "seat": "payments",
+      "signflip_enumerations": 524288,
+      "template_clusters": 19
+    }
+  ],
+  "policy_exclusive_counts": {
+    "gemini-2.5-flash-lite": {
+      "required_facts_skipped": 26,
+      "resolution_mismatch": 18,
+      "pass": 24,
+      "procedure_or_format": 4
+    },
+    "gemini-2.5-pro": {
+      "pass": 71,
+      "resolution_mismatch": 1
+    },
+    "gpt-6-sol": {
+      "pass": 72
+    }
+  },
+  "provenance": {
+    "analysis": {
+      "path": "artifacts/refund_v25_four_seat_units_v51_continuation3/analysis.json",
+      "sha256": "962a9b5b47fe9d523cd59bd83ba817a72a5d6ccf243b646c5d4ab66fee6aa98e"
+    },
+    "measurements": {
+      "path": "artifacts/refund_v25_four_seat_units_v51_continuation3/merged_measurements.json",
+      "sha256": "e12ec4c34730e41b9f1f7ffec53b3f00c67e951efc1fd14b6880d008ebc32eb6"
+    },
+    "audit": {
+      "path": "artifacts/refund_v25_four_seat_units_v51_postrun_audit1/AUDIT.json",
+      "sha256": "e3d17ca2abc3b7ac87cc4f37f320ea5edb71dff8c6dd83905b0d6e371e762a22"
+    },
+    "configuration": {
+      "path": "configs/refund_v25_four_seat_units_v51_frozen.json",
+      "sha256": "f0c5e4e73aacf5f09ec7482441e208e3f64999c33f3f11d236d411434272e8e8"
+    }
+  },
+  "notes": [
+    "Scores are frozen, not rescored here.",
+    "Diagnostic values are conditional means; retain coverage.",
+    "Cross-case failure accounting is descriptive and first-applicable.",
+    "Historical model calibration is distinct from the latest release QC."
+  ]
+}

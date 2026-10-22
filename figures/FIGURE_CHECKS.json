@@ -1,6 +1,6 @@
 {
   "source": "analysis_evidence/shortfall_panels/panels.json",
-  "source_sha256": "d7995c58a32986dadb77c00996f032f16831dac313c1de6c85f8e7932a2004d1",
+  "source_sha256": "0b9464a846efff8c7d48d473fdb1188d6cc0836f82d6a109a4b8a69ae8c60d04",
   "figure": "Figure 5.2",
   "table": "Table E.10",
   "procurement_table_keys": [

@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.42 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.43 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -393,3 +393,8 @@ current one saturated"):
   current style. The calibration's records are not on any branch yet, so its numbers are checked for internal
   consistency only (sources table); Figure 5.3 is cropped from the PDF. Not ported: the added author, an owner
   decision.
+- Version 15.43 (2026-10-21): Yuchen Fang added as an author (owner's decision); his model name GPT-6-sol kept. With
+  his LaTeX source and data record now in hand: Figure 5.3 is his original (no longer cropped from the PDF), every
+  Refund number was checked against his data record (analysis_evidence/refund_v25/refund_v25.json) and matches, and
+  derive_panels.py asserts the Refund panel's counts and compliance against it. Issue #309 asks him to push the
+  per-episode records and to confirm the 1,072 conformance count.
