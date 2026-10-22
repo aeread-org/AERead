@@ -98,6 +98,10 @@ class ProviderFailure(RuntimeError):
         self.input_tokens = 0
         self.cached_input_tokens = 0
         self.output_tokens = 0
+        self._complete_reported_tokens = False
+        # Token fields the provider reported validly; an invalid or absent
+        # count is unknown, not zero.
+        self._valid_token_fields: frozenset[str] = frozenset()
 
     def with_reported_usage(self, raw_response: Any) -> "ProviderFailure":
         """Record what a chat-completions response reported for this call.
@@ -112,30 +116,50 @@ class ProviderFailure(RuntimeError):
         usage = raw_response.get("usage")
 
         def count(source: Any, field: str) -> int | None:
-            value = source.get(field, 0) if isinstance(source, Mapping) else None
+            value = source.get(field) if isinstance(source, Mapping) else None
             if isinstance(value, bool) or not isinstance(value, int) or value < 0:
                 return None
             return value
 
         input_tokens = count(usage, "prompt_tokens")
         output_tokens = count(usage, "completion_tokens")
-        if not isinstance(usage, Mapping) or input_tokens is None or output_tokens is None:
-            self.billing = "unknown"
-            return self
-        details = usage.get("prompt_tokens_details")
-        cached = count(details, "cached_tokens") if isinstance(details, Mapping) else 0
-        cost = usage.get("cost")
-        self.billing = "reported"
-        self.input_tokens = input_tokens
+        details = usage.get("prompt_tokens_details") if isinstance(usage, Mapping) else None
+        # The cache breakdown is optional, and the SDK dumps an unreported
+        # cached_tokens as null: unreported is no cached input, priced at the
+        # full input rate. A count that is present but invalid stays unknown.
+        unreported = details is None or (
+            isinstance(details, Mapping) and details.get("cached_tokens") is None
+        )
+        cached = 0 if unreported else count(details, "cached_tokens")
+        self._complete_reported_tokens = (
+            input_tokens is not None and output_tokens is not None
+            and cached is not None and cached <= input_tokens
+        )
+        valid = set()
+        if input_tokens is not None:
+            valid.add("input_tokens")
+        if output_tokens is not None:
+            valid.add("output_tokens")
+        # An unreported breakdown means no cached input only beside a valid
+        # input count; with no input count there is nothing to qualify.
+        if unreported:
+            if input_tokens is not None:
+                valid.add("cached_input_tokens")
+        elif cached is not None and (input_tokens is None or cached <= input_tokens):
+            valid.add("cached_input_tokens")
+        self._valid_token_fields = frozenset(valid)
+        self.input_tokens = input_tokens or 0
+        self.output_tokens = output_tokens or 0
         self.cached_input_tokens = cached or 0
-        self.output_tokens = output_tokens
+        cost = usage.get("cost") if isinstance(usage, Mapping) else None
         self.cost_usd = (
             float(cost)
-            if isinstance(cost, (int, float))
-            and not isinstance(cost, bool)
-            and math.isfinite(cost)
-            and cost >= 0
-            else None
+            if isinstance(cost, (int, float)) and not isinstance(cost, bool)
+            and math.isfinite(cost) and cost >= 0 else None
+        )
+        self.billing = (
+            "reported" if self.cost_usd is not None or self._complete_reported_tokens
+            else "unknown"
         )
         return self
 
@@ -154,6 +178,8 @@ def failed_call_cost(failure: ProviderFailure, pricing: "TokenPricing") -> float
         return None
     if failure.cost_usd is not None:
         return failure.cost_usd
+    if not failure._complete_reported_tokens:
+        return None
     return pricing.cost(
         input_tokens=failure.input_tokens,
         cached_input_tokens=failure.cached_input_tokens,
@@ -169,18 +195,31 @@ def failed_call_event_fields(
     ``cost_usd`` is a number when the cost is known and the string
     ``"unknown"`` when it is not. The token counts appear only for a call
     the provider reported usage for, so the event of a call that was never
-    billed is byte for byte what it always was.
+    billed is byte for byte what it always was. When the reported counts are
+    not all valid, only the valid ones are written and ``token_accounting``
+    is ``"incomplete"``.
     """
 
     fields: dict[str, Any] = {
         "cost_usd": "unknown" if outcome_unknown or cost is None else cost
     }
-    if failure.billing == "reported":
-        fields.update(
-            input_tokens=failure.input_tokens,
-            cached_input_tokens=failure.cached_input_tokens,
-            output_tokens=failure.output_tokens,
-        )
+    if outcome_unknown and cost is not None:
+        fields.update(known_cost_usd=cost, cost_accounting="lower_bound")
+    if failure.billing in {"reported", "unknown"}:
+        counts = {
+            "input_tokens": failure.input_tokens,
+            "cached_input_tokens": failure.cached_input_tokens,
+            "output_tokens": failure.output_tokens,
+        }
+        if failure._complete_reported_tokens:
+            fields.update(counts)
+        else:
+            # Counts the provider did not report validly are unknown: only the
+            # valid ones are written, never a fabricated zero.
+            fields.update(
+                {k: v for k, v in counts.items() if k in failure._valid_token_fields}
+            )
+            fields["token_accounting"] = "incomplete"
     return fields
 
 
@@ -3828,6 +3867,31 @@ class MinimalChatExecutor:
                 action_attempt_id=action_attempt_id,
                 provider_call_id=failed_request.provider_call_id,
             )
+        # Prior successful rounds were settled by the caller, including when
+        # this final call has zero or unknown cost. Inspect the accumulated
+        # profile charge only after preserving the provider's own terminal.
+        profile_cost = self._cost_by_profile.get(profile.profile_id, 0.0)
+        over_budget = (
+            profile.budgets.max_cost_usd is not None
+            and profile_cost > profile.budgets.max_cost_usd
+        )
+        attempt_condition = "cost_budget_exceeded" if over_budget else condition
+        attempt_payload: dict[str, Any] = {"failure_condition": attempt_condition}
+        if over_budget:
+            attempt_payload.update(
+                profile_cost_usd=profile_cost,
+                max_cost_usd=profile.budgets.max_cost_usd,
+                triggering_failure={
+                    "original_condition": failure.condition,
+                    "effective_condition": condition,
+                    "message": str(failure),
+                    "retryable": failure.retryable,
+                    "status_code": failure.status_code,
+                    "billing": failure.billing,
+                    "reported_cost_usd": failure.cost_usd,
+                    "settled_failed_call_cost_usd": failed_cost,
+                },
+            )
         attempt = ActionAttemptRecord(
             action_attempt_id=action_attempt_id,
             logical_action_id=decision.logical_action_id,
@@ -3842,11 +3906,17 @@ class MinimalChatExecutor:
         attempts.append(attempt)
         self.evidence.append_event(
             "action_attempt_failed",
-            {"failure_condition": condition},
+            attempt_payload,
             phase_instance_id=decision.phase_instance_id,
             logical_action_id=decision.logical_action_id,
             action_attempt_id=action_attempt_id,
         )
+        if over_budget:
+            self._finish_logical_failure(decision, attempts, attempt_condition)
+            raise EvidenceIntegrityError(
+                f"cost budget exceeded for profile {profile.profile_id!r}: "
+                f"{profile_cost} > {profile.budgets.max_cost_usd}"
+            ) from failure
         should_retry = (
             retryable
             and condition in profile.retry_policy.retryable_conditions

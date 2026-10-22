@@ -542,8 +542,23 @@ def test_control_malformed_optional_usage_fields_follow_the_helper() -> None:
     failure = _outcome(
         [_content(), _usage_chunk(cost=-1, prompt_tokens_details={"cached_tokens": -3})]
     )
+    # A present but invalid cache count is not priced as zero (#253).
+    assert failure.billing == "unknown"
+    assert (failure.input_tokens, failure.output_tokens) == (100, 20)
+    assert failure.cost_usd is None
+    # A valid reported dollar cost stands without valid token counts.
+    priced = _outcome([_content(), _usage_chunk(prompt_tokens=-1)])
+    assert (priced.billing, priced.cost_usd) == ("reported", 0.5)
+    unusable = _outcome([_content(), _usage_chunk(prompt_tokens=-1, cost=None)])
+    assert unusable.billing == "unknown"
+
+
+@pytest.mark.parametrize(
+    "details", [None, {}, {"cached_tokens": None}, {"audio_tokens": 0}],
+    ids=["null", "empty", "null_cached", "audio_only"],
+)
+def test_control_an_unreported_cache_breakdown_is_full_rate_input(details) -> None:
+    # The SDK dumps an omitted cached_tokens as null, so all four arrive alike.
+    failure = _outcome([_content(), _usage_chunk(cost=None, prompt_tokens_details=details)])
     assert failure.billing == "reported"
     assert (failure.input_tokens, failure.cached_input_tokens, failure.output_tokens) == (100, 0, 20)
-    assert failure.cost_usd is None
-    unusable = _outcome([_content(), _usage_chunk(prompt_tokens=-1)])
-    assert unusable.billing == "unknown"

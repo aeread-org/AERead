@@ -1423,6 +1423,7 @@ def _build_reference_setup(
     subject_seats: Sequence[str] | None = None,
     extra_pins: tuple[ImplementationPin, ...] = (),
     scripted_seats: Mapping[str, str] | None = None,
+    retry_policy: Mapping[str, Any] | None = None,
 ) -> _ReferenceSetup:
     case = case if case is not None else _reference_case()
     scripted = dict(scripted_seats or {})
@@ -1536,7 +1537,9 @@ def _build_reference_setup(
                 "timeout_seconds": 30.0,
                 "max_cost_usd": 0.0,
             },
-            "retry_policy": {
+            "retry_policy": dict(retry_policy)
+            if retry_policy is not None
+            else {
                 "max_action_attempts": 1,
                 "retryable_conditions": [],
                 "session_mode": "restart",

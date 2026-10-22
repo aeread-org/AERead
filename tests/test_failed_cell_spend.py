@@ -248,3 +248,14 @@ def test_totals_add_and_one_lower_bound_qualifies_the_sum() -> None:
     assert total_spend([exact, bound]) == AttemptSpend(0.75, "lower_bound", 30, 3, 15, 5, 1)
     assert total_spend([]) == AttemptSpend(0.0, "exact", 0, 0, 0, 0, 0)
     assert json.dumps(bound.as_dict(), sort_keys=True).count("lower_bound") == 1
+
+
+def test_duplicate_provider_terminal_cannot_double_charge_same_call(tmp_path):
+    evidence = _evidence(tmp_path)
+    evidence.append_event('provider_call_started', {}, provider_call_id='same_call')
+    evidence.append_event('provider_call_failed', {'cost_usd': .1}, provider_call_id='same_call')
+    evidence.append_event('provider_call_failed', {'cost_usd': .1}, provider_call_id='same_call')
+    from aeread.shared_runner.task.execution import EvidenceIntegrityError
+    with pytest.raises(EvidenceIntegrityError, match='duplicate provider terminal'):
+        attempt_spend(evidence)
+    evidence.close()

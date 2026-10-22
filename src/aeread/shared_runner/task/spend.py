@@ -114,6 +114,7 @@ def _spend_of(store: "EvidenceStore | _EventLog") -> AttemptSpend:
     started: list[str] = []
     settled: dict[str, float] = {}
     terminal: set[str] = set()
+    unknown: set[str] = set()
     tokens = {"input_tokens": 0, "cached_input_tokens": 0, "output_tokens": 0}
     for event in store.read_events():
         call_id = event.provider_call_id
@@ -124,15 +125,17 @@ def _spend_of(store: "EvidenceStore | _EventLog") -> AttemptSpend:
             continue
         if event.event_type not in _TERMINAL_EVENTS:
             continue
+        if call_id in terminal:
+            raise EvidenceIntegrityError(f"duplicate provider terminal: {call_id}")
         terminal.add(call_id)
         payload = store.read_event_payload(event)
         if not isinstance(payload, Mapping):
             continue
-        cost = (
-            None
-            if event.event_type == "provider_call_outcome_unknown"
-            else _known_cost(payload.get("cost_usd"))
-        )
+        if event.event_type == "provider_call_outcome_unknown":
+            unknown.add(call_id)
+            cost = _known_cost(payload.get("known_cost_usd"))
+        else:
+            cost = _known_cost(payload.get("cost_usd"))
         if cost is not None:
             settled[call_id] = settled.get(call_id, 0.0) + cost
         # A completed call reports usage on its result; a failed call that
@@ -142,7 +145,7 @@ def _spend_of(store: "EvidenceStore | _EventLog") -> AttemptSpend:
         for field in tokens:
             tokens[field] += _token_count(usage.get(field))
     calls = set(started) | terminal
-    unsettled = len(calls - set(settled))
+    unsettled = len((calls - set(settled)) | unknown)
     return AttemptSpend(
         cost_usd=math.fsum(settled.values()),
         cost_accounting=EXACT if unsettled == 0 else LOWER_BOUND,
