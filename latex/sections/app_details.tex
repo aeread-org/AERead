@@ -58,14 +58,22 @@ until each quota is full: a main evaluation set of 200 favourite-lemon and 60 fa
 and a holdout of 30 and 10 worlds from a disjoint seed range. The quotas oversample favourite-lemon
 worlds, where the decision is hardest. This is v14's criterion. v15 (Section 5.1) applies it and then
 screens each candidate world offline:
-- \textbf{The screen.} The best informed tenant and \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} play both landlord arms. A world is included only
-if its full-information ceiling is above \$0 in both arms and the best informed tenant beats the rule by at least
-\$25 on the corrected measure, averaged over the two arms.
-- \textbf{What it included.} The main evaluation set of 260 worlds (200 and 60) came from 437 seeds: 119 failed the
-screen, 6 had a \$0 ceiling and 7 failed the structural criterion.
-- \textbf{The other streams.} The holdout of 40 worlds runs with outside demand at 0.3 a round and comes from a disjoint
-seed range; a development set of 20 worlds serves the model-profile check and the variance pilot.
-- \textbf{Records.} No two included worlds are near duplicates, and the evaluation set's scan logs every seed's numbers.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{The screen.} The best informed tenant and \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} play both landlord arms. A world is included only
+  if its full-information ceiling is above \$0 in both arms and the best informed tenant beats the rule by at least
+  \$25 on the corrected measure, averaged over the two arms.
+\item
+  \textbf{What it included.} The main evaluation set of 260 worlds (200 and 60) came from 437 seeds: 119 failed the
+  screen, 6 had a \$0 ceiling and 7 failed the structural criterion.
+\item
+  \textbf{The other streams.} The holdout of 40 worlds runs with outside demand at 0.3 a round and comes from a disjoint
+  seed range; a development set of 20 worlds serves the model-profile check and the variance pilot.
+\item
+  \textbf{Records.} No two included worlds are near duplicates, and the evaluation set's scan logs every seed's numbers.
+\end{itemize}
 
 \textbf{Procurement.} The earlier evaluation set contains six kinds of world, four worlds of each. In two
 kinds paying the premium is right, either on price alone or because a failed test would leave no
@@ -380,8 +388,8 @@ average is the criterion, the CLI agents gave up \$12.2 {[}4.3, 23.6{]} (Sol) an
 stating the two rules reduced the loss by \$11.1 {[}3.6, 22.3{]} and \$14.0 {[}0.4, 33.5{]}. Under the second task prompt the
 agents give up nothing in 20, 17, 8 and 7 of the 24 worlds (Sol, Opus, Gemini and Luna respectively). Both CLI agents
 pay without a test in all eight worlds where paying is right, and the first newcomer each tests is the right one in
-15 and 14 of 16 worlds. The record evaluation set is saturated in the same way: Opus solves 18 of 18 worlds and Sol
-16. Of the flash models, Gemini never tested a newcomer and Luna tested in two worlds. The two cannot be
+15 and 14 of 16 worlds. The record evaluation set is saturated in the same way: Opus solves 18 of 18 worlds and Sol 16.
+Of the flash models, Gemini never tested a newcomer and Luna tested in two worlds. The two cannot be
 distinguished (+\$0.8 {[}−3.7, +6.3{]}); their loss is \$112.8 and \$111.0 a world where a test is the best plan, against
 \$0.0 and \$1.0 where paying is, and all 48 episodes are valid and replayed (\$0.21). GLM 5.3 Flash did not play,
 because its provider route changed price before any call.
@@ -1323,20 +1331,29 @@ expanded public release is qualified only for environment conformance.
 
 We pre-registered and ran Housing v15 after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
 \texttt{partial} at Gate 4:
-- \textbf{Gate 1.} Its evaluation set is screened for headroom against \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign}, and its holdout changes a
-mechanism. Scored per world afterwards, every rule that skips the decision loses at least \$25 to the best informed
-tenant in every world (the smallest losses are \$28.06 for never trading, \$92.37 for signing anything, and \$25.69 for
-inspecting and then signing at the asking rent). \texttt{inspect\_\allowbreak{}lowball}, which inspects the favourite, offers \$0 and signs
-the counter-offer when the inspected value covers it, comes within \$25 of the reference in 229 of 260 worlds and
-equals it in all 60 worlds with a sound favourite. The headroom this evaluation set leaves therefore lies in carrying
-out a simple procedure, and every model falls short of that rule on average (Table 5.2).
-- \textbf{Gate 2.} We sealed a bundle of golden receipts through its builder, and all 1,720 episodes replay.
-- \textbf{Gate 3.} Its beatability rule was pre-registered before any result, both models pass it, and its receipts score
-the tenant who decides.
-- \textbf{Gate 5.} Its sizing record and its A/A arm preceded the freeze of the configuration.
-- \textbf{Gate 4, partial.} The pre-registered one-call probe of each model profile ran only after the freeze. It found
-structured output working and both reasoning tiers in effect: every sealed call's raw response carries the
-provider's count of reasoning tokens, which the kernel's OpenRouter client does not copy into its own field.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Gate 1.} Its evaluation set is screened for headroom against \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign}, and its holdout changes a
+  mechanism. Scored per world afterwards, every rule that skips the decision loses at least \$25 to the best informed
+  tenant in every world (the smallest losses are \$28.06 for never trading, \$92.37 for signing anything, and \$25.69 for
+  inspecting and then signing at the asking rent). \texttt{inspect\_\allowbreak{}lowball}, which inspects the favourite, offers \$0 and signs
+  the counter-offer when the inspected value covers it, comes within \$25 of the reference in 229 of 260 worlds and
+  equals it in all 60 worlds with a sound favourite. The headroom this evaluation set leaves therefore lies in carrying
+  out a simple procedure, and every model falls short of that rule on average (Table 5.2).
+\item
+  \textbf{Gate 2.} We sealed a bundle of golden receipts through its builder, and all 1,720 episodes replay.
+\item
+  \textbf{Gate 3.} Its beatability rule was pre-registered before any result, both models pass it, and its receipts score
+  the tenant who decides.
+\item
+  \textbf{Gate 5.} Its sizing record and its A/A arm preceded the freeze of the configuration.
+\item
+  \textbf{Gate 4, partial.} The pre-registered one-call probe of each model profile ran only after the freeze. It found
+  structured output working and both reasoning tiers in effect: every sealed call's raw response carries the
+  provider's count of reasoning tokens, which the kernel's OpenRouter client does not copy into its own field.
+\end{itemize}
 
 The agreement's v2 confirmatory run (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves
 headroom in every deal world by construction, the best informed integrator earns far more than either model, and the

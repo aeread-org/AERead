@@ -686,6 +686,7 @@ within that grid, so it serves as a ceiling rather than a target.
 given what that seat knows: its own costs, the stated odds of the other side's types, and the script's rule and
 style. We find it by backward induction over the turns and over the types still consistent with every script move
 so far.
+
 - **Its moves.** At each turn it walks, signs, or redlines to the agreement (or the standing terms) worth most in
   expectation to some set of types still consistent with the history, at a price on a grid over each type's
   bargaining range. At the integrator's last redline it also tries the highest price at which the client script

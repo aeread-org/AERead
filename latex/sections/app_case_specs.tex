@@ -877,18 +877,27 @@ within that grid, so it serves as a ceiling rather than a target.
 given what that seat knows: its own costs, the stated odds of the other side's types, and the script's rule and
 style. We find it by backward induction over the turns and over the types still consistent with every script move
 so far.
-- \textbf{Its moves.} At each turn it walks, signs, or redlines to the agreement (or the standing terms) worth most in
-expectation to some set of types still consistent with the history, at a price on a grid over each type's
-bargaining range. At the integrator's last redline it also tries the highest price at which the client script
-still signs.
-- \textbf{Checks.} We replay every plan against the original script.
-- \textbf{A lower bound.} Because it searches a restricted class of plans, its value is a lower bound on the best
-attainable. Of 720 model plays across both confirmatory runs, 2 integrator plays and 7 client plays earn more than
-the same search does when it is told the other side's type.
-- \textbf{Loss by turn.} Each model move is charged the expected value it gives up relative to this policy, given what
-the model's side had seen.
-- \textbf{What it shows.} Knowing the other side's type is worth \$0.1k to \$2.7k a world to this policy, in either seat
-and in either confirmatory run.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Its moves.} At each turn it walks, signs, or redlines to the agreement (or the standing terms) worth most in
+  expectation to some set of types still consistent with the history, at a price on a grid over each type's
+  bargaining range. At the integrator's last redline it also tries the highest price at which the client script
+  still signs.
+\item
+  \textbf{Checks.} We replay every plan against the original script.
+\item
+  \textbf{A lower bound.} Because it searches a restricted class of plans, its value is a lower bound on the best
+  attainable. Of 720 model plays across both confirmatory runs, 2 integrator plays and 7 client plays earn more than
+  the same search does when it is told the other side's type.
+\item
+  \textbf{Loss by turn.} Each model move is charged the expected value it gives up relative to this policy, given what
+  the model's side had seen.
+\item
+  \textbf{What it shows.} Knowing the other side's type is worth \$0.1k to \$2.7k a world to this policy, in either seat
+  and in either confirmatory run.
+\end{itemize}
 
 \section{Measures}\label{measures}
 

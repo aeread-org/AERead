@@ -45,6 +45,7 @@ until each quota is full: a main evaluation set of 200 favourite-lemon and 60 fa
 and a holdout of 30 and 10 worlds from a disjoint seed range. The quotas oversample favourite-lemon
 worlds, where the decision is hardest. This is v14's criterion. v15 (Section 5.1) applies it and then
 screens each candidate world offline:
+
 - **The screen.** The best informed tenant and `inspect_then_sign` play both landlord arms. A world is included only
   if its full-information ceiling is above $0 in both arms and the best informed tenant beats the rule by at least
   $25 on the corrected measure, averaged over the two arms.
@@ -282,8 +283,8 @@ average is the criterion, the CLI agents gave up $12.2 [4.3, 23.6] (Sol) and $19
 stating the two rules reduced the loss by $11.1 [3.6, 22.3] and $14.0 [0.4, 33.5]. Under the second task prompt the
 agents give up nothing in 20, 17, 8 and 7 of the 24 worlds (Sol, Opus, Gemini and Luna respectively). Both CLI agents
 pay without a test in all eight worlds where paying is right, and the first newcomer each tests is the right one in
-15 and 14 of 16 worlds. The record evaluation set is saturated in the same way: Opus solves 18 of 18 worlds and Sol
-16. Of the flash models, Gemini never tested a newcomer and Luna tested in two worlds. The two cannot be
+15 and 14 of 16 worlds. The record evaluation set is saturated in the same way: Opus solves 18 of 18 worlds and Sol 16.
+Of the flash models, Gemini never tested a newcomer and Luna tested in two worlds. The two cannot be
 distinguished (+$0.8 [−3.7, +6.3]); their loss is $112.8 and $111.0 a world where a test is the best plan, against
 $0.0 and $1.0 where paying is, and all 48 episodes are valid and replayed ($0.21). GLM 5.3 Flash did not play,
 because its provider route changed price before any call.
@@ -860,6 +861,7 @@ expanded public release is qualified only for environment conformance.
 
 We pre-registered and ran Housing v15 after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
 `partial` at Gate 4:
+
 - **Gate 1.** Its evaluation set is screened for headroom against `inspect_then_sign`, and its holdout changes a
   mechanism. Scored per world afterwards, every rule that skips the decision loses at least $25 to the best informed
   tenant in every world (the smallest losses are $28.06 for never trading, $92.37 for signing anything, and $25.69 for

@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.48 (22 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.49 (22 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -415,3 +415,4 @@ current one saturated"):
   5.1, 5.2 and 7 now say that declining a fully discounted lemon is an error under the stated rules, and that what
   depends on the design choice (full pass-through) is the size of the shortfall.
 - Version 15.48 (2026-10-22): Table 6.1's open-item cells shortened (Refund: 'a constant full refund passes 38 of 180 cases'; data center: 'needs a new evaluation set'; details stay in Appendix F.1) and its symbol columns narrowed.
+- Version 15.49 (2026-10-22): three bulleted lists that rendered as inline dashes (E.2 Housing, F.1 Housing v15 gates, the data-center agent's moves in Appendix A) now render as lists (Markdown needed a blank line before them); two wrapped lines that began with a number ('1688.', '16.') rewrapped so they can never become numbered lists.
