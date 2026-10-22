@@ -268,3 +268,50 @@ plan, so `first_light_v1` and `dialogue_v3` no longer rebuild or replay from
 current source. They remain self-verifying by their own manifest and receipt
 digests; replaying them needs the commit their plans pinned (`3cc8bc53`,
 the merge of #157).
+
+## Checking the adapter against the paper's own agents (2026-09-10)
+
+Every govsim panel we had run survived 12 of 12 months in every scenario and
+every arm, and a family where nothing ever collapses cannot distinguish a
+capable agent from a saturated task. The paper's table supplies the control:
+eight of its twelve agents collapse the commons at **0% survival and 1.0-1.1
+months**, and its best, GPT-4o, reaches **53.3% survival and 9.3 +/- 2.2
+months**.
+
+**None of its agents is reachable.** The Anthropic and open-weight rows
+(Claude-3 Opus/Sonnet/Haiku, Llama-3 8B/70B, Mistral, Mixtral, Qwen) have no
+endpoint that accepts a declared seed, which this kernel requires (#172). The
+OpenAI rows fail differently and more interestingly: `gpt-3.5-turbo` and
+`gpt-4o-2024-05-13` -- the snapshot current when the paper was written --
+both refuse our request with *"'response_format' of type 'json_schema' is
+not supported with this model"*. OpenAI's Structured Outputs arrived with
+`2024-08-06`, so every agent the 2024 paper evaluated predates a feature
+this harness requires. The GPT-3.5 canary caught that for $0.00, which is
+what a canary is for.
+
+So the check is run with the two nearest reachable models, and only one of
+them is a comparison with the paper:
+
+| | our harness (3 cases, baseline arm) | the paper |
+|---|---|---|
+| `gpt-4o-mini` (not a paper agent) | **1.0 months, collapse in all three**, whole pool of 100 taken in round 1 | its eight collapsing agents: 1.0-1.1 months |
+| `gpt-4o-2024-08-06` (3 months later than the paper's snapshot) | fishing 12, pollution **2 (collapse)**, sheep 12 -> **2 of 3 survive, mean 8.7 months** | GPT-4o: 53.3% survival, **9.3 +/- 2.2 months** |
+| GLM 5.3 Flash, suppressed (`baseline_v4`) | 3 of 3 survive, 12 months each | above its best |
+
+**Two things this settles.** The environment produces collapse: `gpt-4o-mini`
+exhausts the pool in the first round and lands on 1.0 months, the same figure
+the paper reports for its collapsing agents. And GPT-4o's mean survival here,
+8.7 months, sits inside the paper's 9.3 +/- 2.2 for the same model family --
+its survival *rate*, 2 of 3, is 66.7% against the paper's 53.3%, which three
+cases cannot separate from it.
+
+So GLM 5.3 Flash surviving 12/12 is a fact about a 2026 model rather than an
+artefact of a task nothing can fail, which is what could not be said before
+these two panels.
+
+**What this does not establish.** Three cases per model, one seed, one
+scenario each. `gpt-4o-mini` is not in the paper, so its agreement with the
+paper's collapse figure is evidence that our environment collapses the way
+theirs does, not that the paper would have scored *this* model at 1.0. And
+`gpt-4o-2024-08-06` is not the snapshot the paper ran; three months of model
+separate them, and that is a caveat on the closeness rather than a footnote.
