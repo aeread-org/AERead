@@ -100,8 +100,10 @@ difference, so the lead is not shown to exceed that band. Where the favourite is
 47% of the best informed tenant's value; where it is sound, they keep 100% and 97%. Both models also stay below
 `inspect_lowball`, a simple rule that inspects the favourite and opens with the lowest possible offer, which earns
 95.4% of the best informed tenant's value. Most of the shortfall in lemon worlds comes from one choice: declining a
-known lemon that the leaky landlord prices to be exactly as good as the same listing sound (Section 5.2). That
-equality is a knife-edge feature of our design, not of lemons markets in general (Section 7). The holdout points the
+known lemon that the leaky landlord prices to be exactly as good as the same listing sound (Section 5.2). Declining
+such a lease is an error under the stated rules, which the task prompt gives. The size of this shortfall, however,
+depends on one design choice: the leaky landlord's discount exactly offsets a lemon's loss, and with a smaller
+discount declining could be correct (Section 7). The holdout points the
 same way (Table 5.2, last row).
 
 **Further runs.** v15 differs from the earlier v14 comparison in four ways at once (the screened evaluation set, the
@@ -308,12 +310,13 @@ test, it often first requested a quote and a sample from the recorded supplier, 
 newcomer test that the stated odds and clock made best ($8.9 a world), or it awarded the order while a newcomer test
 it had begun was still worth finishing ($3.2).
 
-**Housing, Gemini: it drops a known lemon even where the lemon is the better lease.** Worse terms account for 80% of
+**Housing, Gemini: it drops a known lemon even where the lemon, at its price, is worth more than the lease it takes
+instead.** Worse terms account for 80% of
 its shortfall relative to the reachable rule ($40.7 of $51.1 a world), and nearly all of it comes from one move. Under
 the landlord kind that prices a lemon from its own lower cost, a lemon's landlord counters about $1,000 below a sound
 listing's floor ($995 to $1,000 in these worlds), so a known lemon signed at that counter is worth what the listing
 would be worth sound at a sound floor. This holds exactly in 187 of the 200 worlds whose favourite is a lemon, and
-within $5 in the rest. The equality is a property of our design: the leaky landlord passes the whole of a lemon's
+within $5 in the rest. The equality follows from one design choice: the leaky landlord passes the whole of a lemon's
 discount through to its rent. The rule inspects the favourite, finds the lemon, offers $0 and signs the counter in all 200.
 Gemini also inspected the favourite and found the lemon in all 200, but made an offer on it in only 4; in 172 episodes
 it leased a sound listing that left it with less ($65.0 a world). Under the other landlord kind the rule leases nothing

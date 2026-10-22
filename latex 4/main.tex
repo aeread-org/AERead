@@ -1,0 +1,51 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.9in]{geometry}
+\usepackage{fontspec}
+\directlua{luaotfload.add_fallback("aereadfallback", {"STIX Two Math:mode=harf;", "Apple Symbols:mode=harf;", "Helvetica Neue:mode=harf;",
+  "Arial Unicode MS:mode=harf;"})}
+\setmainfont{Times New Roman}[RawFeature={fallback=aereadfallback}]
+\setsansfont{Helvetica Neue}[RawFeature={fallback=aereadfallback}]
+\setmonofont{Menlo}[Scale=0.85, RawFeature={fallback=aereadfallback}]
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx,booktabs,longtable,array,calc,multirow,xcolor,tikz,caption,etoolbox}
+\AtBeginEnvironment{longtable}{\footnotesize\setlength{\tabcolsep}{4pt}\sloppy}
+\setlength{\emergencystretch}{3em}
+\usetikzlibrary{arrows.meta}
+\usepackage[round,authoryear]{natbib}
+\usepackage[hidelinks]{hyperref}
+\usepackage{xurl}  % long URLs break anywhere instead of running into the margin
+\setcounter{secnumdepth}{2}
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+% pandoc's helpers
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{\sbox\pandoc@box{#1}\ifdim\wd\pandoc@box>\linewidth\resizebox{\linewidth}{!}{#1}\else#1\fi}
+\makeatother
+% the sources' own macros
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\qcref}{Section~\ref{sec:qc}}
+\newcommand{\casesref}{Section~\ref{sec:cases}}
+\renewcommand{\arraystretch}{1.12}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+\title{AERead: Evaluating Economic Decisions in Interactive Environments}
+\author{Chenyu Li\thanks{Organizer} \hspace{3em} Zeyu Sun \hspace{3em} Yuchen Fang \\[3pt] {\small contact@aeread.org}}
+\date{Research working paper, version 15.46, 21 October 2026. Preliminary results; feedback and contributions welcome.}
+
+\begin{document}
+\maketitle
+\input{sections/abstract}
+\input{sections/sec_opening}
+\input{sections/sec_runtime}
+\input{sections/sec_cases}
+\input{sections/sec_qc}
+\input{sections/sec_discussion}
+
+\bibliographystyle{plainnat}
+\bibliography{runtime}
+
+\appendix
+\input{sections/app_case_specs}
+\input{sections/app_details}
+\input{sections/app_runtime}
+\end{document}

@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.46 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.47 (22 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -411,3 +411,6 @@ current one saturated"):
   v15 receipts replay through main's command line), so Appendix G's evidence locations are updated. Section 5.1 names
   the Refund metric as weighted strict compliance (a critique point: raw pass rates differ).
 - Version 15.46 (2026-10-21): Chenyu Li marked as organizer on the author line (a dagger and an 'Organizer' note in the PDF; \thanks{Organizer} in the LaTeX export). authors.json now holds names and roles.
+- Version 15.47 (2026-10-22): the Housing knife-edge wording no longer reads as if the gap were an artefact. Sections
+  5.1, 5.2 and 7 now say that declining a fully discounted lemon is an error under the stated rules, and that what
+  depends on the design choice (full pass-through) is the size of the shortfall.
