@@ -14,12 +14,11 @@ from pathlib import Path
 from typing import Sequence
 
 from aeread.shared_runner.task.evaluation import finalize_family_failure
-from aeread.shared_runner.task.execution import execute_plan_cell, ProviderFailure, ProviderRequest, ProviderResult, TokenPricing
+from aeread.shared_runner.task.execution import execute_plan_cell, ProviderFailure, ProviderRequest, ProviderResult
 from tests import test_shared_runner_scoring_contract as contract
 
-# $1 per output token: one output token costs 1.0, far above the cap.
-PRICING = TokenPricing(0.0, 0.0, 1_000_000.0, "budget_receipt_pricing_v1")
-CAP = 0.01
+# The reference profile's cap is $0.00 and every scripted call reports $1.00,
+# so any charged call crosses it.
 RETRY = {
     "max_action_attempts": 3,
     "retryable_conditions": ["length"],
@@ -62,8 +61,6 @@ def _receipt(tmp_path: Path, outcomes: Sequence[object]):
         case=contract._case_conditional_case(mode="basic"),
         family_manifest=contract._case_conditional_family_manifest(),
         extra_pins=contract._case_conditional_extra_pins(),
-        pricing=PRICING,
-        max_cost_usd=CAP,
         retry_policy=RETRY,
     )
     root = tmp_path / "evidence"
