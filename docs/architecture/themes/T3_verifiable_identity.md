@@ -1,6 +1,6 @@
 # T3: Verifiable identity
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #318](https://github.com/aeread-org/AERead/issues/318); a ruling is recorded here with its date and source.
 
 **Summary.** A receipt is only as verifiable as the identity it binds. Today each family author chooses what to pin, and chooses whole files: too coarse (one kernel or family edit moves every plan id and orphans old bundles) and too few (scorer, reference and seat roles that decide the headline are not declared, so replay certifies a number nobody reports). Verification itself is optional: nothing in publication requires `verify-replay`, and no test drives every trusted family through finalize, replay and audit. The direction is one identity contract: the manifest declares every component that decides the score, each is pinned by its own digest, replay is a publication gate that reports coverage, and one conformance test replaces the per-family exemptions. The theme ruling requested, for new identities only, is at what granularity plan pins bind code, what a kernel pin is, and from when publication requires full-coverage replay (section 5).
 

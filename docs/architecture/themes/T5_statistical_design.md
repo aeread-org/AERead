@@ -1,6 +1,6 @@
 # T5: Statistical design
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #320](https://github.com/aeread-org/AERead/issues/320); a ruling is recorded here with its date and source.
 
 **Summary.** Campaigns size, screen and interpret themselves: sizing, interval method, missingness bounds, A/A runs, screen sampling plans and control ladders are left to each campaign, so published intervals under-cover, splits are undersized, and admitted worlds can be repeats or saturated. PR #288 (owner: Chenyu) is the vehicle: it adds the shared `aeread.design` calculations and the SOP and QC rules that use them, in the family lane. This charter proposes to keep #288 as that vehicle, finish what it leaves open in three steps (merge, family adoption at the freeze, then contract fields), and keep the four G12 comparator problems as separate per-family rulings. The theme ruling asks Chenyu to confirm scope, vehicle and admission gates.
 

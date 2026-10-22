@@ -1,6 +1,6 @@
 # T7: Other (no shared root cause; disposition list)
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #322](https://github.com/aeread-org/AERead/issues/322); a ruling is recorded here with its date and source.
 
 **Summary.** T7 holds items that are not defects in a measured number and share no root cause: a review-gate override pattern, test-environment assumptions, training-integration docs, one diagnostic counter, run-tracking umbrellas, a seed-requirement rule, and a research RFC. The direction is not a redesign. It is a disposition policy: every item gets one owner and one next step, nothing here is scheduled ahead of the T1 and T2 kernel work, and the items that need an owner ruling are listed once so they can be answered together. The ruling requested: confirm the dispositions in section 2, and rule on #172 (the declared-seed requirement) and on the reviewer rule for kernel PRs.
 

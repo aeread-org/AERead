@@ -1,6 +1,6 @@
 # T6: Case construct validity
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #321](https://github.com/aeread-org/AERead/issues/321); a ruling is recorded here with its date and source.
 
 **Summary.** Several published cases score something other than what their claim says: GovSim served the intervention arm as baseline, Procurement's `check_award` reads the hidden yield, a Datacenter leaf rewards copying the counterpart, a Refund leaf scores 1.0 while money does not move. Each was found after the run, by reading a result, because no step when a case is written asks what each seat is shown against what is graded. Direction: `docs/operations/benchmark_qc.md` already requires a visibility audit (Gate 2) and construct controls (Gate 3) but leaves the evidence to hand-written prose; this theme turns that evidence into one construct checklist with a provider-free test per case, so the existing gate stop conditions have something to refuse on, and every redesign ships under a new identity. Ruling requested: does a missing or failing checklist stop the existing `design_contract` and `provider_free_validation` gates for new and redesigned cases, and who rules per case.
 

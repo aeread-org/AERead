@@ -1,6 +1,6 @@
 # T1: one call-outcome contract for every model call
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #316](https://github.com/aeread-org/AERead/issues/316); a ruling is recorded here with its date and source.
 
 **Summary.** Six components each decide what happened on a provider call: the clients, the executor's response path, its failure path, the harness port, the receipt classifier and the spend reader. They disagree. A probe of 18 outcome classes across the kernel's five client paths finds 31 divergences. Family-owned clients add more, and some of these divergences change which cells are measured.
 

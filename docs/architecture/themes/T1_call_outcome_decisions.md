@@ -1,8 +1,8 @@
 # Decision drafts for T1 (one GitHub issue each)
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #316](https://github.com/aeread-org/AERead/issues/316); a ruling is recorded here with its date and source.
 
-One draft per decision; reply on the pull request or the board card citing the decision id. Labels: [owner] ruling, [merged] merged code or doc, [on behalf] adopted on the owner's behalf.
+One draft per decision; reply on [issue #316](https://github.com/aeread-org/AERead/issues/316) citing the decision id. Labels: [owner] ruling, [merged] merged code or doc, [on behalf] adopted on the owner's behalf.
 
 ---
 

@@ -1,6 +1,6 @@
 # T1: one call-outcome contract for every model call
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #316](https://github.com/aeread-org/AERead/issues/316); a ruling is recorded here with its date and source.
 
 **Summary.** Six components decide what happened on a provider call (the clients, the executor's response and failure paths, the harness port, the receipt classifier, the spend reader), and they disagree: a probe of 18 outcome classes across the kernel's five client paths finds 31 divergences, some of which change which cells are measured. Ticket-by-ticket fixes each set a local rule, and the rules do not compose. The direction is one contract: every call recorded once at three levels, filled by one classifier from what each client can actually observe, under fixed precedence and billing rules, and rolled out by version so no frozen identity changes meaning. The theme ruling asks whether this contract governs all call-outcome work; seven issue-level decisions below then fill its open cells.
 

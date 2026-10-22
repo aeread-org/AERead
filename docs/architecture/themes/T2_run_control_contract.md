@@ -1,6 +1,6 @@
 # T2: Run-control contract
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #317](https://github.com/aeread-org/AERead/issues/317); a ruling is recorded here with its date and source.
 
 **Summary.** Output-token and wall-clock ceilings, retry and replacement rules, halt guards, balance limits and concurrency are set by hand in each campaign driver. Some are already sealed into the plan through agent profiles, others rest on kernel defaults or driver constants, and no single admission step requires or checks them. Cells are therefore lost to caps, timeouts and dead accounts, and the loss depends on the subject (GLM loses cells where Gemini loses none), which biases cross-subject contrasts. The direction is one declared run-control block per campaign, frozen into the plan identity and applied only by the controlled launcher (#292 is its first carrier; its adoption PR #293 is closed until #291 and #292 land). The theme ruling requested: may the declared run-control block, including how a replacement response counts (retry estimand N1), be mandatory for every new confirmatory campaign, and which estimand does it freeze.
 

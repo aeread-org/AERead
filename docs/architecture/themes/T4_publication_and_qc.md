@@ -1,6 +1,6 @@
 # T4: Publication and QC
 
-**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5; a ruling is recorded here with its date and source.
+**Status: proposed.** Not yet reviewed by a maintainer. The theme ruling requested is in section 5 and is decided in [issue #319](https://github.com/aeread-org/AERead/issues/319); a ruling is recorded here with its date and source.
 
 **Summary.** Published bundles do not carry the facts the Examiner and the QC gates need (replay result, cost qualifier, planned and completed cell counts, claim boundary, QC-profile reference), so every check guesses from report keys and every fix is one bundle at a time. 407 of the Examiner's 670 flagged lines are this one gap. The direction is one versioned facts block in the existing publication manifest, written by the bundle builder, in which each fact is marked `derived` (recomputed from sealed receipts), `verified` (replay or independent check actually run) or `declared` (a publisher claim), and read by the Examiner and the gates as the only source; corrections to sealed bundles are carried by an errata layer. The ruling requested: may the Examiner stop inferring these facts for bundles sealed after a cut-over, and how are the three kinds of existing bundle (70 kernel manifests, 29 family manifests, 36 with none) to be read.
 
