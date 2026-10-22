@@ -827,6 +827,12 @@ def test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajec
     right_setup, right_plugin, right_case, right_evidence = run_kernel_contract_fixture(
         tmp_path, world_seed=1, suffix="paired_right", gamma=-1.0
     )
+    # A1: certified replay needs the executed PlanCell, so keep just that
+    # before dropping the setups -- the `del` is here to prove the assertions
+    # below read the sealed evidence rather than the live setup, and one cell
+    # each is the whole of what the kernel now requires.
+    left_cell = left_setup.plan.cells[0]
+    right_cell = right_setup.plan.cells[0]
     del left_setup, right_setup
 
     # A genuinely different case (world_seed), never a duplicate of the same
@@ -837,12 +843,14 @@ def test_paired_history_pair_has_a_byte_identical_outcome_and_a_differing_trajec
         plugin=left_plugin,
         family_case=left_case,
         evidence=left_evidence,
+        cell=left_cell,
         seat_context=SeatContext((), {}),
     )
     right_input = replay_family_scoring_input(
         plugin=right_plugin,
         family_case=right_case,
         evidence=right_evidence,
+        cell=right_cell,
         seat_context=SeatContext((), {}),
     )
 
@@ -929,18 +937,26 @@ def test_call_output_is_sensitive_to_phase_instances_for_every_declared_leaf(
     right_setup, right_plugin, right_case, right_evidence = run_kernel_contract_fixture(
         tmp_path, world_seed=0, suffix="sensitivity_right", episode_length=2
     )
+    # A1: certified replay needs the executed PlanCell, so keep just that
+    # before dropping the setups -- the `del` is here to prove the assertions
+    # below read the sealed evidence rather than the live setup, and one cell
+    # each is the whole of what the kernel now requires.
+    left_cell = left_setup.plan.cells[0]
+    right_cell = right_setup.plan.cells[0]
     del left_setup, right_setup
 
     left_input = replay_family_scoring_input(
         plugin=left_plugin,
         family_case=left_case,
         evidence=left_evidence,
+        cell=left_cell,
         seat_context=SeatContext((), {}),
     )
     right_input = replay_family_scoring_input(
         plugin=right_plugin,
         family_case=right_case,
         evidence=right_evidence,
+        cell=right_cell,
         seat_context=SeatContext((), {}),
     )
     # A genuinely different trajectory, not a coincidence of identical
