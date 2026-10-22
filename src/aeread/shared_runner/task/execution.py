@@ -139,7 +139,12 @@ class ProviderFailure(RuntimeError):
             valid.add("input_tokens")
         if output_tokens is not None:
             valid.add("output_tokens")
-        if cached is not None and (input_tokens is None or cached <= input_tokens):
+        # An unreported breakdown means no cached input only beside a valid
+        # input count; with no input count there is nothing to qualify.
+        if unreported:
+            if input_tokens is not None:
+                valid.add("cached_input_tokens")
+        elif cached is not None and (input_tokens is None or cached <= input_tokens):
             valid.add("cached_input_tokens")
         self._valid_token_fields = frozenset(valid)
         self.input_tokens = input_tokens or 0

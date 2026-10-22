@@ -68,11 +68,21 @@ def test_unknown_billing_does_not_fabricate_zero_for_the_invalid_field() -> None
     assert fields["cost_usd"] == "unknown"
 
 
-def test_a_legacy_failed_event_without_the_field_reads_as_before(tmp_path) -> None:
-    # Evidence written before the field existed: numeric tokens and cost, no marker.
-    payload, call = _run(
-        tmp_path,
-        _failure({"prompt_tokens": 7, "completion_tokens": 3, "prompt_tokens_details": {"cached_tokens": 0}, "cost": 0.03}),
-    )
-    assert "token_accounting" not in payload
-    assert (call.prompt_tokens, call.completion_tokens, call.total_cost_usd, call.telemetry_complete) == (7, 3, 0.03, True)
+def test_no_usage_or_no_input_count_writes_no_cached_zero() -> None:
+    # An unreported cache breakdown means no cached input only beside a valid input count.
+    for usage in ({}, {"completion_tokens": 5}, {"prompt_tokens": -1, "completion_tokens": 5}):
+        fields = failed_call_event_fields(_failure(usage), None, outcome_unknown=False)
+        assert fields["token_accounting"] == "incomplete", usage
+        assert "cached_input_tokens" not in fields, usage
+        assert "input_tokens" not in fields, usage
+
+
+def test_an_event_without_token_fields_or_marker_reads_as_before(tmp_path) -> None:
+    # A never-billed failure writes the event shape all evidence before the
+    # marker has: a cost and no token fields. The reader keeps reading it as
+    # zero tokens with complete telemetry.
+    payload, call = _run(tmp_path, ProviderFailure("provider_5xx", "no completion", retryable=False))
+    assert "token_accounting" not in payload and "input_tokens" not in payload
+    assert payload["cost_usd"] == 0.0
+    assert (call.prompt_tokens, call.cached_tokens, call.completion_tokens) == (0, 0, 0)
+    assert call.total_cost_usd == 0.0 and call.telemetry_complete is True
