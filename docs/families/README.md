@@ -109,6 +109,10 @@ Directory `housing/`, package `housing`.
 
 - [Case contract](housing/case.md)
 - [QC profile](housing/qc.md)
+- [Lemons price with outside demand: v15 confirmatory plan](housing/price_confirmatory_v15_plan.md)
+- [Lemons price with outside demand: v15 confirmatory results](housing/price_confirmatory_v15_results.md)
+- [Lemons price v15, addendum B: Sol 6.1 and Opus 5.5 through their command-line tools, plan](housing/price_v15_addendum_b_cli_plan.md)
+- [Lemons price v15, addendum B: results](housing/price_v15_addendum_b_cli_results.md)
 
 ## NegotiationArena
 

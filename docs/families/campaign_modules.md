@@ -41,6 +41,12 @@ where a family keeps a case directory for each version, each is still run.
 | `public_integrated_expansion_cases` | v4: [`public_integrated_expansion_v4_cases.py`](../../src/aeread_families/datacenter_development_terms/public_integrated_expansion_v4_cases.py) | [v1](../../src/aeread_families/datacenter_development_terms/public_integrated_expansion_cases.py), [v2](../../src/aeread_families/datacenter_development_terms/public_integrated_expansion_v2_cases.py), [v3](../../src/aeread_families/datacenter_development_terms/public_integrated_expansion_v3_cases.py) | v1 by 1, v2 by 2, v3 by 7 |
 | `public_integrated_publication` | v12: [`public_integrated_v12_publication.py`](../../src/aeread_families/datacenter_development_terms/public_integrated_v12_publication.py) | [v4](../../src/aeread_families/datacenter_development_terms/public_integrated_v4_publication.py), [v5](../../src/aeread_families/datacenter_development_terms/public_integrated_v5_publication.py), [v6](../../src/aeread_families/datacenter_development_terms/public_integrated_v6_publication.py), [v7](../../src/aeread_families/datacenter_development_terms/public_integrated_v7_publication.py), [v8](../../src/aeread_families/datacenter_development_terms/public_integrated_v8_publication.py), [v9](../../src/aeread_families/datacenter_development_terms/public_integrated_v9_publication.py), [v10](../../src/aeread_families/datacenter_development_terms/public_integrated_v10_publication.py), [v11](../../src/aeread_families/datacenter_development_terms/public_integrated_v11_publication.py) | v4 by 1 |
 
+## `housing`
+
+| Line | Latest | Other versions | Still imported by siblings |
+|---|---|---|---|
+| `price_publication` | v15: [`price_v15_publication.py`](../../src/aeread_families/housing/price_v15_publication.py) | [v1](../../src/aeread_families/housing/price_publication.py) | v1 by 2 |
+
 ## `procurement_allocation`
 
 | Line | Latest | Other versions | Still imported by siblings |

@@ -1,0 +1,310 @@
+{
+ "bundle_id": "housing_lemons_price_goldens_v15",
+ "contract_sha256": "317a09625d21b8b7ebd7ee2506caf1ec115b9168f44a024cf5b0c6f0a33a4673",
+ "cost_usd": 0.0,
+ "plan": "docs/families/housing/price_confirmatory_v15_plan.md, Section 6 and amendment 1",
+ "rows": [
+  {
+   "arm": "true_cost",
+   "cell_id": "cell_3e354cf85c8aa972bf4a",
+   "events_sha256": "00d7bdaa93dc2acdae5e013ef4d2fe68a2f3915ce720ddb7c48adce6f04e128c",
+   "inspection_spend": 25.0,
+   "invalid_actions": {},
+   "net_realized": 469.57,
+   "offline": {
+    "inspection_spend": 25.0,
+    "net_realized": 469.57,
+    "primary_v2": 469.57
+   },
+   "policy": "inspect_lowball",
+   "primary": 469.57,
+   "receipt_sha256": "83bf29cba4a07e55649f183f7621daff9e7231442ce9ce14cef2774a43d0f246",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 494.57,
+    "comparison_baseline": 0.63,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 494.57,
+    "scripted_reference": 469.57
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_defa15b17226cdb6",
+   "scenario_id": "successful",
+   "score_status": "ok",
+   "world_seed": 540003
+  },
+  {
+   "arm": "pooled",
+   "cell_id": "cell_6253d6d0d6ed1843beda",
+   "events_sha256": "795a9ab1c98c9033ae9dda4d58c17461ad632b3164cebd63a637d048977e79a7",
+   "inspection_spend": 50.0,
+   "invalid_actions": {},
+   "net_realized": 1.63,
+   "offline": {
+    "inspection_spend": 50.0,
+    "net_realized": 1.63,
+    "primary_v2": 1.63
+   },
+   "policy": "inspect_lowball",
+   "primary": 1.63,
+   "receipt_sha256": "a50d89c9026178eff8c05113be45e438892d956d8ab4c6cad3389ea875098f3c",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 1.63,
+    "comparison_baseline": 0.63,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 51.63,
+    "scripted_reference": 1.63
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_9810ec9a528acc7a",
+   "scenario_id": "successful",
+   "score_status": "ok",
+   "world_seed": 540003
+  },
+  {
+   "arm": "true_cost",
+   "cell_id": "cell_108b33e927dc18c6569d",
+   "events_sha256": "0be2ba182506b30fd6ec02635c17be61dc6b1a81647eb673419fe5f234baebfc",
+   "inspection_spend": 0.0,
+   "invalid_actions": {},
+   "net_realized": -677.49,
+   "offline": {
+    "inspection_spend": 0.0,
+    "net_realized": -677.49,
+    "primary_v2": -177.49
+   },
+   "policy": "sign_anything",
+   "primary": -177.49,
+   "receipt_sha256": "1c974895da58b27ee01404f94b52978ed613d859f19134a9f627ed142e46840a",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 341.43,
+    "comparison_baseline": -25.0,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 341.43,
+    "scripted_reference": 316.43
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_defa15b17226cdb6",
+   "scenario_id": "valid_but_poor",
+   "score_status": "ok",
+   "world_seed": 540006
+  },
+  {
+   "arm": "pooled",
+   "cell_id": "cell_cd234440151cdd2bee7a",
+   "events_sha256": "579fad8ca072e23ba745c2c4a79f992a05f6c502836ec4a2525f8d2ddedfbdd6",
+   "inspection_spend": 0.0,
+   "invalid_actions": {},
+   "net_realized": -677.49,
+   "offline": {
+    "inspection_spend": 0.0,
+    "net_realized": -677.49,
+    "primary_v2": -177.49
+   },
+   "policy": "sign_anything",
+   "primary": -177.49,
+   "receipt_sha256": "a14894168bd7c91353bdf4bf2383ede2775d6d3015208239907e37256daabb7e",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": -25.0,
+    "comparison_baseline": -25.0,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 252.44,
+    "scripted_reference": -15.01
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_9810ec9a528acc7a",
+   "scenario_id": "valid_but_poor",
+   "score_status": "ok",
+   "world_seed": 540006
+  },
+  {
+   "arm": "true_cost",
+   "cell_id": "cell_5c32d038c60a430d2b31",
+   "events_sha256": "efb4644bb5b113d6496e175d740f14ac079b210af201bb15d361001d3f17fbea",
+   "inspection_spend": 0.0,
+   "invalid_actions": {
+    "invalid_rent": 2,
+    "unavailable_listing": 4
+   },
+   "net_realized": 0.0,
+   "offline": {
+    "inspection_spend": 0.0,
+    "net_realized": 0.0,
+    "primary_v2": 0.0
+   },
+   "policy": "invalid",
+   "primary": 0.0,
+   "receipt_sha256": "51fd9bcc5dbefaec73e226b347a1a64000228e33b3a02050fd791311b85c2e59",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 633.25,
+    "comparison_baseline": 122.71,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 633.25,
+    "scripted_reference": 608.25
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_defa15b17226cdb6",
+   "scenario_id": "invalid_unauthorized",
+   "score_status": "ok",
+   "world_seed": 540007
+  },
+  {
+   "arm": "pooled",
+   "cell_id": "cell_7cd3f4900ed84d5fd912",
+   "events_sha256": "e7edada0e96cafd689d362dc699b698e87a71ef131310c2e4a054368ecf27844",
+   "inspection_spend": 0.0,
+   "invalid_actions": {
+    "invalid_rent": 2,
+    "unavailable_listing": 4
+   },
+   "net_realized": 0.0,
+   "offline": {
+    "inspection_spend": 0.0,
+    "net_realized": 0.0,
+    "primary_v2": 0.0
+   },
+   "policy": "invalid",
+   "primary": 0.0,
+   "receipt_sha256": "72533884ecbdc21985e969bc3ee93110aec68ffdb5dfc50a6014641181ff594b",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 170.95,
+    "comparison_baseline": 122.71,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 220.95,
+    "scripted_reference": 170.95
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_9810ec9a528acc7a",
+   "scenario_id": "invalid_unauthorized",
+   "score_status": "ok",
+   "world_seed": 540007
+  },
+  {
+   "arm": "true_cost",
+   "cell_id": "cell_eec1a5d5e458b7b00808",
+   "events_sha256": "a26f85107fb5eda2aa0b6aaccd266bc8f16623a6ebb139e1cdf0c221bd4b458a",
+   "inspection_spend": 50.0,
+   "invalid_actions": {
+    "malformed_commit": 1
+   },
+   "net_realized": -50.0,
+   "offline": {
+    "inspection_spend": 50.0,
+    "net_realized": 18.58,
+    "primary_v2": 18.58
+   },
+   "policy": "inspect_then_sign_malformed_commit",
+   "primary": -50.0,
+   "receipt_sha256": "7e7ba84cbda9dc746297134206d435d8bf7f344b2c68fbcd576cd5cd024649aa",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 540.98,
+    "comparison_baseline": 18.58,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 540.98,
+    "scripted_reference": 515.98
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_defa15b17226cdb6",
+   "scenario_id": "malformed",
+   "score_status": "ok",
+   "world_seed": 540008
+  },
+  {
+   "arm": "pooled",
+   "cell_id": "cell_a80bcd1b84cc940466ed",
+   "events_sha256": "af40879541c7a9df8216c6a388c2832e0e1aa9ceb6e40792198315ca45231ba2",
+   "inspection_spend": 50.0,
+   "invalid_actions": {
+    "malformed_commit": 1
+   },
+   "net_realized": -50.0,
+   "offline": {
+    "inspection_spend": 50.0,
+    "net_realized": 18.58,
+    "primary_v2": 18.58
+   },
+   "policy": "inspect_then_sign_malformed_commit",
+   "primary": -50.0,
+   "receipt_sha256": "c18517ec5554e7ef5847d8822124b416f90dc5dffd92187842e76cced6242303",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 54.71,
+    "comparison_baseline": 18.58,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 165.74,
+    "scripted_reference": 54.71
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_9810ec9a528acc7a",
+   "scenario_id": "malformed",
+   "score_status": "ok",
+   "world_seed": 540008
+  },
+  {
+   "arm": "true_cost",
+   "cell_id": "cell_aa3c8963a679c4da4510",
+   "events_sha256": "eff40407e1b57ce55539d7def0a11d9dec338f748c3566f8f738a1204a4c616f",
+   "inspection_spend": 0.0,
+   "invalid_actions": {},
+   "net_realized": 0.0,
+   "offline": {
+    "inspection_spend": 0.0,
+    "net_realized": 0.0,
+    "primary_v2": 0.0
+   },
+   "policy": "pass",
+   "primary": 0.0,
+   "receipt_sha256": "2b0dcb39fa2145d28f5788462400bd1eab06fb8916009e568da182e9b7053656",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 513.13,
+    "comparison_baseline": 236.14,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 513.13,
+    "scripted_reference": 488.13
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_defa15b17226cdb6",
+   "scenario_id": "degenerate",
+   "score_status": "ok",
+   "world_seed": 540009
+  },
+  {
+   "arm": "pooled",
+   "cell_id": "cell_ae84a9710b6840688144",
+   "events_sha256": "fa0c377f2e89c80cd8a68b88500306bf763c7c6cb7a841828a24363376c07b14",
+   "inspection_spend": 0.0,
+   "invalid_actions": {},
+   "net_realized": 0.0,
+   "offline": {
+    "inspection_spend": 0.0,
+    "net_realized": 0.0,
+    "primary_v2": 0.0
+   },
+   "policy": "pass",
+   "primary": 0.0,
+   "receipt_sha256": "925413338cede6d3449a97b0e12f7b3393ef55326d8ecfd7ebb2e996c3cf4670",
+   "receipt_status": "ok",
+   "references": {
+    "best_informed": 237.82,
+    "comparison_baseline": 236.14,
+    "optimum_lower_bound": 0.0,
+    "optimum_upper_bound": 287.82,
+    "scripted_reference": 237.82
+   },
+   "replay_verified": true,
+   "run_plan_id": "runplan_9810ec9a528acc7a",
+   "scenario_id": "degenerate",
+   "score_status": "ok",
+   "world_seed": 540009
+  }
+ ],
+ "scorer_id": "housing_lemons_price_seat0_outcome_v1",
+ "scorer_implementation_sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a"
+}
