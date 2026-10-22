@@ -1,0 +1,119 @@
+\section{Discussion and conclusion}
+\label{sec:discussion}
+
+\subsection{What the cases show}
+\label{sec:discussion-findings}
+
+AERead evaluates an agent's economic decisions by the value it obtains for
+a principal, given the information, resources and authority of its seat.
+Each score is measured against a reference whose access to information is
+stated. It keeps its own units and names the counterparts it was measured
+against, so every shortfall has a defined interpretation. Our cases apply
+this to information acquisition, bargaining and commitment in housing,
+procurement and contracting, and a reimplementation of part of TERMS-Bench
+runs on the same runtime.
+
+Refund tests a different obligation: compliance with an explicit policy,
+not money earned. Separating the four seats, and keeping each diagnostic
+score beside its coverage, distinguishes a plausible resolution from an
+evidence-complete, correctly executed path. Its developmental calibration
+separates Flash Lite from the stronger models in three seats, but the
+saturated customer seat and the little room left above the stronger models
+limit further comparisons. The scripted conformance of the later release
+does not remove the lower-control concerns of Section~\ref{sec:qc}.
+
+The cases teach three lessons that bear on any evaluation of this kind.
+The counterpart is part of the measurement: counting each transfer between
+them once, the same two agents differ by about three times as much when they
+negotiate with each other as when each faces a fixed counterpart. The task prompt is part of the case: stating a rule that the prompt had left
+implicit changed scores as much as changing the agent did. And the defects
+that matter are often properties of the population of worlds, the task prompt or
+the analysis rather than of any single world. Construction and quality
+control therefore belong in the method, and the checks of Section 6 changed
+the interpretation of our own results. Loss categories locate a shortfall
+but do not explain it, and explaining it requires controlled follow-up
+comparisons. Replay establishes consistency with recorded play; construct
+validity requires evidence about the worlds, the information and the
+controls.
+
+These properties matter most where agents are deployed. An organization
+that delegates a decision to an agent needs to know what the agent's
+choices are worth against what was achievable, and where its losses come
+from; a value score against a stated reference and a typed account of
+losses answer both questions. Where one person makes such decisions
+without specialized expertise or review before a commitment, delegating
+them to an agent also requires evidence that the agent keeps value against
+the counterparts it will meet.
+
+The present evidence has clear limits. The cases take their decision
+structure from informal rentals, wholesale sourcing and AI-infrastructure
+contracting, but we set their parameters; calibration to
+field data and transfer to field settings remain to be established.
+Some parameters carry a result. Housing's leaky landlord passes the whole of a
+lemon's discount through to its rent, so a known lemon is exactly as good a
+lease as the same listing sound, and the largest Housing shortfall class,
+declining such leases, rests on that knife-edge choice. An evaluation set in
+which the discount is smaller than the loss would test the adverse-selection
+decision that the introduction describes.
+Coverage is limited to two transaction classes and a small set of agent
+configurations, with no human policy baseline. The data-center comparison tests bargaining
+against a fixed scripted counterpart, not inference about the other side's type. No case passes all of the
+quality-control gates (Section 6). Several checks were added after the runs
+they qualify. The behavior of hosted models and command-line tools also limits
+how far a result can be attributed to its stated settings.
+Versioned reanalyses now regenerate the corrected Housing measures and
+Procurement decision losses from sealed records, which strengthens their
+provenance. Full verification against the original execution still
+requires the retained logs (Appendix~G). The reanalyses neither qualify the
+campaigns retroactively nor resolve Housing's historical seat attribution
+(Appendix~H). The results therefore do not establish general model rankings
+or readiness for deployment in a particular firm.
+
+\subsection{Open research directions and contributions}
+\label{sec:open-directions}
+
+AERead is an open environment for studying how agents make economic
+decisions. Its code is open source under the Apache-2.0 license
+(\url{https://github.com/aeread-org/AERead}; contact@aeread.org), and contributors can
+pursue their own questions with the existing cases, counterparts and
+evidence. The results above leave four questions open, each suited to a
+different kind of contribution.
+\begin{itemize}
+\item \textbf{Counterpart populations.} In the Data-center case, the gap between two
+agents depended strongly on whether they negotiated against each other or each faced a fixed script.
+How far does an agent's measured skill depend on whom it faces, can
+rankings reverse across counterpart populations (none did in our runs),
+and which populations separate distinct strategic capabilities? The
+scripted styles, head-to-head pairings and counterpart seats are in place.
+\item \textbf{Validity of populations of worlds.} More than half of the defects
+we selected from our record were invisible in any single world. Which checks find
+such defects before a campaign runs, and what should qualify a case? The
+quality-control gates, the incident record and the failed campaigns are
+available for study.
+\item \textbf{Information and judgment.} Stating a rule that the task prompt had left
+implicit changed scores as much as changing the agent. Separating what an
+agent was told from how it decided, and computing best-informed references
+for richer cases, are open methodological problems.
+\item \textbf{New economic decisions.} A case for another activity
+supplies its rules, worlds and reference; execution, replay, counterpart
+seats and the quality-control standard come with the runtime.
+\end{itemize}
+
+Some components are ready and others are not. The runtime, its sealed evidence and
+replay, and the case layout are in use, and Housing, Procurement and Data
+center each have a world generator, references and scripted counterparts.
+No case is yet fully qualified. Section~\ref{sec:qc} gives every gate
+verdict, and Appendix~F lists each campaign's open checks, so a contributor
+can see what a case still needs before its results can rank agents.
+
+The next steps follow from the limits in Section 7.1. Future campaigns should bind
+the actual seat assignments and headline scorers into frozen evaluation
+configurations and run the required controls before any comparison, and the
+TERMS-Bench reimplementation needs the protocol fixes described in
+Appendix~E.10 before its pre-registered reproduction can proceed. Practitioner review would
+calibrate the cases' parameters, human baselines would show where agents
+stand against people, and externally contributed cases would test whether
+the structure serves authors other than its maintainers. AERead's present
+contribution is that structure, a common way to construct evaluations of
+economic decisions, together with an evidence-based account of the checks
+needed to interpret what they measure.

@@ -197,10 +197,14 @@ def prepare_runtime_tables(soup):
         thead = soup.new_tag('thead'); thead.append(first); table.insert(1, thead)
 
 
-def document(title, subtitle, body, styles, authors=()):
+def document(title, subtitle, body, styles, authors=(), roles=None):
+    roles = roles or {}
     author_text = ' · '.join(authors)
     author_meta = f'<meta name="author" content="{html.escape(author_text, quote=True)}">' if authors else ''
-    byline = f'<div class="authors">{html.escape(author_text)}</div>' if authors else ''
+    marked = ' · '.join(html.escape(a) + ('<sup>†</sup>' if a in roles else '') for a in authors)
+    byline = f'<div class="authors">{marked}</div>' if authors else ''
+    if roles:
+        byline += '<div class="author-roles">' + '; '.join(f'<sup>†</sup>{html.escape(r)}' for r in dict.fromkeys(roles.values())) + '</div>'
     byline += '<div class="contact"><a href="mailto:contact@aeread.org">contact@aeread.org</a></div>'
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
             f'{author_meta}<title>{html.escape(title)}</title><style>{styles}</style></head><body>'
@@ -409,8 +413,9 @@ def main():
     version = json.loads((SOURCE / 'version.json').read_text())
     subtitle = (f"Research working paper · version {version['version']} · {version['date']} · "
                 'Preliminary results; feedback and contributions welcome')
-    authors = json.loads((SOURCE / 'authors.json').read_text())
-    full = document(title, subtitle, str(soup), styles, authors=authors)
+    author_record = json.loads((SOURCE / 'authors.json').read_text())
+    authors, roles = author_record['authors'], author_record.get('roles', {})
+    full = document(title, subtitle, str(soup), styles, authors=authors, roles=roles)
     page = OUT.with_suffix('.html'); page.write_text(full)
     result = subprocess.run([CHROME,'--headless=new','--disable-gpu','--no-pdf-header-footer',f'--print-to-pdf={OUT}',page.resolve().as_uri()],capture_output=True,text=True)
     if not OUT.exists() or OUT.stat().st_mtime < page.stat().st_mtime:

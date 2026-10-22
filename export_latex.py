@@ -237,7 +237,9 @@ def main() -> None:
         shutil.copy2(png, OUT / "figures" / png.name)
     shutil.copy2(SOURCE / "runtime.bib", OUT / "runtime.bib")
     version = json.loads((SOURCE / "version.json").read_text())
-    authors = json.loads((SOURCE / "authors.json").read_text())
+    author_record = json.loads((SOURCE / "authors.json").read_text())
+    authors = [a + (r"\thanks{" + author_record.get("roles", {})[a] + "}" if a in author_record.get("roles", {}) else "")
+               for a in author_record["authors"]]
 
     tex = {name: prepare_tex((SOURCE / f"{name}.tex").read_text()) for name in
            ("abstract", "sec_opening", "sec_runtime", "sec_discussion", "app_runtime", "tab_cli_controls", "tab_case_paths")}

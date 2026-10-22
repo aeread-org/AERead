@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.45 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.46 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -410,3 +410,4 @@ current one saturated"):
 - Version 15.45 (2026-10-21): Housing v15 (with both addenda) and v14 are on main (#314, c4bc4c3d; 3,520 of 3,520
   v15 receipts replay through main's command line), so Appendix G's evidence locations are updated. Section 5.1 names
   the Refund metric as weighted strict compliance (a critique point: raw pass rates differ).
+- Version 15.46 (2026-10-21): Chenyu Li marked as organizer on the author line (a dagger and an 'Organizer' note in the PDF; \thanks{Organizer} in the LaTeX export). authors.json now holds names and roles.

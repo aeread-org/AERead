@@ -1,5 +1,10 @@
-[
-  "Chenyu Li",
-  "Zeyu Sun",
-  "Yuchen Fang"
-]
+{
+  "authors": [
+    "Chenyu Li",
+    "Zeyu Sun",
+    "Yuchen Fang"
+  ],
+  "roles": {
+    "Chenyu Li": "Organizer"
+  }
+}
