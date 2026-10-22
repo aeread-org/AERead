@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.44 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.45 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -407,3 +407,6 @@ current one saturated"):
   corrected (true of the development set only; v1 and v2 draw it); the leaky lemon target's upper bound a - 995, not
   a - 996; the state's omission of offer expiry explained; the Refund paragraph split into case, run, result and
   further runs; the repository URL set so it cannot break at its hyphen.
+- Version 15.45 (2026-10-21): Housing v15 (with both addenda) and v14 are on main (#314, c4bc4c3d; 3,520 of 3,520
+  v15 receipts replay through main's command line), so Appendix G's evidence locations are updated. Section 5.1 names
+  the Refund metric as weighted strict compliance (a critique point: raw pass rates differ).

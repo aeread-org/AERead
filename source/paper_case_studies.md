@@ -256,11 +256,11 @@ Appendix A.4 specifies the case.
 We evaluate one seat at a time while the other three follow fixed scripts. The comparison reported here is an
 amended, sequential developmental calibration, not a pre-registered comparison. Gemini 2.5 Flash Lite, Gemini 2.5
 Pro and GPT-6-sol each played a frozen selection of 66 seat-specific pair templates, both variants twice, for 792
-episodes in all. The score is strict trajectory compliance: the evaluated seat's decisions and its protocol
-obligations must all hold in the same episode.
+episodes in all. The score is weighted strict trajectory compliance: the evaluated seat's decisions and its
+protocol obligations must all hold in the same episode, and episodes are weighted as Appendix E.4 gives.
 
-Flash Lite separates from the two stronger models in three of the four seats. It reaches 38.3% strict compliance as
-intake, 33.3% as policy and 35.6% as payments, while Gemini 2.5 Pro and GPT-6-sol reach at least 98.6% in every
+Flash Lite separates from the two stronger models in three of the four seats. It reaches 38.3% weighted strict compliance
+as intake, 33.3% as policy and 35.6% as payments, while Gemini 2.5 Pro and GPT-6-sol reach at least 98.6% in every
 seat. Pro's lead over Flash Lite in those seats, 60.8 to 65.3 percentage points, remains significant after Holm
 adjustment across the eight frozen contrasts. Above Flash Lite the panel is saturated: both stronger models pass 62
 of the 66 templates on both variants in both repetitions, and every model passes every customer episode. The panel

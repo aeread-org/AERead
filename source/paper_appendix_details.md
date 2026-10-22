@@ -1135,10 +1135,10 @@ Everything on which the numbers in Sections 5 and 6 rest is in the public AERead
 
 - **Code and cases.** The shared runner and the case families, with each case's generator, reference, verifiers,
   evaluation sets and tests. Each case is developed on its own branch of the repository.
-- **Evidence.** Sealed, digest-bound evidence bundles: the Housing v14 confirmatory run and its pre-registered fill,
-  the data-center agreement bundles, and the Refund V2.1 bundles with their gap decomposition, all on case branches.
-  Procurement's pre-registered runs (Table 5.3) are on the main branch as twelve bundles, and all 432 of their receipts
-  replay through the runtime's command line.
+- **Evidence.** Sealed, digest-bound evidence bundles. On the main branch: Procurement's pre-registered runs (Table
+  5.3) as twelve bundles, all 432 of whose receipts replay through the runtime's command line, and Housing v15 with
+  its two addenda and v14, all 3,520 of whose v15 receipts replay there. On case branches: the data-center agreement
+  bundles, awaiting the review of their registry entry, and the Refund V2.1 bundles with their gap decomposition.
 - **Quality control.** Each family's quality-control profile and incident log, kept with its code, and the
   reference-run tests named in §6.
 - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map each table and claim to
