@@ -1423,6 +1423,9 @@ def _build_reference_setup(
     subject_seats: Sequence[str] | None = None,
     extra_pins: tuple[ImplementationPin, ...] = (),
     scripted_seats: Mapping[str, str] | None = None,
+    pricing: TokenPricing | None = None,
+    max_cost_usd: float = 0.0,
+    retry_policy: Mapping[str, Any] | None = None,
 ) -> _ReferenceSetup:
     case = case if case is not None else _reference_case()
     scripted = dict(scripted_seats or {})
@@ -1489,7 +1492,9 @@ def _build_reference_setup(
             "analysis_plan_id": analysis.analysis_plan_id,
         }
     )
-    pricing = TokenPricing(0.0, 0.0, 0.0, "kernel_contract_reference_zero_cost_v1")
+    pricing = pricing or TokenPricing(
+        0.0, 0.0, 0.0, "kernel_contract_reference_zero_cost_v1"
+    )
     profile = AgentProfile.from_dict(
         {
             "spec_version": AgentProfile.SPEC_VERSION,
@@ -1534,9 +1539,11 @@ def _build_reference_setup(
             "budgets": {
                 "max_logical_actions": 2,
                 "timeout_seconds": 30.0,
-                "max_cost_usd": 0.0,
+                "max_cost_usd": max_cost_usd,
             },
-            "retry_policy": {
+            "retry_policy": dict(retry_policy)
+            if retry_policy is not None
+            else {
                 "max_action_attempts": 1,
                 "retryable_conditions": [],
                 "session_mode": "restart",
