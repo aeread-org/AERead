@@ -1,4 +1,4 @@
-"""Every published Housing v15 plan rebuilds from current source on this kernel (HL-T-11).
+"""Every published Housing v14 and v15 plan rebuilds from current source on this kernel (HL-T-11, HL-D-11).
 
 A v15 plan pins the kernel's runtime modules by digest, so a kernel commit that touches them moves every plan id and
 the old lookup by ``run_plan_id`` finds nothing. ``aeread_families.housing.price_replay`` (v15 and addendum A) and
@@ -6,6 +6,10 @@ the old lookup by ``run_plan_id`` finds nothing. ``aeread_families.housing.price
 put back: kernel-owned digests may have moved, family digests may not. The receipts are in the run roots, not in the
 bundles, so the pins each published plan was sealed under are committed in ``tools/housing/price_recorded_pins.json``,
 which ``tools/housing/price_recorded_pins.py --check`` rebuilds from the run roots.
+
+A v14 plan's ``housing_feasible_zero_v1`` pin hashes ``runner.py`` with the kernel's ``task/evaluation.py``; it is
+checked by recomputing it from the current ``runner.py`` and that file at the v14 kernel (``git show 6aaf46bb:...``).
+Without that commit (a shallow clone) the v14 rebuild skips with the reason ``price_replay.V14_AT_PUBLISHING_KERNEL``.
 """
 from __future__ import annotations
 
@@ -52,7 +56,7 @@ def test_every_published_v15_plan_rebuilds_with_its_recorded_pins(bundle: str) -
     for plan_id in sorted(_published(bundle)):
         receipt = _receipt(plan_id)
         setup = V15[bundle].setup_for_receipt(receipt)
-        assert price_replay.sealed_plan(setup, receipt).run_plan_id == plan_id
+        assert price_replay.sealed_plan(setup.plan, receipt).run_plan_id == plan_id
 
 
 def test_a_receipt_whose_family_pin_moved_is_refused() -> None:
@@ -64,3 +68,35 @@ def test_a_receipt_whose_family_pin_moved_is_refused() -> None:
     family["sha256"] = "0" * 64
     with pytest.raises(ValueError, match="with its recorded pins"):
         price_replay.setup_for_receipt({**receipt, "plan_implementation_pins": pins})
+
+
+V14 = ("housing_lemons_price_confirmatory_v14", "housing_lemons_price_confirmatory_v14_gemini_fill")
+
+
+def _v14_plans() -> list[str]:
+    return sorted({p for bundle in V14 for p in _published(bundle, "tables/cells.jsonl")})
+
+
+def test_every_published_v14_plan_rebuilds_with_its_bridge_recomputed() -> None:
+    if price_replay.sealing_bridge_digest() is None:
+        pytest.skip(price_replay.V14_AT_PUBLISHING_KERNEL)
+    plans = _v14_plans()
+    assert len(plans) == 8
+    for plan_id in plans:
+        receipt = _receipt(plan_id)
+        setup = price_replay.setup_for_receipt(receipt)
+        assert price_replay.sealed_plan(setup.plan, receipt).run_plan_id == plan_id
+
+
+def test_a_v14_bridge_that_runner_py_no_longer_reproduces_is_refused(monkeypatch) -> None:
+    # Counterexample: the digest the current runner.py and the v14 kernel file would give, had runner.py changed.
+    monkeypatch.setattr(price_replay, "sealing_bridge_digest", lambda: "1" * 64)
+    with pytest.raises(ValueError, match="with its recorded pins"):
+        price_replay.setup_for_receipt(_receipt(_v14_plans()[0]))
+
+
+def test_without_the_v14_kernel_in_history_a_v14_receipt_is_refused_with_the_reason(monkeypatch) -> None:
+    # A shallow clone cannot check the bridge: the receipt is refused with the reason, never accepted.
+    monkeypatch.setattr(price_replay, "sealing_bridge_digest", lambda: None)
+    with pytest.raises(price_replay.SealingKernelUnavailable, match="publishing kernel 6aaf46bb"):
+        price_replay.setup_for_receipt(_receipt(_v14_plans()[0]))

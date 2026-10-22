@@ -19,6 +19,7 @@ import pytest
 from aeread.shared_runner.run.resolver import canonical_json_bytes
 from aeread_families.housing import price_campaign
 from aeread_families.housing import price_publication as pp
+from aeread_families.housing import price_replay
 
 ROOT = Path(__file__).resolve().parents[1]
 IDS = pp.V14_PANEL
@@ -83,14 +84,14 @@ def test_the_contracts_differ_in_exactly_the_declared_fields() -> None:
     assert [by_id[cid]["total_cost_ceiling_usd"] for cid in IDS] == [1.5, 1.5, 7.0]
 
 
-def _plan(contract: dict[str, Any], arm: str) -> tuple[str, dict[str, Any]]:
+def _plan(contract: dict[str, Any], arm: str) -> tuple[Any, dict[str, Any]]:
     setup = price_campaign.build_setup(contract, arm, live=True)
     tenant = price_campaign.identity(contract)["profile"]
     payload = json.loads(canonical_json_bytes(setup.plan).decode("utf-8").replace(tenant, "<tenant>"))
     payload["cells"] = sorted(payload["cells"], key=lambda c: (c["world_seed"], c["replicate_index"]))
     payload["agent_profiles"] = {p["profile_id"]: p for p in payload["agent_profiles"]}
     payload["profile_admissions"] = {p["profile_id"]: p for p in payload["profile_admissions"]}
-    return setup.plan.run_plan_id, payload
+    return setup.plan, payload
 
 
 @pytest.fixture(scope="module")
@@ -98,12 +99,27 @@ def plans() -> dict[str, list[tuple[str, dict[str, Any]]]]:
     return {arm: [_plan(c, arm) for c in _contracts()] for arm in pp.ARMS}
 
 
+RECORDED = json.loads((ROOT / "tools/housing/price_recorded_pins.json").read_text())["plans"]
+
+
 def test_the_plans_built_are_the_plans_that_ran(plans) -> None:
+    """Each plan built from current source, with the pins its receipts were sealed under put back, is the plan that ran.
+
+    Kernel-owned pins may have moved since sealing (HL-T-11). The family pin ``housing_feasible_zero_v1`` hashes
+    ``runner.py`` with the kernel's ``task/evaluation.py`` and is recomputed from the current ``runner.py`` and that
+    file at the v14 kernel, so a change to ``runner.py`` still fails here (HL-D-11). Without that commit in the local
+    history the test skips with the reason; it never passes without the check.
+    """
+    if price_replay.sealing_bridge_digest() is None:
+        pytest.skip(price_replay.V14_AT_PUBLISHING_KERNEL)
     ran = {(r["campaign_id"], r["arm"]): r["run_plan_id"] for r in map(json.loads, CELLS.read_text().splitlines())
            if r.get("run_plan_id")}
     for arm, built in plans.items():
-        for cid, (run_plan_id, _) in zip(IDS, built):
-            assert run_plan_id == ran[(cid, arm)]
+        for cid, (plan, _) in zip(IDS, built):
+            expected = ran[(cid, arm)]
+            receipt = {"run_plan_id": expected, **{k: RECORDED[expected][k] for k in ("run_plan_sha256", "plan_implementation_pins")}}
+            sealed = price_replay.sealed_plan(plan, receipt)
+            assert sealed is not None and sealed.run_plan_id == expected
 
 
 @pytest.mark.parametrize("arm", pp.ARMS)
