@@ -22,14 +22,20 @@ never as verified.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib
 import json
-from collections.abc import Callable, Mapping, Sequence
-from pathlib import Path
+import re
+from collections.abc import Callable, Collection, Mapping, Sequence
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from ..task.evaluation import EvaluationSetup, audit_family_receipt
-from .publication import MANIFEST_FILENAME, episode_key
+from .publication import (
+    MANIFEST_FILENAME,
+    _sealed_manifest,
+    episode_key,
+)
 from .publish_trajectories import GRAIN, published_receipt_digests
 from .resolver import canonical_json_bytes
 
@@ -46,21 +52,452 @@ EVIDENCE_MISSING = "evidence_missing"
 ReplaySetupFactory = Callable[[Mapping[str, Any]], EvaluationSetup]
 
 _IDENTITY_FIELDS = ("run_plan_id", "cell_id", "episode_attempt_id")
+_PROJECTION_IDENTITY_FIELDS = (
+    "run_plan_id",
+    "run_plan_sha256",
+    "cell_id",
+    "case_id",
+    "case_sha256",
+    "episode_id",
+    "episode_attempt_id",
+    "primary_leaf_id",
+    "status",
+    "inclusion_status",
+    "replay_level",
+)
+_TRAJECTORY_IDENTITY_FIELDS = (
+    "run_plan_id",
+    "run_plan_sha256",
+    "cell_id",
+    "case_id",
+    "case_sha256",
+    "episode_id",
+    "episode_attempt_id",
+)
 
 
-def _published_episodes(bundle: Path) -> dict[str, dict[str, str]]:
-    """Episodes the bundle names in its trajectory grain, by receipt digest."""
+_DIGEST = re.compile(r"[0-9a-f]{64}")
 
-    path = bundle / GRAIN
-    episodes: dict[str, dict[str, str]] = {}
-    if not path.is_file():
-        return episodes
-    for line in path.read_text(encoding="utf-8").splitlines():
-        row = json.loads(line)
-        digest = row.get("source_receipt_sha256")
-        if isinstance(digest, str):
-            episodes[digest] = {name: row.get(name) for name in _IDENTITY_FIELDS}
-    return episodes
+
+def _is_digest(value: Any) -> bool:
+    return isinstance(value, str) and _DIGEST.fullmatch(value) is not None
+
+
+def _identity_of(node: Mapping[str, Any]) -> dict[str, str] | None:
+    values = {name: node.get(name) for name in _IDENTITY_FIELDS}
+    if all(isinstance(value, str) and value for value in values.values()):
+        return values  # type: ignore[return-value]
+    return None
+
+
+def _published_files(bundle: Path) -> list[str]:
+    """Bundle-relative grain and receipts/ files; symlinks are never read."""
+
+    root = bundle.resolve()
+    paths: list[Path] = []
+    for folder in ("trajectories", "receipts"):
+        for pattern in ("*.jsonl", "*.json"):
+            paths += sorted((bundle / folder).rglob(pattern))
+    relatives: set[str] = set()
+    for path in paths:
+        try:
+            # A symlinked folder would otherwise lead the scan outside the bundle.
+            inside = path.resolve().is_relative_to(root)
+            if inside and path.is_file() and not path.is_symlink():
+                relatives.add(path.relative_to(bundle).as_posix())
+        except (OSError, ValueError):
+            continue
+    return sorted(relatives)
+
+
+def _published_objects(bundle: Path, relatives: Sequence[str], malformed: list[str] | None = None):
+    """Top-level records of the given files that carry a receipt binding.
+
+    Only top-level records count: a binding nested inside a record is data,
+    not a row. A file that does not parse is recorded in ``malformed`` (when
+    given) and skipped, never silently dropped. Every record of a receipts/
+    file must carry a valid ``source_receipt_sha256``, and a trajectories/
+    file that binds any record must bind them all; a record that does not
+    is recorded in ``malformed``. A trajectories/ file with no bindings at
+    all is a family archive and is ignored. Yields ``(relative, record)``.
+    """
+
+    for relative in relatives:
+        path = bundle / relative
+        try:
+            text = path.read_text(encoding="utf-8")
+            documents = (
+                [json.loads(line) for line in text.splitlines() if line.strip()]
+                if path.suffix == ".jsonl"
+                else [json.loads(text)]
+            )
+        except (OSError, ValueError) as error:
+            if malformed is not None:
+                malformed.append(f"{relative}: does not parse as JSON ({type(error).__name__})")
+            continue
+        records = documents if path.suffix == ".jsonl" else (documents[0] if isinstance(documents[0], list) else documents)
+        objects: list[tuple[int, Mapping[str, Any]]] = []
+        for index, record in enumerate(records):
+            if not isinstance(record, Mapping):
+                if malformed is not None:
+                    malformed.append(f"{relative}: record {index} is not a JSON object")
+                continue
+            objects.append((index, record))
+        bound = [(index, record) for index, record in objects if "source_receipt_sha256" in record]
+        if relative.startswith("receipts/") or bound:
+            if malformed is not None:
+                malformed.extend(
+                    f"{relative}: record {index} has no source_receipt_sha256"
+                    for index, record in objects
+                    if "source_receipt_sha256" not in record
+                )
+        for _index, record in bound:
+            yield relative, record
+
+
+def _declared_receipts(
+    manifest: Any, bundle: Path, readable_paths: Collection[str], malformed: list[str]
+) -> tuple[dict[str, dict[str, str] | None], bool]:
+    """Receipts the bundle declares it published, by digest, with identity if known.
+
+    The union of the manifest's ``source_receipt_sha256s`` (top level or under
+    ``source_bindings``; both layouts exist), its ``source_bindings``
+    ``receipt_sha256s`` (the refund layout), and every ``source_receipt_sha256``
+    in the trajectory grain and the receipts/ projections. ``receipt_sha256``
+    in reports/ and tables/ is deliberately not read: those summaries also cite
+    qualification and preflight receipts that are not published rows.
+
+    Rows are read only from ``readable_paths``: the digest-checked sealed
+    files when the manifest is ``sealed`` (so a file added after sealing
+    cannot become the inventory), none when ``seal_only``, and every file
+    when the bundle already failed the manifest check (for the report; that
+    never passes). Anything malformed is
+    appended to ``malformed``. Also returns whether a sealed grain declared
+    at least one digest.
+    """
+
+    declared: dict[str, dict[str, str] | None] = {}
+    grain_declared = False
+
+    def add(digest: Any, identity: dict[str, str] | None) -> None:
+        if digest not in declared or declared[digest] is None:
+            declared[digest] = identity
+
+    if isinstance(manifest, Mapping):
+        bindings = manifest.get("source_bindings") if "source_bindings" in manifest else {}
+        if not isinstance(bindings, Mapping):
+            malformed.append("manifest source_bindings is not an object")
+            bindings = {}
+        for where, container, key in (
+            ("manifest", manifest, "source_receipt_sha256s"),
+            ("manifest source_bindings", bindings, "source_receipt_sha256s"),
+            ("manifest source_bindings", bindings, "receipt_sha256s"),
+        ):
+            if key not in container:
+                continue
+            listed = container[key]
+            if not isinstance(listed, list):
+                malformed.append(f"{where} {key} is not a list")
+                continue
+            for index, digest in enumerate(listed):
+                if _is_digest(digest):
+                    add(digest, None)
+                else:
+                    malformed.append(f"{where} {key}[{index}] is not a sha256 digest: {digest!r}"[:160])
+    if readable_paths:
+        readable = [relative for relative in _published_files(bundle) if relative in readable_paths]
+        for relative, node in _published_objects(bundle, readable, malformed):
+            if "source_receipt_sha256" not in node:
+                continue
+            digest = node["source_receipt_sha256"]
+            if not _is_digest(digest):
+                malformed.append(f"{relative}: source_receipt_sha256 is not a sha256 digest: {digest!r}"[:160])
+                continue
+            add(digest, _identity_of(node))
+            grain_declared = grain_declared or relative == GRAIN
+    return declared, grain_declared
+
+
+def _published_projections(
+    bundle: Path, readable_paths: Collection[str], malformed: list[str], folder: str = "receipts/"
+) -> dict[str, list[tuple[str, Mapping[str, Any]]]]:
+    """Every published row in the given ``folder`` files (receipts/ projections
+    by default, trajectories/ grain rows otherwise), by digest.
+
+    A row is any object with a ``source_receipt_sha256``, whatever else it
+    carries: a projection without ``scores`` is still compared.
+    """
+
+    projections: dict[str, list[tuple[str, Mapping[str, Any]]]] = {}
+    receipts = [
+        relative
+        for relative in _published_files(bundle)
+        if relative.startswith(folder) and relative in readable_paths
+    ]
+    for relative, node in _published_objects(bundle, receipts, malformed):
+        if "source_receipt_sha256" not in node:
+            continue
+        digest = node["source_receipt_sha256"]
+        if not _is_digest(digest):
+            # Same wording as the inventory, so a sealed file is reported once.
+            malformed.append(f"{relative}: source_receipt_sha256 is not a sha256 digest: {digest!r}"[:160])
+            continue
+        projections.setdefault(digest, []).append((relative, node))
+    return projections
+
+
+def _expected_primary_score(projection: Mapping[str, Any], audited: Mapping[str, Any]) -> Any:
+    """The primary score the audited receipt gives the projection's primary leaf."""
+
+    leaf_id = projection["primary_leaf_id"] if "primary_leaf_id" in projection else audited.get("primary_leaf_id")
+    scores = audited.get("scores")
+    for entry in scores if isinstance(scores, list) else []:
+        leaf = entry.get("leaf") if isinstance(entry, Mapping) else None
+        if isinstance(leaf, Mapping) and leaf.get("leaf_id") == leaf_id:
+            primary = entry.get("primary")
+            return primary.get("value") if isinstance(primary, Mapping) else None
+    return None
+
+
+#: Projection keys that are not compared field for field: the binding itself,
+#: a key the receipt does not carry, and the fields compared by their own rule.
+_PROJECTION_UNCOMPARED = frozenset(
+    {"source_receipt_sha256", "campaign_cell_key", "scores", "primary_score"}
+)
+
+
+def _published_failure(sealed: Any) -> Any:
+    """The failure as every publisher projects it: condition and class, or null."""
+
+    if isinstance(sealed, Mapping):
+        return {"condition": sealed.get("condition"), "failure_class": sealed.get("failure_class")}
+    return None
+
+
+def _projection_difference(
+    projections: Sequence[tuple[str, Mapping[str, Any]]], audited: Mapping[str, Any]
+) -> str | None:
+    """Why a published projection disagrees with the audited receipt, if it does."""
+
+    for relative, projection in projections:
+        for name in _PROJECTION_IDENTITY_FIELDS:
+            if name in projection and (name not in audited or projection[name] != audited[name]):
+                return f"published projection {relative} {name} differs from the receipt"
+        for name, value in projection.items():
+            if name in _PROJECTION_UNCOMPARED or name in _PROJECTION_IDENTITY_FIELDS:
+                continue
+            if name == "deferred_leaf_ids":
+                expected: Any = audited.get("deferred_leaf_ids", [])
+            elif name == "failure":
+                expected = _published_failure(audited.get("failure"))
+            elif name in audited:
+                expected = audited[name]
+            else:
+                continue
+            if canonical_json_bytes(value) != canonical_json_bytes(expected):
+                return f"published projection {relative} {name} differs from the receipt"
+        if "scores" in projection and canonical_json_bytes(projection["scores"]) != canonical_json_bytes(
+            audited.get("scores")
+        ):
+            return f"published projection {relative} scores differ from the recomputed scores"
+        if "primary_score" in projection and canonical_json_bytes(
+            projection["primary_score"]
+        ) != canonical_json_bytes(_expected_primary_score(projection, audited)):
+            return f"published projection {relative} primary_score differs from the recomputed primary score"
+    return None
+
+
+def _trajectory_difference(
+    rows: Sequence[tuple[str, Mapping[str, Any]]], audited: Mapping[str, Any]
+) -> str | None:
+    """Why a published grain row disagrees with the audited receipt, if it does.
+
+    Grain rows carry identities and no scores, so only identities are compared.
+    """
+
+    for relative, row in rows:
+        for name in _TRAJECTORY_IDENTITY_FIELDS:
+            if name in row and (name not in audited or row[name] != audited[name]):
+                return f"published trajectory row {relative} {name} differs from the receipt"
+    return None
+
+
+def _artifact_list(manifest: Mapping[str, Any]) -> tuple[dict[str, str] | None, str | None]:
+    """The manifest's per-file digests as path -> sha256, or why they are malformed.
+
+    Three layouts: ``artifacts`` as a dict path -> digest (kernel) or as a list
+    of ``{path, sha256, size_bytes}`` objects (early kernel), and ``files`` as a
+    dict path -> ``{sha256, bytes, ...}`` (family publications; 29 bundles on
+    ``main``). Reading only ``artifacts`` left those bundles ``seal_only``, so a
+    sealed file deleted from one went unnoticed (EVID-O-03, #252). A manifest
+    carrying both lists has both read, and they must agree. ``None`` with no
+    problem means the manifest carries no list.
+    """
+
+    sources: list[tuple[str, list[tuple[Any, Any]]]] = []
+    if "artifacts" in manifest:
+        listed = manifest["artifacts"]
+        if isinstance(listed, Mapping):
+            sources.append(("artifacts", list(listed.items())))
+        elif isinstance(listed, list):
+            sources.append((
+                "artifacts",
+                [
+                    (item.get("path"), item.get("sha256")) if isinstance(item, Mapping) else (None, None)
+                    for item in listed
+                ],
+            ))
+        else:
+            return None, f"artifacts is a {type(listed).__name__}, not a digest map or list"
+    if "files" in manifest:
+        listed = manifest["files"]
+        if not isinstance(listed, Mapping):
+            return None, f"files is a {type(listed).__name__}, not a map of path to digest entry"
+        sources.append((
+            "files",
+            [
+                (path, entry.get("sha256") if isinstance(entry, Mapping) else None)
+                for path, entry in listed.items()
+            ],
+        ))
+    if not sources:
+        return None, None
+    sealed: dict[str, str] = {}
+    for field, pairs in sources:
+        for path, digest in pairs:
+            if (
+                not isinstance(path, str)
+                or not path
+                or "\\" in path
+                or "\x00" in path
+                # One spelling per file: './a', 'a//b' and 'a/./b' would be hashed
+                # under one name and compared under another.
+                or PurePosixPath(path).as_posix() != path
+                or PurePosixPath(path).is_absolute()
+                or PureWindowsPath(path).drive
+                or ".." in PurePosixPath(path).parts
+                or not _is_digest(digest)
+                or sealed.get(path, digest) != digest
+            ):
+                return None, f"{field} holds a malformed or duplicate entry: {path!r}"
+            sealed[path] = digest
+    return sealed, None
+
+
+def _seal_check(manifest: Mapping[str, Any]) -> tuple[str | None, bool]:
+    """Which seal the manifest carries and whether it recomputes.
+
+    A manifest carrying ``manifest_sha256`` is a kernel manifest whatever its
+    schema_version says, so an edited schema cannot dodge the recompute. The
+    family layouts self-seal over everything else.
+    """
+
+    if "manifest_sha256" in manifest:
+        return "manifest_sha256", _sealed_manifest(manifest)["manifest_sha256"] == manifest["manifest_sha256"]
+    for field in ("artifact_sha256", "publication_sha256"):
+        if field in manifest:
+            body = {key: value for key, value in manifest.items() if key != field}
+            return field, hashlib.sha256(canonical_json_bytes(body)).hexdigest() == manifest[field]
+    return None, False
+
+
+def _sealed_file_digest(bundle: Path, relative: str) -> str | None:
+    """The sha256 of one sealed file, or ``None`` when it is absent or unreadable."""
+
+    path = bundle / relative
+    try:
+        # Resolve first: a symlinked parent must not lead the read outside.
+        if not path.resolve().is_relative_to(bundle.resolve()):
+            return None
+        if not path.is_file() or path.is_symlink():
+            return None
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except (OSError, ValueError):
+        return None
+
+
+def _bundle_file_names(bundle: Path) -> set[str]:
+    """The files bundle_artifact_digests would list, found without reading them.
+
+    A file added after sealing is only named in the report, so an unreadable
+    one cannot abort the verification of the files that were sealed.
+    """
+
+    names: set[str] = set()
+    for path in bundle.rglob("*"):
+        relative = path.relative_to(bundle)
+        if not path.is_file() or path.is_symlink() or path.suffix == ".tmp":
+            continue
+        if relative.as_posix() == MANIFEST_FILENAME or any(part.startswith(".") for part in relative.parts):
+            continue
+        names.add(relative.as_posix())
+    return names
+
+
+def _symlinks(bundle: Path) -> list[str]:
+    return sorted(
+        path.relative_to(bundle).as_posix()
+        for path in bundle.rglob("*")
+        if path.is_symlink()
+    )
+
+
+def _manifest_check(bundle: Path, manifest: Any) -> tuple[dict[str, Any], dict[str, str] | None]:
+    """Is the bundle still what its manifest sealed? Also the digest-checked file set.
+
+    Statuses: ``sealed`` (the seal recomputes and every sealed file matches),
+    ``seal_only`` (a layout that self-seals but lists no per-file digests
+    under ``artifacts`` or ``files``, so the files themselves are not sealed), ``tampered`` and
+    ``unchecked`` (no recognised seal). Files added after sealing are listed
+    as unsealed and are not a failure; a sealed file that changed or
+    vanished, a seal that does not recompute, or any symlink is. The second
+    value is the path -> digest set the verdict may read inventory from, only
+    when ``sealed``.
+    """
+
+    result: dict[str, Any] = {
+        "status": "unchecked",
+        "reason": None,
+        "seal_field": None,
+        "altered_or_missing_artifacts": [],
+        "unsealed_artifacts": [],
+        "symlinks": _symlinks(bundle),
+    }
+    if not isinstance(manifest, Mapping):
+        result.update(status="tampered", reason="the manifest is not a JSON object")
+        return result, None
+    seal_field, seal_ok = _seal_check(manifest)
+    result["seal_field"] = seal_field
+    if seal_field is None:
+        result["reason"] = "the manifest carries no recognised seal"
+        return result, None
+    sealed, malformed = _artifact_list(manifest)
+    problems = []
+    if not seal_ok:
+        problems.append(f"{seal_field} does not recompute from the manifest")
+    if malformed:
+        problems.append(malformed)
+    elif not isinstance(manifest.get("artifacts"), Mapping) and seal_field == "manifest_sha256":
+        problems.append("kernel manifest without an artifact digest map")
+    if result["symlinks"]:
+        problems.append("symlinks in the bundle: " + ", ".join(result["symlinks"][:5]))
+    if sealed is not None and not result["symlinks"]:
+        # A bundle with a symlink is tampered already; none of its files is read.
+        result["altered_or_missing_artifacts"] = sorted(
+            path for path, digest in sealed.items() if _sealed_file_digest(bundle, path) != digest
+        )
+        result["unsealed_artifacts"] = sorted(_bundle_file_names(bundle) - set(sealed))
+        if result["altered_or_missing_artifacts"]:
+            problems.append(
+                f"{len(result['altered_or_missing_artifacts'])} sealed artifacts altered or missing: "
+                + ", ".join(result["altered_or_missing_artifacts"][:5])
+            )
+    result["reason"] = "; ".join(problems) or None
+    if problems:
+        result["status"] = "tampered"
+        return result, None
+    result["status"] = "sealed" if sealed is not None else "seal_only"
+    return result, sealed
 
 
 def _row(
@@ -95,14 +532,24 @@ def verify_bundle_replay(
     A row is ``verified`` when its sealed attempt is found under ``run_root``
     and :func:`audit_family_receipt` recomputes the same state and score from
     the sealed events; ``differs`` with the reason when it does not; and
-    ``evidence_missing`` when the bundle's trajectory grain names an episode
-    whose receipt is not under ``run_root``. ``verified`` at the top level is
-    true only when at least one row was checked and every row verified.
+    ``evidence_missing`` when the bundle declares a receipt (manifest list,
+    grain or projection row) that is not under ``run_root``. A row also
+    differs when a published projection of it carries other scores or
+    identities than the recomputed receipt. ``verified`` at the top level is
+    true only when at least one row verified, none differs or is missing, and
+    the bundle declares what it published and its manifest is not ``tampered``
+    (seal not recomputing, a sealed artifact altered or missing, a symlink; layouts
+    listing no per-file digests (neither ``artifacts`` nor ``files``) are ``seal_only``; a manifest with no
+    recognised seal is ``unchecked`` and not verified), and nothing declared
+    was malformed; otherwise ``verdict_reasons`` says why. The declared
+    inventory reads manifest lists, plus grain and projection rows only from
+    files the manifest sealed.
 
-    Coverage is ``every_published_episode`` when the bundle carries the
-    kernel trajectory grain, which lists its episodes; without it only the
-    receipts found under ``run_root`` can be checked, and the report says so
-    (``receipts_found_under_run_root``).
+    Coverage is ``every_published_episode`` when a sealed trajectory grain
+    declared receipts,
+    ``declared_receipts`` when only the manifest or projections declare the
+    set, and ``receipts_found_under_run_root`` when nothing is declared: then
+    missing evidence cannot be detected and the run is never verified.
     """
 
     bundle = Path(bundle_root)
@@ -111,8 +558,53 @@ def verify_bundle_replay(
         raise ValueError(f"no {MANIFEST_FILENAME} in {bundle}")
     if not root.is_dir():
         raise ValueError(f"run root is not a directory: {root}")
-    published = published_receipt_digests(bundle)
-    expected = _published_episodes(bundle)
+    try:
+        manifest: Any = json.loads((bundle / MANIFEST_FILENAME).read_bytes())
+    except ValueError:
+        manifest = None
+    manifest_check, sealed_paths = _manifest_check(bundle, manifest)
+    malformed: list[str] = []
+    if manifest_check["symlinks"]:
+        # Tampered already; nothing in it is read, through any reader.
+        readable: Collection[str] = ()
+    elif manifest_check["status"] == "sealed":
+        readable = sealed_paths or ()
+    elif manifest_check["status"] == "seal_only":
+        readable = ()
+    else:
+        readable = _published_files(bundle)
+    declared, grain_declared = _declared_receipts(manifest, bundle, readable, malformed)
+    # A symlinked bundle is tampered whatever it holds; none of it is read.
+    no_symlinks = not manifest_check["symlinks"]
+    published: frozenset[str] = frozenset()
+    if no_symlinks and not declared:
+        # The broad scan is only the fallback when nothing is declared; an
+        # unsealed file it cannot read must not reject a bundle that does.
+        try:
+            published = published_receipt_digests(bundle)
+        except (OSError, ValueError) as error:
+            malformed.append(f"published receipt scan could not read a file ({type(error).__name__})")
+    # Comparison may read receipts/ of a seal_only bundle (never as inventory).
+    if manifest_check["status"] == "seal_only":
+        projection_files: Collection[str] = _published_files(bundle)
+    else:
+        projection_files = readable
+    projections = _published_projections(bundle, projection_files, malformed) if no_symlinks else {}
+    trajectories = (
+        _published_projections(bundle, projection_files, malformed, "trajectories/") if no_symlinks else {}
+    )
+    if declared:
+        for label, group in (("receipts/", projections), ("trajectories/", trajectories)):
+            undeclared: dict[str, set[str]] = {}
+            for digest, found in group.items():
+                if digest not in declared:
+                    for relative, _node in found:
+                        undeclared.setdefault(relative, set()).add(digest)
+            for relative, digests in sorted(undeclared.items()):
+                malformed.append(f"{relative} references receipts the bundle does not declare: {len(digests)}")
+    malformed[:] = list(dict.fromkeys(malformed))
+    projections_checked = 0
+    trajectory_rows_checked = 0
 
     rows: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -120,10 +612,10 @@ def verify_bundle_replay(
     for receipt_path in sorted(root.rglob(RECEIPT_FILENAME)):
         try:
             receipt = json.loads(receipt_path.read_bytes())
-        except (OSError, json.JSONDecodeError):
+        except (OSError, ValueError):
             continue
         digest = receipt.get("receipt_sha256") if isinstance(receipt, Mapping) else None
-        if not isinstance(digest, str) or digest not in published:
+        if not isinstance(digest, str) or digest not in (declared or published):
             continue
         if digest in seen:
             duplicates += 1
@@ -138,32 +630,65 @@ def verify_bundle_replay(
                 _row(digest, receipt, status=DIFFERS, reason=f"{type(error).__name__}: {error}")
             )
             continue
+        published_rows = projections.get(digest, [])
+        projections_checked += len(published_rows)
+        grain_rows = trajectories.get(digest, [])
+        trajectory_rows_checked += len(grain_rows)
+        difference = _projection_difference(published_rows, audited) or _trajectory_difference(
+            grain_rows, audited
+        )
+        if difference:
+            rows.append(_row(digest, audited, status=DIFFERS, reason=difference))
+            continue
         rows.append(_row(digest, audited, status=VERIFIED, scored=bool(audited.get("scores"))))
-    for digest, identity in sorted(expected.items()):
+    for digest, identity in sorted(declared.items()):
         if digest not in seen:
-            rows.append(_row(digest, identity, status=EVIDENCE_MISSING))
+            rows.append(_row(digest, identity or {}, status=EVIDENCE_MISSING))
 
     rows.sort(key=lambda row: (row["episode_key"] or "", row["source_receipt_sha256"]))
     counts = {
         status: sum(row["status"] == status for row in rows)
         for status in (VERIFIED, DIFFERS, EVIDENCE_MISSING)
     }
-    manifest = json.loads((bundle / MANIFEST_FILENAME).read_bytes())
+    if grain_declared:
+        coverage = "every_published_episode"
+    elif declared:
+        coverage = "declared_receipts"
+    else:
+        coverage = "receipts_found_under_run_root"
+    reasons: list[str] = []
+    if manifest_check["status"] in ("tampered", "unchecked"):
+        reasons.append(f"manifest check failed ({manifest_check['status']}): {manifest_check['reason']}")
+    if malformed:
+        reasons.append(f"{len(malformed)} malformed declarations: " + "; ".join(malformed[:3]))
+    if coverage == "receipts_found_under_run_root":
+        reasons.append(
+            "the bundle declares no receipt inventory (no manifest source_receipt_sha256s, "
+            "no source_receipt_sha256 rows), so missing evidence cannot be detected"
+        )
+    if counts[EVIDENCE_MISSING]:
+        reasons.append(f"{counts[EVIDENCE_MISSING]} published receipts have no evidence under the run root")
+    if counts[DIFFERS]:
+        reasons.append(f"{counts[DIFFERS]} rows differ")
+    if not counts[VERIFIED] and not counts[DIFFERS] and not counts[EVIDENCE_MISSING]:
+        reasons.append("no row was checked")
     report = {
         "schema_version": REPORT_SCHEMA_VERSION,
         "publication_id": manifest.get("publication_id") if isinstance(manifest, Mapping) else None,
         "manifest_sha256": manifest.get("manifest_sha256") if isinstance(manifest, Mapping) else None,
-        "coverage": (
-            "every_published_episode" if expected else "receipts_found_under_run_root"
-        ),
+        "manifest": manifest_check,
+        "coverage": coverage,
+        "declared_receipts": len(declared),
+        "malformed_declarations": malformed,
+        "published_projections_checked": projections_checked,
+        "trajectory_rows_checked": trajectory_rows_checked,
         "counts": counts,
         "scored_rows_verified": sum(
             row["status"] == VERIFIED and bool(row["scored"]) for row in rows
         ),
         "duplicate_receipt_copies_ignored": duplicates,
-        "verified": counts[VERIFIED] > 0
-        and counts[DIFFERS] == 0
-        and counts[EVIDENCE_MISSING] == 0,
+        "verified": not reasons,
+        "verdict_reasons": reasons,
         "rows": rows,
     }
     return report
@@ -207,11 +732,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"{report['publication_id']}: {counts[VERIFIED]} verified "
         f"({report['scored_rows_verified']} scored), {counts[DIFFERS]} differ, "
         f"{counts[EVIDENCE_MISSING]} evidence missing; coverage={report['coverage']}; "
+        f"manifest={report['manifest']['status']}; "
         f"manifest_sha256={report['manifest_sha256']}"
     )
     for row in report["rows"]:
         if row["status"] != VERIFIED:
             print(f"  {row['status']}: {row['source_receipt_sha256']} {row['reason'] or ''}".rstrip())
+    for reason in report["verdict_reasons"]:
+        print(f"  not verified: {reason}")
     return 0 if report["verified"] else 1
 
 
