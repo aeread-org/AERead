@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.40 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.41 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -370,3 +370,18 @@ current one saturated"):
   kinds the cases use; cross-references follow complete thoughts; two-idea sentences split; Section 6's reference-
   run detail moved to Appendix F.2. A paper-wide check confirmed no number left the paper (847 distinct, 847 after).
   The paper now cites the replication note at docs/research/paper_replication_note.md (on main, #308).
+- Version 15.41 (2026-10-21): fixes from a referee read of 15.39, each checked against the data first. The 42%/7%
+  headline is scale-matched (head to head counts a transfer twice; halved, 21% vs 7%, paired difference 13.4 points
+  [6.4, 20.3], post hoc). The data-center case states up front that v2 tests bargaining, not inference (the client's
+  first reply reveals its charge; charges are drawn, not fixed by stratum as the referee thought). Housing states that
+  its largest shortfall class rests on full pass-through of the lemon discount under the leaky landlord, a knife-edge
+  design choice (issue #302 extended). Procurement says the one-step rule's 0% holds by construction and that the 20
+  worlds are a 0.4% selected tail. Command-line agents are marked as agent configurations in Tables 5.2-5.4; Section
+  4.2's 'eight operator skills' is corrected to the v1 run only. AERead expanded (Agent Economic Readiness) and the
+  readiness term scoped; one self-description; Table 2.1's self-score sentence and the Gartner/NFIB citations cut;
+  the 25 defects described as hand-picked; the A/A arm no longer called a calibration; Section 5.3 moved to Appendix
+  E.10 as a reproduction in progress (Table 5.5 is now Table E.18). Small: 230/114 blind signings are over all 600
+  episodes; Table 5.2 rows are consistent (prose rounded 95.36% to 95%; now 95.4%); P1's interval [1.8, 13.2];
+  'proves sound' under the leaky kind; (C.7) with general beta; Table A.2 'less'; quote validity stated; the $65.90
+  example qualified; raw symbols fixed; LaTeX equations set real sub- and superscripts. '600 vs 580 agreements': 600
+  is right and 580 appears nowhere.

@@ -14,9 +14,9 @@ procurement and contracting, and a reimplementation of part of TERMS-Bench
 runs on the same runtime.
 
 The cases teach three lessons that bear on any evaluation of this kind.
-The counterpart is part of the measurement: the same two agents differ by
-far more when they negotiate with each other than when each faces a fixed
-counterpart. The task prompt is part of the case: stating a rule that the prompt had left
+The counterpart is part of the measurement: counting each transfer between
+them once, the same two agents differ by about three times as much when they
+negotiate with each other as when each faces a fixed counterpart. The task prompt is part of the case: stating a rule that the prompt had left
 implicit changed scores as much as changing the agent did. And the defects
 that matter are often properties of the population of worlds, the task prompt or
 the analysis rather than of any single world. Construction and quality
@@ -27,22 +27,28 @@ comparisons. Replay establishes consistency with recorded play; construct
 validity requires evidence about the worlds, the information and the
 controls.
 
-These properties matter most where agents are deployed. Organizations that
-pilot agents often stop because the business value is unclear and the
-risks are hard to control \citep{gartner2025agentic}; a value score against
-a stated reference and a typed account of losses address both. Small firms
-face a different problem: short of staff \citep{nfib2026jobs}, they often
-leave decisions like those our cases model to one person, without
-specialized expertise and with no review before a commitment. Delegating
-such a decision to an agent is attractive there, and trusting it requires
-evidence that the agent keeps value against the counterparts it will meet.
+These properties matter most where agents are deployed. An organization
+that delegates a decision to an agent needs to know what the agent's
+choices are worth against what was achievable, and where its losses come
+from; a value score against a stated reference and a typed account of
+losses answer both questions. Where one person makes such decisions
+without specialized expertise or review before a commitment, delegating
+them to an agent also requires evidence that the agent keeps value against
+the counterparts it will meet.
 
 The present evidence has clear limits. The cases take their decision
 structure from informal rentals, wholesale sourcing and AI-infrastructure
 contracting, but we set their parameters; calibration to
 field data and transfer to field settings remain to be established.
+Some parameters carry a result. Housing's leaky landlord passes the whole of a
+lemon's discount through to its rent, so a known lemon is exactly as good a
+lease as the same listing sound, and the largest Housing shortfall class,
+declining such leases, rests on that knife-edge choice. An evaluation set in
+which the discount is smaller than the loss would test the adverse-selection
+decision that the introduction describes.
 Coverage is limited to two transaction classes and a small set of agent
-configurations, with no human policy baseline. No case passes all of the
+configurations, with no human policy baseline. The data-center comparison tests bargaining
+against a fixed scripted counterpart, not inference about the other side's type. No case passes all of the
 quality-control gates (Section 6). Several checks were added after the runs
 they qualify. The behavior of hosted models and command-line tools also limits
 how far a result can be attributed to its stated settings.
@@ -52,12 +58,12 @@ provenance. Full verification against the original execution still
 requires the retained logs (Appendix~G). The reanalyses neither qualify the
 campaigns retroactively nor resolve Housing's historical seat attribution
 (Appendix~H). The results therefore do not establish general model rankings
-or deployment readiness.
+or readiness for deployment in a particular firm.
 
 \subsection{Open research directions and contributions}
 \label{sec:open-directions}
 
-AERead is shared infrastructure for studying how agents make economic
+AERead is an open environment for studying how agents make economic
 decisions. Its code is open source under the Apache-2.0 license
 (github.com/aeread-org/AERead; contact@aeread.org), and contributors can
 pursue their own questions with the existing cases, counterparts and
@@ -95,7 +101,7 @@ The next steps follow from the limits in Section 7.1. Future campaigns should bi
 the actual seat assignments and headline scorers into frozen evaluation
 configurations and run the required controls before any comparison, and the
 TERMS-Bench reimplementation needs the protocol fixes described in
-Section 5.3 before a pre-registered reproduction. Practitioner review would
+Appendix~E.10 before its pre-registered reproduction can proceed. Practitioner review would
 calibrate the cases' parameters, human baselines would show where agents
 stand against people, and externally contributed cases would test whether
 the structure serves authors other than its maintainers. AERead's present

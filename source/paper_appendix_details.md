@@ -127,10 +127,11 @@ reduce to 174 distinct action sequences (four payments cases share one reference
 
 Section 5.1 and Table 5.2 report v15, the pre-registered comparison. Its inclusion screen rejected 119 of the 437
 candidate main worlds. Relative to the best informed tenant's value, the full-information ceiling is 121% and
-`inspect_then_sign` earns 49%. The A/A arm, in which Luna runs twice under two names with different seeds, differs by
-−1.6 points [−6.1, +2.9], inside the $50 band, which indicates that the band is calibrated. In the holdout, Gemini
-leads Luna by 18.2 points [5.8, 30.6]. In worlds whose favourite is a lemon, Luna signs without inspecting twice as
-often as Gemini (230 against 114 blind signings in 600 episodes). All 1,720 episodes completed and were verified by
+`inspect_then_sign` earns 49.5%. The A/A arm, in which Luna runs twice under two names with different seeds, differs by
+−1.6 points [−6.1, +2.9]. Run-to-run noise between identical arms is therefore well inside the $50 band; the band
+itself is our judgement of the smallest difference that matters, which the A/A arm cannot test. In the holdout, Gemini
+leads Luna by 18.2 points [5.8, 30.6]. Across all 600 of each model's episodes (the main evaluation set and the holdout, both
+landlord kinds and both strata), Luna signs without inspecting 230 times and Gemini 114 times. All 1,720 episodes completed and were verified by
 replay ($8.64). The evidence bundle also records 0 invalid seat-0 actions for either model, and realized nets of
 $244.0 (Gemini) and $194.2 (Luna) beside the corrected-measure values; the v15 results note in the repository gives
 every row of Table 5.2 in dollars.
@@ -291,7 +292,13 @@ because its provider route changed price before any call.
 list price). With the walk-away point stated, neither model signs below it as client (0 of 80 for either), and the
 client seat separates nothing (+0.8 points [−3.2, 4.9]). On v2's deal worlds the best informed turn-by-turn policy
 gives the integrator 63.5% of the value available at the true client type, whereas Sol earned 33.8%, Opus 26.3% and
-the price-only rule 26.5%. Sol therefore captures about 20% of the room between the rule and that policy. The earlier
+the price-only rule 26.5%. Sol therefore captures about 20% of the room between the rule and that policy. Neither
+model contrast is shown to reach its pre-registered minimum: the lower ends of the intervals fall below 32.4 and 12.9
+points ($100k and $40k). Halving the head-to-head contrast, so that a transfer between the two agents counts once,
+halves its minimum to 16.2 points, below which the halved interval also starts (15.7). The halved comparison in
+Section 5.1 was made after the runs; its paired p-value is 0.0003. Matching seats as well, by averaging the
+integrator and client contrasts against the script (4.1 points [0.1, 8.2]), widens the paired difference to 16.7
+points [10.5, 22.9]. The earlier
 comparison (v1) is reported at the end of this subsection (Tables E.16 and E.17), and development results are in
 Tables E.3 and E.7.
 
@@ -408,7 +415,7 @@ joint loss by pairing, and Appendix E.9 replays it at other fee levels.
 For a unit u (an episode, an action or a part of a grade, depending on the case), the shortfall is the reference's
 value minus the agent's, and the rules assign it to the classes in priority order:
 
-[[eq E.2]] S(u) = V_ref(u) − V(u) = Σ_c S_c(u),
+[[eq E.2]] S(u) = V_ref(u) − V(u) = Σ over classes c of S_c(u),
 
 where c ranges over the six scored classes and each part of the loss goes to the first class whose rule it meets. The
 priority order makes the decomposition an accounting identity, not a causal attribution.
@@ -669,6 +676,52 @@ The source package retains the supplied analysis, its reproduced outputs, its in
 discussed above. The reproduction uses the retained campaign logs, which the compact package does not include in
 full.
 
+### E.10 TERMS-Bench reimplementation: a reproduction in progress
+
+This is a negative result in progress, not evidence for the four cases. It shows that an external benchmark's
+environment and counterparts can run as a family on AERead's runtime, and what a faithful port requires.
+
+TERMS-Bench evaluates bilateral price negotiation against counterparts whose type is hidden [TB]. We reimplemented,
+from the paper's description, its alternating-offer environment, three of its six counterpart families (Candid,
+Taciturn and Expressive) and four of its measures as one AERead family. The counterpart runs as a scripted seat, and
+its random draws are sealed each turn, so replay recomputes the counterpart's moves as well as the scores. We did not
+implement the Oracle-Cue reference or the gap measures built on it, the urgency regime, type-belief error or the other
+three families, and counterpart messages are templates. The corpus has 30 cases, 15 with a zone of agreement and 15
+without, each played once.
+
+**Table E.18. TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases against scripted
+counterparts, beside the paper's values. Agreement and surplus are computed over the cases with a zone of agreement
+(15 for GPT-4o-mini, 12 for GLM-5.1).**
+
+| | GPT-4o-mini | GLM-5.1 | Paper: GPT-4o-mini | Paper: GLM-5.1 |
+|---|---:|---:|---:|---:|
+| Agreement rate where a deal exists (AGR+) | 0.80 | 1.00 | 0.522 | 0.951 |
+| Surplus efficiency (SE+) | 0.035 | 0.458 | 0.196 | 0.668 |
+| Conditional surplus efficiency (CSE+) | 0.044 | 0.458 | 0.363 | 0.721 |
+
+The paper's surplus efficiency comes from its Table 16 (overlap regime, mean of the three families played here); its
+agreement and conditional surplus efficiency come from its Table 2, which pools six families and three regimes, so
+those two comparisons are looser. GLM-5.1 has 12 cases because its three malformed moves removed those episodes.
+
+The reimplementation orders the two agents as the paper does on all three measures, but absolute levels are lower for
+both, and for a third model. A review of the port after these runs traced the shift to four departures from the
+paper's protocol rather than to the agent, whose interface in the paper is also one stateless call per round. First,
+our prompt does not state the agent's payoff or the rule against accepting above its reservation value. Second, its
+observation differs from the paper's. Third, a malformed move removes the episode where the paper applies a fallback;
+under that fallback, GLM-5.1's surplus efficiency would be 0.520 over all 15 cases. Fourth, our price range and zone
+widths are wider than the paper's.
+
+**The reproduction.** We have built a pre-registered reproduction with those fixes, and it stopped at its first check: one of the paper's fixed-concession baselines (FC10) scores 0.307 here against the paper's 0.266, while
+the other two match. The paper states how much the baselines concede (1%, 10% or 30% of the remaining distance per
+offer) but not how they open or accept. No agent has played the reproduction. The paper reports critical violations
+by GLM-5.1 in 5% of cases without a zone of agreement for these three families; at that rate, 15 such cases would show
+none about half the time, and ours showed none. The port also exposed a harness effect. On one provider route, any
+specified reasoning budget suppressed deliberation, and GLM 5.3 Flash breached its own reservation value in 13 of
+30 cases, against the paper's band of 0 to 2.06%. With no reasoning setting specified, it breached in 2 of 30 and its
+surplus efficiency rose from 0.40 to 0.53; the comparison above uses that setting. This is why the reasoning condition
+is part of each run's frozen configuration. The runtime's support for the scripted seat that this family uses is now
+on the main branch.
+
 ## Appendix F. Quality control in detail
 
 This appendix describes only the checks that we built and applied to the four cases, with two caveats that apply
@@ -922,7 +975,7 @@ separately.
 | Data center | The hidden type was fixed by design cell and moved with public quantities | no | a placebo outcome, after the look-back (Appendix F.4) | an included evaluation set whose types are drawn after inclusion (Appendix F.2) |
 | Data center | The generator priced the client's rival offer, a public number in both task prompts, from the drawn integrator type, so a public parameter depended on both hidden types | yes, by reading the generator | building the included evaluation set | the included evaluation set prices it before any type is drawn; the development sets keep theirs |
 | Data center | The integrator's private cost barely moves the best agreement, so the client seat has almost nothing to infer about clauses | no: a value of information across worlds | building the inclusion criterion for both seats | open; the client seat needs worlds where the integrator's risk charge is private |
-| Housing | The primary measure conditions on the landlord's reply only below the sound floor; a reply that proves a listing sound is still scored at the stated odds | yes, by reading the measure's code | writing the formal appendix of this paper | recomputed from the sealed run roots: 57 signings move, no pre-registered verdict changes, Gemini's leads shrink by $10 and $13 in the v14 episodes; an erratum is owed |
+| Housing | The primary measure conditions on the landlord's reply only below the sound floor; a reply that proves a listing sound under the leaky kind is still scored at the stated odds | yes, by reading the measure's code | writing the formal appendix of this paper | recomputed from the sealed run roots: 57 signings move, no pre-registered verdict changes, Gemini's leads shrink by $10 and $13 in the v14 episodes; an erratum is owed |
 | Refund | The 120-episode panel was six cases: the world seed changed only the case id, and the policy seat ran at temperature 0 | no: needs the seeds compared | rebuilding the cases and reading the reference run's resolutions | the case is the unit of analysis; V2.5 varies pre-registered conditions by seed |
 | Refund | A correct denial written with method `null` failed: the prompt says "none", the schema allows null, the verifier compares strings | yes, by reading one proposal against the verifier | building the gap decomposition | recorded; reported as format, not outcome |
 | Refund | The human-QC approval was minted by the runner from two status-only stubs, so it bound whatever the runner produced | yes, by reading the runner's code | the Refund audit | V2.5 names a reviewer, but the runner still binds the approval to its own output (still open) |

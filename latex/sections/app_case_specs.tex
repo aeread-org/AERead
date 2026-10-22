@@ -37,7 +37,7 @@ never acts. Exactly m = 2 listings are lemons, Λ ⊂ \{0, \ldots, 3\}, drawn un
 stream separate from the one that sets values, asks and costs. Seat 0 signs at most one lease
 (ℓ, rent), or none. Its payoff after signing ℓ with k inspections is
 
-\[ \parbox{0.86\linewidth}{\raggedright u\_A = v\_ℓ − D·𝟙[ℓ ∈ Λ] − rent − c·k, and u\_A = −c·k if it signs nothing,} \tag{A.1} \]
+\[ \parbox{0.86\linewidth}{\raggedright u\textsubscript{A} = v\textsubscript{ℓ} − D·𝟙[ℓ ∈ Λ] − rent − c·k, and u\textsubscript{A} = −c·k if it signs nothing,} \tag{A.1} \]
 
 where D is the lemon loss and c the inspection fee (Table A.1).
 
@@ -75,7 +75,7 @@ m & lemons & 2 of 4 \\
 D & lemon loss (cuts the tenant's value and the landlord's cost alike) & \$1,000 \\
 c & inspection fee & \$25 \\
 a\_ℓ & ask & ⌊U(1500, 3200)⌋ \\
-v\_ℓ & seat 0's value if sound & a\_ℓ + 10·s\_ℓ + U(−20, 20), with s\_ℓ = 100(0.6κ\_ℓ + 0.4ι\_ℓ) − 30 and κ, ι \textasciitilde{} U(0, 1); κ\_ℓ and ι\_ℓ are listing attributes shown on the board, which move seat 0's value but say nothing about quality \\
+v\_ℓ & seat 0's value if sound & a\_ℓ + 10·s\_ℓ + U(−20, 20), with s\_ℓ = 100(0.6·κ\_ℓ + 0.4·ι\_ℓ) − 30 and κ, ι \textasciitilde{} U(0, 1); κ\_ℓ and ι\_ℓ are listing attributes shown on the board, which move seat 0's value but say nothing about quality \\
 c\^{}S\_ℓ & a sound listing's cost & max(0, a\_ℓ − U(20, 80)) \\
 c\^{}L\_ℓ & a lemon's cost & max(0, c\^{}S\_ℓ − 1000) \\
 μ & landlord margin: a landlord's target is its reservation plus μ, capped at the ask (B.1) & \$25 \\
@@ -145,7 +145,7 @@ Value
 \endlastfoot
 Kits owed / minimum service & 50 / 40 (an award completing fewer than 40 is void) \\
 Revenue per kit / shortfall penalty & \$37 / \$12 per kit short \\
-Supplying nothing, D & −\$600 (= −12·50), plus any information already spent \\
+Supplying nothing, D & −\$600 (= −12·50), less any information already spent (the payoff is D − I) \\
 Cash budget & \$2,500 (never binds) \\
 Deadline T & 10--12 days (clock ``none''), 13--14 (tight), 17--18 (loose) \\
 Action budget & 10 \\
@@ -228,7 +228,7 @@ request a sample & the listed fee and days & 100 inspected units, yield 0.97 or 
 inquire & \$1, 1 day & verbal claims; every seller claims 0.97 and 0.97 \\
 counter-offer & \$1, 1 day & nothing in this evaluation set (B.2) \\
 check an award & \$0, 0 days, one action & a dry run of the award; nothing beyond what quotes and samples showed \\
-submit an award & terminal & eligible only with an unexpired formal offer, a verified sample and the exact variant (the component version the order requires) \\
+submit an award & terminal & eligible only with an unexpired formal offer, a verified sample and the exact variant (the component version the order requires); a formal offer stays valid for 60 days from issue, longer than every deadline, so expiry never binds \\
 defer & terminal & worth D − I \\
 \end{longtable}
 
@@ -245,7 +245,9 @@ which saves the \$50 sample with probability λ, so the quote is worth 0.20·50 
 Testing the newcomer (a quote, then a sample if the quote is clean) instead of paying the premium is worth
 γ(628.24 − 418.46 + 30) − 2 − (1 − λ)·50 = \$65.90 in expectation, where the \$30 is the recorded
 supplier's sample that the buyer no longer needs, provided that a failed test still leaves time to return to
-the recorded supplier before the deadline.
+the recorded supplier before the deadline. The example assumes that the newcomer answers the quote, as in the earlier evaluation set. In the
+evaluation set of Section 5.1 a newcomer answers a quote with probability 1/3 (Appendix A.2.1), which lowers the value
+of testing.
 
 \subsubsection{A.2.1 The evaluation set reported in Section 5.1}\label{a.2.1-the-evaluation-set-reported-in-section-5.1}
 
@@ -382,15 +384,15 @@ O\_I & money & the integrator's outside option & 500 \\
 
 \textbf{Events and costs.} Given z\_pre and z\_site, the four events are independent, with probabilities
 
-\[ \parbox{0.86\linewidth}{\raggedright P(e\_def) = q₁ if the integrator pre-stages and q₀ otherwise; P(e\_late) = u·(0.4 if the site is prepared, else 1); P(e\_inc) = ι·(0.5 with burn-in, else 1); P(e\_fail) = ν with a deposit and no escrow, and 0 otherwise.} \tag{A.8} \]
+\[ \parbox{0.86\linewidth}{\raggedright P(e\textsubscript{def}) = q₁ if the integrator pre-stages and q₀ otherwise; P(e\textsubscript{late}) = u·(0.4 if the site is prepared, else 1); P(e\textsubscript{inc}) = ι·(0.5 with burn-in, else 1); P(e\textsubscript{fail}) = ν with a deposit and no escrow, and 0 otherwise.} \tag{A.8} \]
 
 In each of the 16 outcomes the real loss is
 
-\[ \text{L = e\_def·(F + w\_def·v) + e\_late·(S + w\_late·v) + e\_inc·Φ + e\_fail·δH,} \tag{A.9} \]
+\[ \parbox{0.86\linewidth}{\raggedright L = e\textsubscript{def}·(F + w\textsubscript{def}·v) + e\textsubscript{late}·(S + w\textsubscript{late}·v) + e\textsubscript{inc}·Φ + e\textsubscript{fail}·δH,} \tag{A.9} \]
 
 the integrator owes
 
-\[ \parbox{0.86\linewidth}{\raggedright ω = e\_def·[F·𝟙(W ≠ none) + d·w\_def·𝟙(W = fix and delay)] + e\_late·S·𝟙(R = integrator) + e\_inc·Φ·𝟙(Q = included),} \tag{A.10} \]
+\[ \parbox{0.86\linewidth}{\raggedright ω = e\textsubscript{def}·[F·𝟙(W ≠ none) + d·w\textsubscript{def}·𝟙(W = fix and delay)] + e\textsubscript{late}·S·𝟙(R = integrator) + e\textsubscript{inc}·Φ·𝟙(Q = included),} \tag{A.10} \]
 
 and it pays
 
@@ -422,7 +424,7 @@ H + Ψ & hardware and services \\
 
 The integrator's best response (z\_pre*, z\_site*) minimises C\_I, and we write its cost under that response as
 
-\[ \text{IC(c) = C\_I(z\_pre∗, z\_site∗).} \tag{A.12} \]
+\[ \text{IC(c) = C\textsubscript{I}(z\textsubscript{pre∗}, z\textsubscript{site∗}).} \tag{A.12} \]
 
 The client's cost excluding the price, C\_C(c), is the sum of the terms in the next table:
 
@@ -453,12 +455,12 @@ delivery, as a share of a year; and 10 is the client's escrow fee.
 \textbf{Outside options and payoffs.} The client's outside option is the cheaper of a rival turnkey offer T and
 managing the deployment itself:
 
-\[ \parbox{0.86\linewidth}{\raggedright O\_C = min(T, M), with M = H + team + (1 + ρ\_C)[q₀(F + w\_def·v) + u(S + w\_late·v) + ιΦ].} \tag{A.13} \]
+\[ \parbox{0.86\linewidth}{\raggedright O\textsubscript{C} = min(T, M), with M = H + team + (1 + ρ\textsubscript{C})[q₀(F + w\textsubscript{def}·v) + u(S + w\textsubscript{late}·v) + ιΦ].} \tag{A.13} \]
 
 The integrator's outside option is O\_I = 500. Let n\_i be the number of redlines side i makes after the first move.
 A signed agreement (c, p) pays
 
-\[ \text{U\_I = p − IC − O\_I − 25·n\_I and U\_C = O\_C − p − C\_C − 25·n\_C,} \tag{A.14} \]
+\[ \text{U\textsubscript{I} = p − IC − O\textsubscript{I} − 25·n\textsubscript{I} and U\textsubscript{C} = O\textsubscript{C} − p − C\textsubscript{C} − 25·n\textsubscript{C},} \tag{A.14} \]
 
 and no deal pays each side U\_i = −25·n\_i.
 
@@ -486,7 +488,7 @@ client's charge, which is why the best agreement depends on the other side's typ
 \textbf{Landlord.} Each landlord has a reservation rent ρ\_ℓ: ρ\_ℓ = c\_ℓ (its own cost) under the \emph{leaky}
 kind, and ρ\_ℓ = c\^{}S\_ℓ for every listing under the \emph{pooled} kind. Its target rent is
 
-\[ \text{τ\_ℓ = max(ρ\_ℓ, min(a\_ℓ, ρ\_ℓ + μ)).} \tag{B.1} \]
+\[ \text{τ\textsubscript{ℓ} = max(ρ\textsubscript{ℓ}, min(a\textsubscript{ℓ}, ρ\textsubscript{ℓ} + μ)).} \tag{B.1} \]
 
 Given the highest offer x* in its inbox (ties go to the lower seat), the landlord accepts, creating a hold at x*,
 if x* ≥ τ\_ℓ, and otherwise counters at τ\_ℓ. A \$0 offer therefore always draws a counter at τ\_ℓ. In the main
@@ -526,12 +528,12 @@ made was worth at least that type's outside option, renormalised. An update that
 \textbf{Step 2: value on the table.} The value on the table is the largest expected joint surplus over agreements,
 floored at zero:
 
-\[ \text{Π = max(0, max over c of E\_β G).} \tag{B.3} \]
+\[ \text{Π = max(0, max over c of E\textsubscript{β} G).} \tag{B.3} \]
 
 \textbf{Step 3: ask.} The script makes N proposals of its own (3 as integrator, 2 as client). With
 Δ = (s\_open − s\_final)/(N − 1), its ask share starts at s₁ = s\_open and then moves according to
 
-\[ \parbox{0.86\linewidth}{\raggedright s\_\{k+1\} = max(s\_final, s\_k − Δ·κ\_k), with κ\_k = (1 − r) + r·min(2, max(0, η/Δ)),} \tag{B.4} \]
+\[ \parbox{0.86\linewidth}{\raggedright s\textsubscript{k+1} = max(s\textsubscript{final}, s\textsubscript{k} − Δ·κ\textsubscript{k}), with κ\textsubscript{k} = (1 − r) + r·min(2, max(0, η/Δ)),} \tag{B.4} \]
 
 where η is how far the other side has moved toward the script since the script's last proposal, measured as a share
 of Π. The collapse style holds s\_open until its last proposal and then asks s\_final.
@@ -634,7 +636,7 @@ of protective clauses the client asks for. The price model is
 where lim(ρ) is the client's limit at charge ρ and μ̄ is that limit averaged over the stated prior. The clause-count
 model is
 
-\[ \text{number of protective clauses asked for \textasciitilde{} N(m\_ρ, sd²),} \tag{B.7} \]
+\[ \text{number of protective clauses asked for \textasciitilde{} N(m\textsubscript{ρ}, sd²),} \tag{B.7} \]
 
 where m\_ρ is the mean count at charge ρ. The parameters were fitted per model on earlier runs and frozen in the code.
 
@@ -659,7 +661,7 @@ covers the rent. It never signs a listing it has not inspected, and it does not 
 \textbf{Ceiling.} The full-information ceiling assumes known quality and no inspection fee, and it is reachable in
 round 0:
 
-\[ \text{C(w, kind) = max(0, max\_ℓ [v\_ℓ − D·𝟙[ℓ ∈ Λ] − τ\_ℓ\textasciicircum{}kind]),} \tag{C.1} \]
+\[ \text{C(w, kind) = max(0, max\textsubscript{ℓ} [v\textsubscript{ℓ} − D·𝟙[ℓ ∈ Λ] − τ\textsubscript{ℓ\textsuperscript{kind}}]),} \tag{C.1} \]
 
 where τ\_ℓ\^{}kind is the landlord's target under that kind (Equation (B.1)). It averages \$447.82 under the leaky kind
 and \$292.40 under the pooled kind, with a mean of \$370.11.
@@ -726,15 +728,18 @@ it the replies carry no information. Both always offer \$0. The five functions a
 
 \[ \text{V(r, O, q, z) = 0 if r ≥ 3 or O = ∅;} \tag{C.2} \]
 
-\[ \parbox{0.86\linewidth}{\raggedright otherwise V(r, O, q, z) = max\{ U(r, O, q, z), max over ℓ ∈ O with q\_ℓ = ? and 0 < λ\_ℓ < 1 of [ −c + λ\_ℓ·U(r, O, q[ℓ↦L], z) + (1 − λ\_ℓ)·U(r, O, q[ℓ↦S], z) ] \};} \tag{C.3} \]
+\[ \parbox{0.86\linewidth}{\raggedright otherwise V(r, O, q, z) = max\{ U(r, O, q, z), max over ℓ ∈ O with q\textsubscript{ℓ} = ? and 0 < λ\textsubscript{ℓ} < 1 of [ −c + λ\textsubscript{ℓ}·U(r, O, q[ℓ↦L], z) + (1 − λ\textsubscript{ℓ})·U(r, O, q[ℓ↦S], z) ] \};} \tag{C.3} \]
 
-\[ \parbox{0.86\linewidth}{\raggedright U(r, O, q, z) = max\{ E(r, O, q, z, ∅), max over ℓ ∈ O of W\_ℓ(r, O, q, z) \};} \tag{C.4} \]
+\[ \parbox{0.86\linewidth}{\raggedright U(r, O, q, z) = max\{ E(r, O, q, z, ∅), max over ℓ ∈ O of W\textsubscript{ℓ}(r, O, q, z) \};} \tag{C.4} \]
 
-\[ \parbox{0.86\linewidth}{\raggedright W\_ℓ(r, O, q, z) = C\_ℓ(r, O, q, z) if z\_ℓ ≠ –, otherwise (1 − ψ\_ℓ)·C\_ℓ(r, O, q, z[ℓ↦N]) + ψ\_ℓ·C\_ℓ(r, O, q, z[ℓ↦L]);} \tag{C.5} \]
+\[ \parbox{0.86\linewidth}{\raggedright W\textsubscript{ℓ}(r, O, q, z) = C\textsubscript{ℓ}(r, O, q, z) if z\textsubscript{ℓ} ≠ –, otherwise (1 − ψ\textsubscript{ℓ})·C\textsubscript{ℓ}(r, O, q, z[ℓ↦N]) + ψ\textsubscript{ℓ}·C\textsubscript{ℓ}(r, O, q, z[ℓ↦L]);} \tag{C.5} \]
 
-\[ \text{C\_ℓ(r, O, q, z) = max\{ v\_ℓ − D·λ\_ℓ − R\_ℓ, E(r, O, q, z, \{ℓ\}) \};} \tag{C.6} \]
+\[ \text{C\textsubscript{ℓ}(r, O, q, z) = max\{ v\textsubscript{ℓ} − D·λ\textsubscript{ℓ} − R\textsubscript{ℓ}, E(r, O, q, z, \{ℓ\}) \};} \tag{C.6} \]
 
-\[ \parbox{0.86\linewidth}{\raggedright E(r, O, q, z, B) = 0 if r = 2, otherwise Σ over G ⊆ O∖B of 2\textasciicircum{}(−|O∖B|)·V(r + 1, O∖G, q, z).} \tag{C.7} \]
+\[ \parbox{0.86\linewidth}{\raggedright E(r, O, q, z, B) = 0 if r = 2, otherwise Σ over G ⊆ O∖B of β\textsuperscript{g}·(1 − β)\textsuperscript{m − g}·V(r + 1, O∖G, q, z),} \tag{C.7} \]
+
+where g = \textbar G\textbar, m = \textbar O∖B\textbar, and β is the outside-demand rate of Equation (B.2): ½ in the main and development sets and
+0.3 in the holdout.
 
 Before a landlord has answered, the tenant cannot know its listing's lowest rent, because a sound listing's cost
 lies anywhere from \$20 to \$80 under the ask. The tenant therefore plans with the average (\$50 under the ask, plus the
@@ -798,11 +803,11 @@ profiles.
 
 \textbf{Best agreement.} The joint cost of an agreement and the best agreement are
 
-\[ \parbox{0.86\linewidth}{\raggedright J(c) = IC(c) + C\_C(c), and c∗ = argmin over the 600 agreements of J(c),} \tag{C.11} \]
+\[ \parbox{0.86\linewidth}{\raggedright J(c) = IC(c) + C\textsubscript{C}(c), and c∗ = argmin over the 600 agreements of J(c),} \tag{C.11} \]
 
 with ties broken in favour of the draft and then by a fixed order. The value available is
 
-\[ \text{A = max(0, O\_C − O\_I − J(c∗)).} \tag{C.12} \]
+\[ \text{A = max(0, O\textsubscript{C} − O\textsubscript{I} − J(c∗)).} \tag{C.12} \]
 
 \textbf{Pairs.} In the \emph{oracle pair}, the integrator proposes c* at IC* + O\_I + A/2 (or walks if A ≤ 0) and the
 client signs; its joint value lost is 0 on all 58 worlds. In the \emph{draft pair}, the integrator proposes c⁰ unchanged
@@ -842,25 +847,25 @@ the tenant could expect from it rather than at the quality that happened to be d
 \emph{blind} if the listing had not been inspected when seat 0 committed. The stated probability that such a listing is
 a lemon is
 
-\[ \text{p\_d = (2 − lemons found)/(4 − listings inspected).} \tag{D.1} \]
+\[ \text{p\textsubscript{d} = (2 − lemons found)/(4 − listings inspected).} \tag{D.1} \]
 
 A blind signing is valued at
 
-\[ \parbox{0.86\linewidth}{\raggedright value = v − D if the landlord is leaky and the rent is below the listing's sound floor, and value = v − D·p\_d otherwise.} \tag{D.2} \]
+\[ \parbox{0.86\linewidth}{\raggedright value = v − D if the landlord is leaky and the rent is below the listing's sound floor, and value = v − D·p\textsubscript{d} otherwise.} \tag{D.2} \]
 
 For each episode, the tenant's net is
 
-\[ \parbox{0.86\linewidth}{\raggedright N = v\_true − rent − c·k for an informed signing, and N = value − rent − c·k for a blind one,} \tag{D.3} \]
+\[ \parbox{0.86\linewidth}{\raggedright N = v\textsubscript{true} − rent − c·k for an informed signing, and N = value − rent − c·k for a blind one,} \tag{D.3} \]
 
 where v\_true is v − D for a lemon and v for a sound listing. For each world,
 
-\[ \text{Y\_w = ½(N\_leaky + N\_pooled),} \tag{D.4} \]
+\[ \text{Y\textsubscript{w} = ½(N\textsubscript{leaky} + N\textsubscript{pooled}),} \tag{D.4} \]
 
 and a world missing either landlord kind is dropped. We report the mean of Y\_w over the main evaluation set with a
 95\% Student-t confidence interval. Comparisons between models are paired by world, with p-values Holm-adjusted
 across the three pairs. We also report each model's difference from the reachable reference, and treat \$50 as the
-smallest meaningful difference. The measure has two known gaps: a counter at the sound floor proves a listing sound
-but is still valued at p\_d, and a lemon revealed on one listing does not update p\_d on another. The
+smallest meaningful difference. The measure has two known gaps: under the leaky kind, a counter at the sound floor proves a
+listing sound but is still valued at p\_d, and a lemon revealed on one listing does not update p\_d on another. The
 \emph{corrected measure} values every blind signing at
 
 \[ \text{v − D·P(ℓ ∈ Λ | the inspections and every informative reply).} \tag{D.5} \]
@@ -880,7 +885,7 @@ action, Q = D, the value of supplying nothing (−\$600, Table A.2). For an awar
 D if the award is infeasible. Because every Q is an expectation, a policy's expected decision loss is its shortfall
 from the best policy:
 
-\[ \text{E[DL(π)] = V∗(s₀) − V\textasciicircum{}π(s₀).} \tag{D.7} \]
+\[ \text{E[DL(π)] = V∗(s₀) − V(s₀; π).} \tag{D.7} \]
 
 We report DL in five parts: requests; strays (inquiries, counter-offers and award checks); walking away (a deferral
 or an invalid action); award timing (V less the best award available); and award terms (the best award available
@@ -891,7 +896,7 @@ realise?} Value is lost by settling on worse clauses, by failing to agree, or by
 redlines; how the remainder is split between the sides is reported separately, as each side's
 surplus. The joint value lost is
 
-\[ \text{JVL = A − (U\_I + U\_C),} \tag{D.8} \]
+\[ \text{JVL = A − (U\textsubscript{I} + U\textsubscript{C}),} \tag{D.8} \]
 
 which is the sum of three parts: the allocation part, J(c) − min(J(c*), O\_C − O\_I), if an agreement is signed; the
 no-deal part, A, if nothing is signed (an invalid move counts as no deal); and the delay part, 25·(n\_I + n\_C). Each

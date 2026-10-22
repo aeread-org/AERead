@@ -90,7 +90,12 @@ def display_equations(text: str) -> str:
     """`[[eq A.3]] expression` paragraphs become numbered display equations (raw LaTeX through pandoc)."""
     def block(match: re.Match) -> str:
         body = re.sub(r"\*\*|`", "", match[2].strip())  # the expression is set as text; drop Markdown emphasis and code marks
+        # x_i and x^2 become real sub- and superscripts, as the PDF build's typesetter sets them
+        body = re.sub(r"_\{([^}]+)\}|_\(([^()]+)\)|_([^\s,;:()\[\]{}+−=·|]+)", lambda m: "\x00" + (m[1] or m[2] or m[3]) + "\x01", body)
+        body = re.sub(r"\^\{([^}]+)\}|\^\(([^()]+)\)|\^([^\s,;:()\[\]{}+−=·|]+)", lambda m: "\x02" + (m[1] or m[2] or m[3]) + "\x03", body)
         text = latex_text(body)
+        text = (text.replace("\x00", r"\textsubscript{").replace("\x01", "}")
+                    .replace("\x02", r"\textsuperscript{").replace("\x03", "}"))
         # text inside math cannot break; a long expression goes in a box that wraps, left-aligned like the PDF
         inner = rf"\parbox{{0.86\linewidth}}{{\raggedright {text}}}" if len(body) > 70 else rf"\text{{{text}}}"
         return f"```{{=latex}}\n\\[ {inner} \\tag{{{match[1]}}} \\]\n```"

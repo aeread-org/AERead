@@ -12,7 +12,9 @@ Other results are development probes; Procurement v2 stopped after its pilot. Th
 
 We present four cases (Table 5.1). Each is a starting point for questions about the decision it models, and Section
 7.2 lists the questions we consider open. The cases show how the counterpart changes measured value and how a shortfall divides
-into typed action classes, and Section 5.3 runs an external benchmark on the same runtime. We describe Housing,
+into typed action classes. We also reimplemented three counterpart families of an external benchmark, TERMS-Bench, as
+an AERead family. Its pre-registered reproduction stopped at its first check, so we report it in Appendix E.10 as
+work in progress. We describe Housing,
 Procurement and Data center here and specify them in Appendices A–D; Refund appears only in the cross-case comparison.
 Each case is a family rather than a fixed task set. It consists of a generator of worlds; a case-specific reference,
 which is either a policy that uses only what the deciding side may know or an explicitly labelled full-information
@@ -50,7 +52,10 @@ certificate (Appendix F.2). Table E.1 lists every check.
 The four cases are worked examples that we built and maintain. Their results therefore compare the named agents on
 these worlds; they are not qualified benchmark scores. Each result is also bounded by its case's quality-control
 gates, which Section 6 describes and Table 6.1 summarises. Below, "pre-registered" describes how a comparison was run:
-its analysis was committed to the repository before any episode.
+its analysis was committed to the repository before any episode. Sol 6.1 and Opus 5.5 ran through their vendors'
+command-line tools rather than our harness. Their results therefore describe agent configurations, meaning the model
+with the tool's own instructions and internal turns, at low reasoning effort and without a seed, and the tables mark
+them ‡.
 
 **Housing.** The structure follows informal rental markets on social platforms such as RedNote. Listings are posted
 with photos that a tenant cannot check before viewing, a viewing costs time, and good listings are often taken while
@@ -67,16 +72,18 @@ and signing nothing pays −25k. The difficulty lies in information. A listing w
 worth 400 − ½·1,000 = −$100 if signed blind at the ask, but ½·400 − 25 = +$175 if it is inspected first and signed only
 when sound; inspecting a second listing takes another round, in which each listing not bid on may be taken. A
 landlord's reply can reveal a lemon at no cost: every world is played against one landlord kind whose reply to a low
-offer reveals a lemon and one whose reply does not. We score a blind signing at its expected value given what the
+offer reveals a lemon and one whose reply does not. The revealing (leaky) landlord prices a lemon from its own cost,
+which is lower than a sound listing's by exactly the amount the lemon costs the tenant, so once its quality is known
+a lemon at that price is as good a lease as the same listing sound, to within $5. We score a blind signing at its expected value given what the
 tenant knew, so that the score follows the decision rather than the draw, with the odds conditioned on every
 informative landlord reply. This paper introduces the corrected measure. The comparison reported here, v15, was pre-registered before any of
 its artifacts. Each included world is screened so that the best informed tenant beats a simple inspect-then-sign rule
 by at least $25, and the tenant's task prompt states how landlords price. A holdout of 40 worlds changes one
 mechanism, outside demand at 0.3 a round, and its task prompt says so.
 
-**Table 5.2. Housing v15, main evaluation set (260 worlds; 200 with the favourite a lemon, 60 sound): each model's net payoff under the corrected measure as a share of the best informed tenant's ($307 a world), averaged over the two landlord arms. Differences are in percentage points of that value, with 95% intervals over worlds.**
+**Table 5.2. Housing v15, main evaluation set (260 worlds; 200 with the favourite a lemon, 60 sound): each model's mean net payoff under the corrected measure, averaged over the two landlord arms, divided by the best informed tenant's mean ($307 a world; each stratum and the holdout by their own). Differences are mean dollar contrasts over worlds on the same scale, in percentage points, with 95% intervals. ‡ Agent configuration (command-line tool, low reasoning effort, no seed).**
 
-| | Gemini 3.8 Flash | GPT-6 Luna | Sol 6.1 (Codex), addendum | Opus 5.5 (Claude Code), addendum |
+| | Gemini 3.8 Flash | GPT-6 Luna | Sol 6.1 (Codex)‡, addendum | Opus 5.5 (Claude Code)‡, addendum |
 |---|---:|---:|---:|---:|
 | Share of the best informed tenant's value | 78.7% | 62.9% | 90.4% | 80.4% |
 | Favourite is a lemon / sound | 68.8% / 100.0% | 46.8% / 97.3% | 85.9% / 100.0% | 71.2% / 100.0% |
@@ -91,7 +98,10 @@ however, falls below 16.3 points, the share that corresponds to the $50 we pre-r
 difference, so the lead is not shown to exceed that band. Where the favourite is a lemon, Gemini keeps 69% and Luna
 47% of the best informed tenant's value; where it is sound, they keep 100% and 97%. Both models also stay below
 `inspect_lowball`, a simple rule that inspects the favourite and opens with the lowest possible offer, which earns
-95% of the best informed tenant's value. The holdout points the same way (Table 5.2, last row).
+95.4% of the best informed tenant's value. Most of the shortfall in lemon worlds comes from one choice: declining a
+known lemon that the leaky landlord prices to be exactly as good as the same listing sound (Section 5.2). That
+equality is a knife-edge feature of our design, not of lemons markets in general (Section 7). The holdout points the
+same way (Table 5.2, last row).
 
 **Further runs.** v15 differs from the earlier v14 comparison in four ways at once (the screened evaluation set, the
 stated pricing rule, the corrected measure as primary, and receipts that score the deciding tenant). Its levels are
@@ -100,7 +110,7 @@ difference; Appendix E.4 reports v14. Two pre-registered addenda ran outside v15
 Flash, which was excluded at the pre-run profile check because its provider had changed quantization, ran on a
 provider that serves v14's quantization; it does not beat `inspect_then_sign`. In the second, Sol 6.1 and Opus 5.5
 played through their command-line tools. Sol keeps the largest share of any model, and Opus cannot be distinguished
-from Gemini. Appendix E.4 gives the addenda's contrasts, the A/A arm that calibrates the $50 band, and the holdout.
+from Gemini. Appendix E.4 gives the addenda's contrasts, the A/A arm, which shows that run-to-run noise is well inside the $50 band, and the holdout.
 
 **Procurement.** The structure follows wholesale sourcing on B2B platforms such as Alibaba's 1688. A displayed price
 is not a quote, a listing's quality is known only after it is checked, and new sellers of one kind often buy from the
@@ -122,8 +132,10 @@ bought (Appendix A.2).
 
 The difficulty is a test worth taking only for what it reveals about another supplier. Every world in the evaluation
 set is one in which a rule that plans a single newcomer's test exactly (what to request first, how often to repeat an
-unanswered quote, and when to give up) pays the premium, while the best policy tests a newcomer first and beats paying
-the premium by at least 10%. In one world the recorded supplier asks $24.95. A newcomer asks $12.47, but its sample
+unanswered quote, and when to give up) pays the premium, while the best policy acts on a newcomer first (a quote
+request in 14 worlds, a factory lookup in 6) and beats paying the premium by at least 10%. Such worlds are a selected
+tail: 20 of the 5,164 seeds we generated (0.4%) pass the inclusion criterion, so the results describe worlds of this
+kind, not the generator's typical world. In one world the recorded supplier asks $24.95. A newcomer asks $12.47, but its sample
 costs $200 and its odds are 0.20 good, 0.15 late and 0.65 poor, so testing it on its own loses money. A second
 newcomer of the same seller kind asks $26.87, more than the recorded supplier, so it is never worth buying; but its
 sample costs $30, and the two share a source with probability 0.95. Once the cheap newcomer's quote has come back
@@ -133,12 +145,12 @@ clean, it samples the dear newcomer, looks both up, and only then pays for the $
 paying the premium. Every action is charged the value it gave up relative to the exact best informed policy at that
 point.
 
-**Table 5.3. Procurement, the 20 pre-registered worlds, two plays each: the share of the gap between paying the premium and the best policy that each model closes (a mean over worlds, with 95% t intervals), the loss per world relative to the best policy, and the plays that touched a newcomer.**
+**Table 5.3. Procurement, the 20 pre-registered worlds, two plays each: the share of the gap between paying the premium and the best policy that each model closes (a mean over worlds, with 95% t intervals), the loss per world relative to the best policy, and the plays that touched a newcomer. The one-step rule's 0% holds by construction of the inclusion criterion. ‡ Agent configuration (command-line tool, low reasoning effort, no seed).**
 
 | | Share of the gap closed | Loss per world | Plays touching a newcomer |
 |---|---:|---:|---:|
-| Sol 6.1 (Codex) | 35% [18, 52], p = 0.0003 | $32.51 | 26 of 40 |
-| Opus 5.5 (Claude Code) | 0% in every world | $51.25 | 0 of 40 |
+| Sol 6.1 (Codex)‡ | 35% [18, 52], p = 0.0003 | $32.51 | 26 of 40 |
+| Opus 5.5 (Claude Code)‡ | 0% in every world | $51.25 | 0 of 40 |
 | Gemini 3.8 Flash | 0% in every world | $51.25 | 0 of 40 |
 | GPT-6 Luna | −14% [−21, −7] | $58.10 | 0 of 40 |
 | *Exact rules on the same worlds* | | | |
@@ -151,8 +163,9 @@ point.
 **Figure 5.1. Procurement, the 20 pre-registered worlds: the share of the gap between paying the premium and the best policy closed, world by world.** Each dot is
 one world, the mean of its two plays; diamonds are means, bars are 95% t intervals, and the gray rows are exact rules.
 
-Sol 6.1 closes 35% of the gap (95% t interval 18–52%, p = 0.0003), whereas a rule that plans one newcomer's test
-exactly closes none. The worlds were drawn, and this test pre-registered, before any play, and the claim concerns Sol
+The pre-registered test asks whether Sol 6.1 closes any of this gap. A rule that plans one newcomer's test exactly
+closes none by construction, because the inclusion criterion keeps only worlds in which it pays the premium. Sol
+closes 35% (95% t interval 18–52%, p = 0.0003). The worlds were drawn, and this test pre-registered, before any play, and the claim concerns Sol
 alone. Sol's play varies by world (Figure 5.1): it closes most of the gap in some worlds and none in others. The
 other three models never touched a newcomer and paid the premium. Luna falls below paying the premium because it
 ordered 50 units where 55 was best in 15 of its 40 plays. A shortcut that ignores seller kinds and first samples the
@@ -191,26 +204,34 @@ integrator cannot tell which client it faces. The comparison reported here (v2) 
 isolated, the client's task prompt states its walk-away point, and a world is included only if the integrator has at
 least $25k of room over a price-only rule.
 
-**Table 5.4. Data center v2, the pre-registered comparison of Sol 6.1 (Codex) and Opus 5.5 (Claude Code) on the 72 deal worlds: differences in a seat's earnings above its outside option, at true costs, in percentage points of the value available in a deal ($309k a world), with 95% intervals and Holm correction across the four primary contrasts.**
+**What v2 tests.** Against the fixed scripted client, the integrator seat tests bargaining over clauses and price, not
+inference about the other side. The client's risk charge is drawn in every world, but the scripted client's first
+reply reveals it, so knowing the client's type is worth less than 1% of the value available to the best informed
+integrator. The burn-in example above describes the case's design, which v2's counterpart does not exercise.
+
+**Table 5.4. Data center v2, Sol 6.1 (Codex) against Opus 5.5 (Claude Code) on the 72 deal worlds.** Pre-registered
+contrasts in a seat's earnings above its outside option at true costs, in points of the value available in a deal
+($309k a world), with 95% intervals and Holm correction. The head-to-head row counts a transfer between the agents twice.
+Both agents are agent configurations (command-line tool, low reasoning effort, no seed).
 
 | Primary contrast | Worlds | Estimate [95% interval] | Holm p |
 |---|---:|---|---:|
 | Head to head: Sol minus Opus earnings, seat-averaged | 72 deal | +41.7 [31.3, 52.0] | 6.1e-11 |
-| Integrator against the firm client: Sol minus Opus | 72 deal | +7.5 [1.7, 13.2] | 0.022 |
+| Integrator against the firm client: Sol minus Opus | 72 deal | +7.5 [1.8, 13.2] | 0.022 |
 | Sol as integrator minus the price-only rule | 72 deal | +7.3 [2.6, 12.0] | 0.008 |
 | Opus as integrator minus the price-only rule | 72 deal | −0.2 [−5.5, 5.2] | 0.95 |
 
-The counterpart decides most of the measured gap. Head to head, Sol's earnings exceed Opus's by 41.7 points of the
-value available, but against the same scripted firm client the gap is 7.5 points (Table 5.4). Both gaps are
-significant under the Holm correction. Neither is shown to reach its pre-registered minimum, because the lower ends of
-their intervals fall below 32.4 and 12.9 points respectively ($100k and $40k). Head to head, the opponent changes with
-the focal model, whereas the firm-client contrast holds the counterpart fixed, so most of the larger gap is specific
-to the counterpart. As integrator, Sol beats the price-only rule, and Opus earns what the rule earns. As client, with
-its walk-away point stated, neither model signs below that point, and the client seat separates nothing. After both
-runs we computed the best informed turn-by-turn policy against the same scripted client (Appendix C.3). Sol captures
-about 20% of the room between the price-only rule and that policy. Knowing the client's type is worth less than 1% of
-the value available to that policy, so the case measures bargaining against a fixed counterpart far more than
-inference about it.
+The counterpart changes the measured gap. Head to head, Sol's earnings exceed Opus's by 41.7 points of the value
+available, and against the same scripted firm client by 7.5 points (Table 5.4). Both gaps are significant under the
+Holm correction, and neither is shown to reach its pre-registered minimum. The two numbers are not on one scale. Head
+to head, a dollar that Sol takes from Opus raises Sol's earnings and lowers Opus's, so it counts twice in the
+difference; against the script, a dollar that Sol gains leaves Opus's earnings unchanged. Counting each transfer
+between the two agents once halves the head-to-head gap to 20.8 points [15.7, 26.0], still about three times the gap
+against the script; the paired difference, which we computed after the runs, is 13.4 points [6.4, 20.3]. As
+integrator, Sol beats the price-only rule, and Opus earns what the rule earns. As client, with its walk-away point
+stated, neither model signs below that point, and the client seat separates nothing. After both runs we computed the
+best informed turn-by-turn policy against the same scripted client (Appendix C.3). Sol captures about 20% of the room
+between the price-only rule and that policy.
 
 **Further runs.** An earlier pre-registered comparison (v1) ran without isolated command-line tools, without the
 client's walk-away point in its task prompt, and without the inclusion screen against the price-only rule. Appendix
@@ -238,10 +259,10 @@ The labels name what happened. The mechanism behind each large segment is as fol
 **Procurement: three models never test, and Sol secures the recorded supplier first.** Opus, Gemini and Luna asked
 no newcomer for anything in any of their 120 plays: they requested quotes and samples from the recorded supplier and
 awarded it the order, so nearly all of their loss is information not acquired, and the rest is award checks, each of
-which spends an action. Luna's further $6.85 a world comes from ordering 50 units where 55 was best in 15 of its 40
-plays. The pre-registered classes file an award's whole loss under information not acquired when the award came before
-a worthwhile test, so $6.33 a world of that worse-quantity loss sits in Luna's information-not-acquired segment
-(Table E.10). Sol's loss divides by
+which spends an action. Luna loses $6.85 a world more than paying the premium ($58.10 against $51.25 in Table 5.3), all of it from
+ordering 50 units where 55 was best in 15 of its 40 plays. The pre-registered classes file an award's whole loss under
+information not acquired when the award came before a worthwhile test. Most of this quantity loss therefore appears
+in Luna's information-not-acquired segment of Figure 5.2 rather than under worse terms; Appendix E.5 gives the split. Sol's loss divides by
 world. Where it never tested a newcomer that the best policy would have tested, it lost $17.5 a world. Where it did
 test, it often first requested a quote and a sample from the recorded supplier, spending days and actions before the
 newcomer test that the stated odds and clock made best ($8.9 a world), or it awarded the order while a newcomer test
@@ -252,15 +273,19 @@ its shortfall relative to the reachable rule ($40.7 of $51.1 a world), and nearl
 the landlord kind that prices a lemon from its own lower cost, a lemon's landlord counters about $1,000 below a sound
 listing's floor ($995 to $1,000 in these worlds), so a known lemon signed at that counter is worth what the listing
 would be worth sound at a sound floor. This holds exactly in 187 of the 200 worlds whose favourite is a lemon, and
-within $5 in the rest. The rule inspects the favourite, finds the lemon, offers $0 and signs the counter in all 200.
+within $5 in the rest. The equality is a property of our design: the leaky landlord passes the whole of a lemon's
+discount through to its rent. The rule inspects the favourite, finds the lemon, offers $0 and signs the counter in all 200.
 Gemini also inspected the favourite and found the lemon in all 200, but made an offer on it in only 4; in 172 episodes
 it leased a sound listing that left it with less ($65.0 a world). Under the other landlord kind the rule leases nothing
 in 77 worlds, and Gemini's leases there offset $26.5 a world. Gemini does read landlords' replies: of 74 replies that
 proved a lemon, it walked away from 64 and signed above the lemon's value once. Ending with no lease where the rule
-leased costs a further $8.9 (12 of 520 episodes).
+leased costs a further $8.9 (12 of 520 episodes). Within the case's stated rules, declining such a lemon is an error, because
+the task prompt states how landlords price; in a market where the discount is smaller than the loss, the same choice
+could be right. The $65.0 a world from these leases alone exceeds Gemini's whole worse-terms class, which its leases
+under the pooled kind partly offset, so most of Gemini's measured shortfall rests on full pass-through.
 
 **Housing, Luna: it drops the lemons worth taking and signs ones that cost it.** Its shortfall relative to the
-reachable rule is $99.9 a world. Worse terms (54%, $54.3) follow Gemini's pattern: in the same 200 worlds Luna found
+reachable rule is $99.9 a world. Worse terms (54%, $54.3) follow Gemini's pattern and rest on the same full pass-through: in the same 200 worlds Luna found
 the lemon favourite in 197 and made an offer on it in 7, and in 154 episodes it leased a sound listing that left it
 with less ($57.7 a world). Signing a listing that a landlord's reply had proved a lemon accounts for 22% ($22.2,
 11 episodes): the landlord accepted Luna's offer at a rent that no sound landlord would take, which by the stated
@@ -305,49 +330,6 @@ claim names the counterparts it covers. Third, what the task prompt states moves
 (stating two rules cut procurement loss by $11 to $14; stating a walk-away cost cut losing signatures from 15 of 60 to
 1 of 60), so the task prompt is a versioned part of the case. Fourth, a pattern found by looking back is a hypothesis
 until a pre-registered test confirms it.
-
-### 5.3 An external benchmark on the same runtime
-
-TERMS-Bench evaluates bilateral price negotiation against counterparts whose type is hidden [TB]. We reimplemented,
-from the paper's description, its alternating-offer environment, three of its six counterpart families (Candid,
-Taciturn and Expressive) and four of its measures as one AERead family. The counterpart runs as a scripted seat, and
-its random draws are sealed each turn, so replay recomputes the counterpart's moves as well as the scores. We did not
-implement the Oracle-Cue reference or the gap measures built on it, the urgency regime, type-belief error or the other
-three families, and counterpart messages are templates. The corpus has 30 cases, 15 with a zone of agreement and 15
-without, each played once.
-
-**Table 5.5. TERMS-Bench reimplementation: two of the paper's agents on the same 30 cases against scripted
-counterparts, beside the paper's values. Agreement and surplus are computed over the cases with a zone of agreement
-(15 for GPT-4o-mini, 12 for GLM-5.1).**
-
-| | GPT-4o-mini | GLM-5.1 | Paper: GPT-4o-mini | Paper: GLM-5.1 |
-|---|---:|---:|---:|---:|
-| Agreement rate where a deal exists (AGR+) | 0.80 | 1.00 | 0.522 | 0.951 |
-| Surplus efficiency (SE+) | 0.035 | 0.458 | 0.196 | 0.668 |
-| Conditional surplus efficiency (CSE+) | 0.044 | 0.458 | 0.363 | 0.721 |
-
-The paper's surplus efficiency comes from its Table 16 (overlap regime, mean of the three families played here); its
-agreement and conditional surplus efficiency come from its Table 2, which pools six families and three regimes, so
-those two comparisons are looser. GLM-5.1 has 12 cases because its three malformed moves removed those episodes.
-
-The reimplementation orders the two agents as the paper does on all three measures, but absolute levels are lower for
-both, and for a third model. A review of the port after these runs traced the shift to four departures from the
-paper's protocol rather than to the agent, whose interface in the paper is also one stateless call per round. First,
-our prompt does not state the agent's payoff or the rule against accepting above its reservation value. Second, its
-observation differs from the paper's. Third, a malformed move removes the episode where the paper applies a fallback;
-under that fallback, GLM-5.1's surplus efficiency would be 0.520 over all 15 cases. Fourth, our price range and zone
-widths are wider than the paper's.
-
-**Further runs.** We have built a pre-registered reproduction with those fixes, and it stopped at its first check: one of the paper's fixed-concession baselines (FC10) scores 0.307 here against the paper's 0.266, while
-the other two match. The paper states how much the baselines concede (1%, 10% or 30% of the remaining distance per
-offer) but not how they open or accept. No agent has played the reproduction. The paper reports critical violations
-by GLM-5.1 in 5% of cases without a zone of agreement for these three families; at that rate, 15 such cases would show
-none about half the time, and ours showed none. The port also exposed a harness effect. On one provider route, any
-specified reasoning budget suppressed deliberation, and GLM 5.3 Flash breached its own reservation value in 13 of
-30 cases, against the paper's band of 0 to 2.06%. With no reasoning setting specified, it breached in 2 of 30 and its
-surplus efficiency rose from 0.40 to 0.53; the comparison above uses that setting. This is why the reasoning condition
-is part of each run's frozen configuration. The runtime's support for the scripted seat that this family uses is now
-on the main branch.
 
 ### References
 

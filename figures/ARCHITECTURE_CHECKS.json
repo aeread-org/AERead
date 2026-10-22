@@ -2,10 +2,10 @@
   "figure": "Figure 4.1",
   "scope": "Conceptual architecture; applied coverage varies by campaign",
   "sources": {
-    "source/sec_opening.tex": "6f47ff04b299cbcfa48df54076960d1201d96cd09a05bca0acabcaaa95ad21a8",
-    "source/sec_runtime.tex": "ef49ded0854c1f53263bea5c617d90481fa824cdc0181ab52f91f2237fad0418",
-    "source/app_runtime.tex": "7aa6c93b0e1fc880a0119568754bbe9716dc9bd5163f1c5b50c6295969de559f",
-    "source/paper_qc_design.md": "4da1763453759741cf840c9040b4ed87dc5e29408271a933011649d02067b785",
+    "source/sec_opening.tex": "b2d344ed57d09754aaf91348433903683437423b3c9860b5ba98515c2ec6803b",
+    "source/sec_runtime.tex": "c9ce8f81218ba064ca89c7cca9fe07c1e6b928d4d34d9d14c1bfb59d35947bfc",
+    "source/app_runtime.tex": "05589334f4168856283cceb9460f3fa24537afeb2cac6b68dc6ee611b64dd2be",
+    "source/paper_qc_design.md": "cbd1fef9d675988f1961624ad6197d545410f2b0450b31a1dcd181d7ae31fbc0",
     "source/tab_case_paths.tex": "d5f6e7dc2bae59ed6c208e950dadedb44f26d92eca43d1421196dc45b1ea580a"
   },
   "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",

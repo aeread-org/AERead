@@ -31,7 +31,8 @@ the profiles after the initial runs. The confirmatory run of the agreement case 
 Procurement pass four of Gates 1 to 5, all except Gate 4, and no case yet passes all five (Table 6.1).
 
 **Table 6.1. Gate status of each reported comparison** on 21 October: ● passed, ◐ partial, ✗ failed, – not run.
-Appendix F.1 gives the reasons and the flags each check raised.
+Procurement's Gate 1 changed that day, when the exact-reference route was added. Appendix F.1 gives the reasons and
+the flags each check raised.
 
 | Comparison | 0 | 1 | 2 | 3 | 4 | 5 | Main open item |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|---|
@@ -61,8 +62,9 @@ frozen-control diagnostic was also pre-registered before its plays.
 
 **What it found.** We record every discovered failure in an incident log, as design,
 operational, tooling or judgment rows that are never deleted. On 16 October the log held 51 entries about Housing,
-57 about Procurement, 90 about the data center and 23 about Refund (Table F.3), and rows have been added since. Of the
-25 defects selected for Table F.4, 14 were invisible in any single world. We found the 11 visible ones by reading
+57 about Procurement, 90 about the data center and 23 about Refund (Table F.3), and rows have been added since. We chose the
+25 defects of Table F.4 by hand, from five to eight per case; they are not a sample, so the count below
+describes them and is not a rate for the record. Of these 25, 14 were invisible in any single world. We found the 11 visible ones by reading
 code or sealed bytes, by tracing a case, or within a single gate. Nine defects were open when we compiled the
 table. A later reanalysis from the sealed actions resolves one of them for the reported panels, which leaves eight
 open. The same checks corrected three of our own statements while we wrote this paper.

@@ -71,7 +71,7 @@ its replies carry no information about quality. Each world is played once under 
 | D | lemon loss (cuts the tenant's value and the landlord's cost alike) | $1,000 |
 | c | inspection fee | $25 |
 | a_ℓ | ask | ⌊U(1500, 3200)⌋ |
-| v_ℓ | seat 0's value if sound | a_ℓ + 10·s_ℓ + U(−20, 20), with s_ℓ = 100(0.6κ_ℓ + 0.4ι_ℓ) − 30 and κ, ι ~ U(0, 1); κ_ℓ and ι_ℓ are listing attributes shown on the board, which move seat 0's value but say nothing about quality |
+| v_ℓ | seat 0's value if sound | a_ℓ + 10·s_ℓ + U(−20, 20), with s_ℓ = 100(0.6·κ_ℓ + 0.4·ι_ℓ) − 30 and κ, ι ~ U(0, 1); κ_ℓ and ι_ℓ are listing attributes shown on the board, which move seat 0's value but say nothing about quality |
 | c^S_ℓ | a sound listing's cost | max(0, a_ℓ − U(20, 80)) |
 | c^L_ℓ | a lemon's cost | max(0, c^S_ℓ − 1000) |
 | μ | landlord margin: a landlord's target is its reservation plus μ, capped at the ask (B.1) | $25 |
@@ -129,7 +129,7 @@ to 0.7.
 |---|---|
 | Kits owed / minimum service | 50 / 40 (an award completing fewer than 40 is void) |
 | Revenue per kit / shortfall penalty | $37 / $12 per kit short |
-| Supplying nothing, D | −$600 (= −12·50), plus any information already spent |
+| Supplying nothing, D | −$600 (= −12·50), less any information already spent (the payoff is D − I) |
 | Cash budget | $2,500 (never binds) |
 | Deadline T | 10–12 days (clock "none"), 13–14 (tight), 17–18 (loose) |
 | Action budget | 10 |
@@ -185,7 +185,7 @@ action are each worth D − I.
 | inquire | $1, 1 day | verbal claims; every seller claims 0.97 and 0.97 |
 | counter-offer | $1, 1 day | nothing in this evaluation set (B.2) |
 | check an award | $0, 0 days, one action | a dry run of the award; nothing beyond what quotes and samples showed |
-| submit an award | terminal | eligible only with an unexpired formal offer, a verified sample and the exact variant (the component version the order requires) |
+| submit an award | terminal | eligible only with an unexpired formal offer, a verified sample and the exact variant (the component version the order requires); a formal offer stays valid for 60 days from issue, longer than every deadline, so expiry never binds |
 | defer | terminal | worth D − I |
 
 Every listing shows a claimed yield of 0.97 regardless of the supplier's type. The two task prompts differ in
@@ -201,7 +201,9 @@ which saves the $50 sample with probability λ, so the quote is worth 0.20·50 �
 Testing the newcomer (a quote, then a sample if the quote is clean) instead of paying the premium is worth
 γ(628.24 − 418.46 + 30) − 2 − (1 − λ)·50 = $65.90 in expectation, where the $30 is the recorded
 supplier's sample that the buyer no longer needs, provided that a failed test still leaves time to return to
-the recorded supplier before the deadline.
+the recorded supplier before the deadline. The example assumes that the newcomer answers the quote, as in the earlier evaluation set. In the
+evaluation set of Section 5.1 a newcomer answers a quote with probability 1/3 (Appendix A.2.1), which lowers the value
+of testing.
 
 ### A.2.1 The evaluation set reported in Section 5.1
 
@@ -558,7 +560,10 @@ it the replies carry no information. Both always offer $0. The five functions ar
 
 [[eq C.6]] C_ℓ(r, O, q, z) = max{ v_ℓ − D·λ_ℓ − R_ℓ, E(r, O, q, z, {ℓ}) };
 
-[[eq C.7]] E(r, O, q, z, B) = 0 if r = 2, otherwise Σ over G ⊆ O∖B of 2^(−|O∖B|)·V(r + 1, O∖G, q, z).
+[[eq C.7]] E(r, O, q, z, B) = 0 if r = 2, otherwise Σ over G ⊆ O∖B of β^g·(1 − β)^(m − g)·V(r + 1, O∖G, q, z),
+
+where g = |G|, m = |O∖B|, and β is the outside-demand rate of Equation (B.2): ½ in the main and development sets and
+0.3 in the holdout.
 
 Before a landlord has answered, the tenant cannot know its listing's lowest rent, because a sound listing's cost
 lies anywhere from $20 to $80 under the ask. The tenant therefore plans with the average ($50 under the ask, plus the
@@ -668,8 +673,8 @@ where v_true is v − D for a lemon and v for a sound listing. For each world,
 and a world missing either landlord kind is dropped. We report the mean of Y_w over the main evaluation set with a
 95% Student-t confidence interval. Comparisons between models are paired by world, with p-values Holm-adjusted
 across the three pairs. We also report each model's difference from the reachable reference, and treat $50 as the
-smallest meaningful difference. The measure has two known gaps: a counter at the sound floor proves a listing sound
-but is still valued at p_d, and a lemon revealed on one listing does not update p_d on another. The
+smallest meaningful difference. The measure has two known gaps: under the leaky kind, a counter at the sound floor proves a
+listing sound but is still valued at p_d, and a lemon revealed on one listing does not update p_d on another. The
 *corrected measure* values every blind signing at
 
 [[eq D.5]] v − D·P(ℓ ∈ Λ | the inspections and every informative reply).
@@ -689,7 +694,7 @@ action, Q = D, the value of supplying nothing (−$600, Table A.2). For an award
 D if the award is infeasible. Because every Q is an expectation, a policy's expected decision loss is its shortfall
 from the best policy:
 
-[[eq D.7]] E[DL(π)] = V∗(s₀) − V^π(s₀).
+[[eq D.7]] E[DL(π)] = V∗(s₀) − V(s₀; π).
 
 We report DL in five parts: requests; strays (inquiries, counter-offers and award checks); walking away (a deferral
 or an invalid action); award timing (V less the best award available); and award terms (the best award available

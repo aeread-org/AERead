@@ -9,9 +9,12 @@ its cost, and when to commit before an offer expires. A tenant faces the
 same problem when inspecting a home; a negotiator faces it when exchanging
 price for contractual risk. In these settings, completing a transaction
 can destroy value, while refusing it can be the right decision. We use
-\emph{economic-agent readiness} to mean an agent's ability to obtain value
-for a principal within a stated mandate, given limited information and
-other parties' interests.
+\emph{economic-agent readiness}, the quantity AERead's name refers to, to
+mean an agent's ability to obtain value for a principal within a stated
+mandate, given limited information and other parties' interests. AERead
+measures this ability in stated worlds against stated references;
+readiness for deployment in a particular firm is a further question that
+these measurements inform but do not settle.
 
 Evaluating this ability requires a reference for what the agent could
 have achieved. A good realized outcome can follow a poor decision, and a
@@ -24,7 +27,7 @@ The problem we address is how to make information, counterpart behavior
 and reference values explicit across different economic cases, then test
 whether the resulting scores measure the intended decisions.
 
-AERead provides a framework for constructing and evaluating such cases.
+AERead is an environment for constructing and evaluating such cases.
 Each case specifies the parties, their observations and legal actions,
 the world distribution, and checks on behavior and outcomes. A shared
 runtime executes play and records evidence. Case-specific references give
@@ -37,9 +40,9 @@ scores an economic interpretation, and results keep their native units.
 \end{figure}
 
 
-AERead combines seven properties. Prior benchmarks have some of them, and
-TERMS-Bench has five in full. AERead has six in full and has the seventh, an
-inclusion criterion that screens out shortcuts, in three of its cases (Table~2.1). The first three
+AERead combines seven properties, several of which appear in prior
+benchmarks (Table~2.1, which we graded ourselves from each paper's
+description of its method). The first three
 properties concern a single world, the next two a case's population of worlds, and the
 last two the runtime (Figure~1.1). We built each of them and applied it to the
 cases reported here.
@@ -53,7 +56,8 @@ environment on every included world (Section~\ref{sec:qc}).
 with their own information and interests, played by scripted policies,
 another model or the same model, and each claim names its counterpart. In
 the Data-center case, the measured gap between two agents depends strongly on
-which counterpart they face (Section~\ref{sec:cases}).
+which counterpart they face, even when each transfer between them is counted once
+(Section~\ref{sec:cases}).
 \item \textbf{Typed shortfall.} The gap to the reference is split into
 observed action classes, such as tests not taken, worse terms, harmful
 agreements and negotiation fees, so a result states where value was lost
@@ -73,8 +77,8 @@ recompute its scores without calling a model; no model judges a score
 (Section~\ref{sec:runtime}).
 \item \textbf{One runtime for several activities.} Families supply only the
 economic rules. Four cases and a reimplementation of three
-TERMS-Bench counterpart families run on the same kernel
-(Section 5.3).
+TERMS-Bench counterpart families run on the same kernel; the
+reimplementation's reproduction is still in progress (Appendix~E.10).
 \end{enumerate}
 A researcher studying another economic decision therefore writes only its
 rules, worlds and reference. Execution, sealing, replay, counterpart seats
@@ -136,8 +140,8 @@ agreement, surplus allocation and speed \citep{liu2026agenticpay}.
 TERMS-Bench specifies counterpart types, policies and payoffs to diagnose
 negotiation through oracle-reference gaps \citep{zhang2026termsbench}; our
 case specifications follow its decomposition into environment, protocol
-and counterpart policy (Appendix~A), and Section 5.3 reimplements three of
-its counterpart families on AERead's runtime.
+and counterpart policy (Appendix~A), and Appendix~E.10 reports a
+reimplementation of three of its counterpart families on AERead's runtime.
 AERead retains case-specific payoff units, distinguishes full-information
 bounds from information-constrained policy references, and applies quality control to world
 distributions and measurement paths.
