@@ -263,8 +263,8 @@ The defects that mattered in the four cases were properties of the distribution,
 |----|:--:|:--:|:--:|:--:|:--:|:--:|----|
 | Housing v15 | ● | ● | ● | ● | ◐ | ● | profile probe ran after the freeze |
 | Procurement, pre-registered evaluation set | ● | ● | ● | ● | ◐ | ● | the agents take no seed |
-| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ● | ◐ | ◐ | not on the main branch; Gate 1 needs a new evaluation set |
-| Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | Gate 3 fails on the original audit (a constant full refund passes 38 of 180 policy cases); the expanded release is not qualified |
+| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ● | ◐ | ◐ | needs a new evaluation set |
+| Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | a constant full refund passes 38 of 180 cases |
 
 **Headroom (Gate 1).** When a case computes its reference exactly, as Housing and Procurement do, every shortcut named in its profile must lose a pre-specified margin to the reference in every world. Otherwise, a frozen model control screens the worlds. We added the first route on 21 October (Appendix F.1). The data-center agreement's reference is a lower bound, and its evaluation set is frozen, so its Gate 1 can pass only on a new evaluation set.
 

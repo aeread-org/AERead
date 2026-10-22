@@ -1,4 +1,4 @@
-AERead working draft, version 15.47 (22 October 2026), as a LaTeX project.
+AERead working draft, version 15.48 (22 October 2026), as a LaTeX project.
 
 Build:  lualatex main && bibtex main && lualatex main && lualatex main
 Fonts:  Times New Roman (macOS system font), with STIX Two Math, Apple Symbols, Helvetica Neue and Arial Unicode MS as a

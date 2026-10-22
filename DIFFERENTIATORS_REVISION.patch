@@ -1,7 +1,7 @@
 Binary files aeread_working_draft_20261018_v14/.DS_Store and aeread_working_draft_20261018_v15/.DS_Store differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-22 11:39:56
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -618,7 +618,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    compile_pdf()
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-21 18:07:44
++++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-22 11:39:41
 @@ -2,11 +2,11 @@
    "figure": "Figure 4.1",
    "scope": "Conceptual architecture; applied coverage varies by campaign",
@@ -631,7 +631,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    "source/sec_opening.tex": "b2d344ed57d09754aaf91348433903683437423b3c9860b5ba98515c2ec6803b",
 +    "source/sec_runtime.tex": "c9ce8f81218ba064ca89c7cca9fe07c1e6b928d4d34d9d14c1bfb59d35947bfc",
 +    "source/app_runtime.tex": "05589334f4168856283cceb9460f3fa24537afeb2cac6b68dc6ee611b64dd2be",
-+    "source/paper_qc_design.md": "5635d985fbd80abf9345a5d279d16160dc24934ab41b7daef7287003b653fcbb",
++    "source/paper_qc_design.md": "dba1205aa9132ef90d5679ba595a96bb504e87a321ba4c9ebf1901eb4ca012fd",
 +    "source/tab_case_paths.tex": "3ac98b377a5f1151c0d06318a6d2b17ce36dee2dccb7791291426cbf141df05a"
    },
    "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",
@@ -1765,7 +1765,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/main.tex aeread_working_draft_20261018_v15/latex/main.tex
 --- aeread_working_draft_20261018_v14/latex/main.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-22 11:22:03
++++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-22 11:39:58
 @@ -0,0 +1,51 @@
 +\documentclass[10pt]{article}
 +\usepackage[margin=0.9in]{geometry}
@@ -1799,7 +1799,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 +\title{AERead: Evaluating Economic Decisions in Interactive Environments}
 +\author{Chenyu Li\thanks{Organizer} \hspace{3em} Zeyu Sun \hspace{3em} Yuchen Fang \\[3pt] {\small contact@aeread.org}}
-+\date{Research working paper, version 15.47, 22 October 2026. Preliminary results; feedback and contributions welcome.}
++\date{Research working paper, version 15.48, 22 October 2026. Preliminary results; feedback and contributions welcome.}
 +
 +\begin{document}
 +\maketitle
@@ -2036,7 +2036,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/abstract.tex aeread_working_draft_20261018_v15/latex/sections/abstract.tex
 --- aeread_working_draft_20261018_v14/latex/sections/abstract.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-22 11:39:57
 @@ -0,0 +1,25 @@
 +\section*{Abstract}
 +
@@ -2065,7 +2065,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +the runtime, replay and the quality-control standard.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-22 11:22:03
++++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-22 11:39:57
 @@ -0,0 +1,965 @@
 +\section{Case specifications}\label{case-specifications}
 +
@@ -3034,7 +3034,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and each procedure the paper reports, to its implementation.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_details.tex aeread_working_draft_20261018_v15/latex/sections/app_details.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_details.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-22 11:22:03
++++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-22 11:39:58
 @@ -0,0 +1,1747 @@
 +\section{Case details}\label{case-details}
 +
@@ -4785,7 +4785,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-22 11:39:57
 @@ -0,0 +1,175 @@
 +% Condensed paper appendix; full prior technical reference preserved in the supplement.
 +\section{Runtime contract and experimental coverage}
@@ -4964,7 +4964,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and later checks or repairs do not retroactively qualify earlier runs.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-22 11:39:57
 @@ -0,0 +1,448 @@
 +\section{Case studies}\label{case-studies}\label{sec:cases}
 +
@@ -5416,7 +5416,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +until a pre-registered test confirms it.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-22 11:39:57
 @@ -0,0 +1,121 @@
 +\section{Discussion and conclusion}
 +\label{sec:discussion}
@@ -5541,7 +5541,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-22 11:39:57
 @@ -0,0 +1,251 @@
 +% Sections 1--3, drafting pass 16 October 2026.
 +% Empirical scope follows the merged Sections 4--6 review snapshot.
@@ -5796,7 +5796,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contributors.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-22 11:39:57
 @@ -0,0 +1,88 @@
 +\section{Quality control}\label{quality-control}\label{sec:qc}
 +
@@ -5855,8 +5855,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\endlastfoot
 +Housing v15 & ● & ● & ● & ● & ◐ & ● & profile probe ran after the freeze \\
 +Procurement, pre-registered evaluation set & ● & ● & ● & ● & ◐ & ● & the agents take no seed \\
-+Data-center agreement v2, integrator seat & ◐ & ◐ & ◐ & ● & ◐ & ◐ & not on the main branch; Gate 1 needs a new evaluation set \\
-+Refund V2.5, developmental & ● & ◐ & ◐ & ✗ & ◐ & -- & Gate 3 fails on the original audit (a constant full refund passes 38 of 180 policy cases); the expanded release is not qualified \\
++Data-center agreement v2, integrator seat & ◐ & ◐ & ◐ & ● & ◐ & ◐ & needs a new evaluation set \\
++Refund V2.5, developmental & ● & ◐ & ◐ & ✗ & ◐ & -- & a constant full refund passes 38 of 180 cases \\
 +\end{longtable}
 +
 +\textbf{Headroom (Gate 1).} When a case computes its reference exactly, as Housing and Procurement do, every shortcut named
@@ -5888,7 +5888,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +open. The same checks corrected three of our own statements while we wrote this paper.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-22 11:39:57
 @@ -0,0 +1,85 @@
 +% Revision 10. Concise main text; technical contract retained in appendix.
 +% Runtime baseline: dec1a40f. Evidence review dated 2026-10-14.
@@ -5977,7 +5977,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +versions behind each reported panel.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-22 11:39:57
 @@ -0,0 +1,51 @@
 +\renewcommand{\thetable}{H.2}
 +\begingroup
@@ -6032,7 +6032,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\endgroup
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-22 11:22:02
++++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-22 11:39:57
 @@ -0,0 +1,18 @@
 +\renewcommand{\thetable}{H.1}
 +\begin{longtable}{@{}P{1.25in}P{2.6in}P{2.6in}@{}}
@@ -18906,7 +18906,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/paper.css aeread_working_draft_20261018_v15/paper.css
 --- aeread_working_draft_20261018_v14/paper.css	2026-10-17 22:20:42
-+++ aeread_working_draft_20261018_v15/paper.css	2026-10-21 22:00:07
++++ aeread_working_draft_20261018_v15/paper.css	2026-10-22 11:39:30
 @@ -29,20 +29,16 @@
  figure { margin:10pt 0 14pt; break-inside:avoid; }
  figure svg { display:block; width:100%; }
@@ -18950,7 +18950,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  .architecture-figure { margin:8pt 0 11pt; break-inside:avoid; }
  .architecture-figure img { display:block; width:100%; height:auto; }
  .architecture-figure figcaption { margin:4pt 0 0; font-size:8.5pt; line-height:1.3; }
-@@ -127,5 +123,26 @@
+@@ -127,5 +123,32 @@
  .shortfall-panel:nth-child(2) .shortfall-panel-table th,
  .shortfall-panel:nth-child(2) .shortfall-panel-table td { padding:3pt 2pt; }
  
@@ -18978,6 +18978,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +a[href^="http"] { white-space:nowrap; hyphens:none; color:inherit; text-decoration:none; }
 +
 +.author-roles { text-align:left; font-size:8.5pt; color:#555; margin-top:1pt; }
++
++.table-6-1 { table-layout:fixed; width:100%; }
++.table-6-1 th:nth-child(1) { width:28%; }
++.table-6-1 th:nth-child(n+2):nth-child(-n+7) { width:5.5%; text-align:center; }
++.table-6-1 td:nth-child(n+2):nth-child(-n+7) { text-align:center; }
++.table-6-1 th:nth-child(8) { width:39%; }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/abstract.tex aeread_working_draft_20261018_v15/source/abstract.tex
 --- aeread_working_draft_20261018_v14/source/abstract.tex	2026-10-18 13:40:55
 +++ aeread_working_draft_20261018_v15/source/abstract.tex	2026-10-21 17:24:17
@@ -22648,7 +22654,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_qc_design.md aeread_working_draft_20261018_v15/source/paper_qc_design.md
 --- aeread_working_draft_20261018_v14/source/paper_qc_design.md	2026-10-18 13:41:03
-+++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-21 17:38:07
++++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-22 11:39:30
 @@ -12,47 +12,63 @@
  
  ## 6. Quality control
@@ -22708,8 +22714,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +|---|:-:|:-:|:-:|:-:|:-:|:-:|---|
 +| Housing v15 | ● | ● | ● | ● | ◐ | ● | profile probe ran after the freeze |
 +| Procurement, pre-registered evaluation set | ● | ● | ● | ● | ◐ | ● | the agents take no seed |
-+| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ● | ◐ | ◐ | not on the main branch; Gate 1 needs a new evaluation set |
-+| Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | Gate 3 fails on the original audit (a constant full refund passes 38 of 180 policy cases); the expanded release is not qualified |
++| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ● | ◐ | ◐ | needs a new evaluation set |
++| Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | a constant full refund passes 38 of 180 cases |
  
 -**What it found.** Discovered failures are recorded in an incident log in design,
 -operational, tooling and judgment rows that are never deleted (51, 57, 90 and 23 distinct entries across
@@ -23465,10 +23471,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-10-22 11:18:54
++++ aeread_working_draft_20261018_v15/source/version.json	2026-10-22 11:39:30
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.47",
++  "version": "15.48",
 +  "date": "22 October 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}
