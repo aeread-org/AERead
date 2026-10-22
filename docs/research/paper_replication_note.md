@@ -126,6 +126,6 @@ the AERead repository (https://github.com/aeread-org/AERead) unless stated.
   in his experiment repository, not yet in AERead (issue #309).
 - Bootstrap: 20,000 stratified paired template-bootstrap draws with seed 20261011.
 - Release: draft PR #269 (`codex/refund-v25-shared-runner`), synced to main 1dd48cf5; documents
-  `docs/families/refund/refund_v2_5_release.md` and `refund_v2_5_v71_port.md`; panels `v71_intake` and `v71_customer`;
+  `refund_v2_5_release.md` and `refund_v2_5_v71_port.md` in the Refund family's documentation on that branch; panels `v71_intake` and `v71_customer`;
   `python -m aeread_families.refund.v2_5_release --panel all --seed 301`.
 - Payment-unit contract version 5.1: `src/aeread_families/refund/v2_5_payment_units_v51.py`.
