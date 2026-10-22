@@ -109,17 +109,19 @@ with a deal and 8 without).
 | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 episodes | $0.2193 charged | stopped at sizing; no confirmatory run |
 | Data center confirmatory v2 | 80 included + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | pre-registered; Gate 3 passed, the others partial |
 | Data center confirmatory v1 | 60 included + 12 pilot | 45 deal / 15 no-deal in the confirmatory run | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | pre-registered primary contrasts; eight departures |
-| Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
+| Refund V2.5 release | 244 distinct cases, 268 placements (seed 301) | thirteen cohorts × four seats | deterministic reference profiles only | 1,072 trajectories | none | developmental release |
+| Refund V2.5 calibration | 66 seat-specific pairs, 132 placements | four seats, two repeats | Gemini 2.5 Flash Lite, Gemini 2.5 Pro, GPT-6-sol | 792 episodes | not reported | exploratory calibration |
 | Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 episodes (20 repeats of each case) | | descriptive |
 
 Opus 5.5 ran through Claude Code and Sol 6.1 through the Codex CLI, without tools, at low reasoning
 effort, with one subprocess per action. Neither CLI exposes a seed or a temperature, so we record both
 settings as unavailable rather than assume values for them. In the v1 confirmatory run the two CLIs
 were not equally isolated from the operator's machine (Table H.1); for v2 we isolated both and probed
-their context (Section 5.1). Refund V2.5 makes no paid model call. Its release qualifies the
-environment with deterministic profiles in every seat and replays every trajectory, so it measures
-the environment's conformance rather than a model. With every seat scripted, its 816 trajectories
-reduce to 174 distinct action sequences (four payments cases share one reference trajectory).
+their context (Section 5.1). The Refund V2.5 release check makes no paid model call: its 1,072 scripted
+trajectories measure the environment's conformance, not model performance. The earlier release audit's 816 scripted
+trajectories reduce to 174 distinct action sequences (four payments cases share one reference trajectory). Both are
+separate from the 792 model episodes of the calibration in Section 5.1, which do not certify performance on the
+expanded release.
 
 ### E.4 Results beyond the main text
 
@@ -398,6 +400,90 @@ joint loss by pairing, and Appendix E.9 replays it at other fee levels.
 | Firm / Opus | 15.5 | 41.8 | 12.9 | 27.1 | 97.2 |
 | Firm / Sol | 14.3 | 4.0 | 13.8 | 83.8 | 115.8 |
 
+#### Refund
+
+**The four-seat calibration (Section 5.1).** This comparison is distinct from the historical V2.1 results retained in
+Tables E.6 and E.9, and from the later provider-free release. It uses version 5.1 of the payment-unit contract and the
+second version of the branching policy panel. The frozen selection has 132 seat–case placements, and each model played
+each placement twice. The 66 pairs are seat-specific templates, not 66 independent economic mechanisms, because seats
+can reuse a base policy. The policy seat has six pair templates in each of its core, stress and frontier strata; its
+world seed is 201, and the customer, intake and payments seats use seed 301. We ran no held-out model test, and later
+incomplete customer and intake collections are not pooled into this balanced panel.
+
+**Measurement and uncertainty.** The primary measure is the frozen seat-specific strict trajectory score. Within a
+stratum, a template's two variants and two repetitions are averaged before the templates receive equal weight, and
+the strata are then weighted:
+
+[[eq E.3]] S = Σ_s w_s · (1/|T_s|) · Σ_{t ∈ T_s} p̄_t,
+
+where p̄_t is the share of template t's four episodes that pass, T_s holds the templates of stratum s, and w_s is one
+third for each policy stratum and 0.4 and 0.6 for the baseline and difficult strata of the other seats. Conditional
+diagnostics keep their weighted coverage: a leaf that is never visited is neither an observed success nor an observed
+model error. Policy meaning is the mean of four field checks (eligibility, remedy, amount and liability), not the
+share of wholly correct resolutions. Workflow, payment, evidence, contract and operational status remain separate.
+The collaboration checks cover requested disclosure, intake quality, confirmation of the current proposal and payment
+binding; the payment-binding diagnostic includes allocation and method consistency, not only the proposal identifier.
+When the policy seat is evaluated, a passing payment leaf means that the scripted payments seat followed its
+obligation; it does not show that the model's proposal was right. The frozen intervals use 20,000 stratified paired
+template-bootstrap draws that carry the two variants, the repeats and the model pairing together. Two-sided template
+sign-flip tests give the p-values, with Holm correction across all eight comparisons. Shared mechanisms can make
+templates dependent, and a single world per seat, sequential model collection and developmental amendments further
+limit inference. These are exploratory intervals on this panel, not population rankings or the confirmation of an
+original primary hypothesis, and more seeds or repeats would not substitute for new independent templates.
+
+**Table E.19. Refund V2.5 calibration: the eight frozen paired contrasts, in percentage points of weighted strict compliance, with 95% template-bootstrap intervals.**
+
+| Seat | Contrast | Difference [95% interval] | Holm p |
+|---|---|---|---|
+| Customer | Pro minus Lite | 0.0 [0.0, 0.0] | 1.000 |
+| Customer | GPT minus Pro | 0.0 [0.0, 0.0] | 1.000 |
+| Intake | Pro minus Lite | 60.8 [44.2, 78.3] | 0.00586 |
+| Intake | GPT minus Pro | 0.8 [0.0, 2.5] | 1.000 |
+| Policy | Pro minus Lite | 65.3 [54.2, 76.4] | 0.0000610 |
+| Policy | GPT minus Pro | 1.4 [0.0, 4.2] | 1.000 |
+| Payments | Pro minus Lite | 63.3 [60.0, 67.8] | 0.00342 |
+| Payments | GPT minus Pro | 0.0 [−3.3, 3.3] | 1.000 |
+
+The customer, intake, policy and payments seats have 52, 64, 72 and 76 episodes per model, and all 792 included
+episodes have replay-audited receipts; the denominator is valid episodes, not every provider attempt. Unweighted
+strict pass counts are 52, 32, 24 and 32 for Flash Lite, 52, 63, 71 and 75 for Pro, and 52, 64, 72 and 75 for
+GPT-6-sol; these counts do not replace the frozen weights of Figure 5.3. Requiring both variants of a pair to pass
+within a repetition gives 100.0%, 31.3%, 0.0% and 36.8% for Flash Lite, 100.0%, 96.9%, 97.2% and 97.4% for Pro, and
+100.0%, 100.0%, 100.0% and 97.4% for GPT-6-sol. The zero-width interval in the customer seat reflects a saturated
+template pool, not certainty of equal performance on unseen worlds. In the intake seat, the scripted downstream checks
+pass whenever they are reached, but Flash Lite reaches them in only 38.3% of weighted trajectories, so that
+conditional full score does not measure its policy ability. Because the counterparts are scripted, a full downstream
+score in Figure 5.3 does not show a capability of the evaluated model; the figure's operational row covers the 792
+included episodes, not every provider attempt.
+
+**Failure checks.** Pro has three strict failures: an intake request that names three relevant facts despite a batch
+capacity of two, a one-cent allocation error in a refund whose total is nevertheless correct, and the liability error
+in the policy seat described in Section 5.2. GPT-6-sol has one: it selects the correct fallback instrument but writes
+it into the ticket's immutable logical refund-method field, so the error is not evidence that funds went to the wrong
+destination. All four failures occur in the second repetition, and each first repetition of the same case passes.
+Replaying the four recorded actions reproduces their outcomes, and replacing only the erroneous action by a
+correction derived from the public rules yields four full-score trajectories. Twelve scripted positive controls pass
+and fifteen injected errors are detected. These checks support the local attributions; they do not show that the
+verifier has no other defects.
+
+**Figure accounting.** Figure 5.2(d) uses the policy seat only. Its priority order, fixed after the runs, assigns
+each failed episode once: first a decision attempted before the required facts, then an invalid request or no
+scoreable final resolution, then an observed policy, workflow or payment mismatch, and last a remaining contract-only
+error. Overlapping taxonomy tags are not added. For Flash Lite this assigns 26, 4, 18 and 0 of 72 episodes, a total
+shortfall of 66.7 points; Pro has one mismatch in 72 (1.4 points), and GPT-6-sol has none. The resolution-mismatch
+segment includes policy, workflow and prescribed-payment meaning, not only the four-field policy score. Some premature
+candidates also have wrong fields but are counted once, under the first class. The accounting describes the first
+applicable failure, not its causal effect.
+
+**Release scope.** The figure data record the digests of the frozen configuration, the merged 792 episodes, the
+analysis and the offline audit, and this paper does not change the analysis. The model outcomes remain bound to their
+original versioned runner and adapter. The public release adds customer and intake panels, giving 13 public cohorts,
+268 placements and 244 distinct case identifiers per seed; the 24 core cases overlap the 76-case policy panel. Its
+1,072 provider-free reference trajectories (every cohort under each of the four controlled seats) complete with full
+scores, independent replay and audit, and no operational exclusions. They are not 1,072 distinct worlds or additional
+model observations. The earlier lower-control results on 11 cohorts (Appendix F.4) remain historical quality-control
+evidence, and the expanded release has not been promoted to full publication qualification.
+
 ### E.5 Failure classes: rules and full tables
 
 **Table E.4. The shared classes.**
@@ -436,10 +522,11 @@ deal is a commitment error, labelled by the side that walked away. Allocation lo
 surplus counts as worse terms, while allocation loss in a world without positive available surplus is a harmful
 agreement, which is a commitment error. Redline fees are interaction cost. Figure 5.2c separates harmful agreements
 from missed beneficial deals. We count signing below one's own walk-away value separately: that individual loss is
-not an additive component of joint loss, although the same agreement may also destroy joint value. *Refund.* The
+not an additive component of joint loss, although the same agreement may also destroy joint value. *Refund V2.1 (historical).* The
 parts of the published gap decomposition map onto the classes: deciding before a required fact maps to information
 not acquired, a wrong decision to acting contrary to information held, and re-asked or unknown facts and the null
-refund method to procedure and format.
+refund method to procedure and format. The V2.5 panel instead counts each failed episode once, under the first
+applicable class (Appendix E.4).
 
 **Interpreting negotiation costs.** A redline that improves the final agreement's joint value by
 $100k while costing $25k reduces total shortfall by $75k: allocation loss falls by $100k and
@@ -465,7 +552,7 @@ adaptation would require new model runs under pre-registered fee settings.
 
 Housing's totals reproduce the published v15 differences from `inspect_lowball` (51.13 and 99.92 $ a world; GLM's addendum row R3, 127.32; Sol's and Opus's addendum row R, 15.34 and 46.07), and every one of the 520 main episodes per model completed, so no world is excluded. Main-world means average both landlord arms within a world. We retain negative amounts where the model beats the reference. The inspection-cost row is a residual after the earlier classes, so inspection costs already inside other classes are not counted again.
 
-**Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of episodes unresolved).**
+**Table E.6. Data center development ($k joint value lost per deal world) and historical Refund V2.1 (points of episodes unresolved).**
 
 | Class | DC Sol int. × Opus | DC Opus int. × Sol | DC Sol × firm | DC Opus × firm | Refund DeepSeek | Refund Gemini 2.5 FL | Refund GPT-5.6 Luna | Refund Grok |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -516,7 +603,7 @@ its 52 deal worlds, and Table E.17 gives v1's decomposition by pairing.
 | Firm / Opus | 17.0 | 0.0 | 48.3 | 50.6 | 115.9 |
 | Firm / Sol | 12.4 | 0.0 | 53.6 | 92.8 | 158.8 |
 
-**Table E.9. Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).**
+**Table E.9. Distribution of total shortfall (each case's own units). The Refund rows are the historical V2.1 panel; the V2.5 results are in Table E.19.**
 
 | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
 |---|---:|---|---|---|
@@ -531,19 +618,19 @@ its 52 deal worlds, and Table E.17 gives v1's decomposition by pairing.
 | Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
 | Data center: Opus 5.5 | 80 | 83.6 [68.8, 98.4] | 57.2 [27.8, 137.3] | 0 / 0 |
 | Data center: Sol 6.1 | 80 | 140.2 [120.6, 159.7] | 117.3 [87.5, 189.8] | 4 / 0 |
-| Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
-| Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
+| Refund V2.1: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
+| Refund V2.1: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
 
 Opus and Gemini bought from the recorded supplier in every play, so their Procurement rows coincide. The intervals
 are Student t intervals over independent worlds (for Housing after averaging the arms, and for Data center after
-averaging the focal roles), or over the six fixed Refund cases after averaging 20 episodes per case. They describe
+averaging the focal roles), or over the six fixed Refund V2.1 cases after averaging 20 episodes per case. They describe
 variation in these panels; they do not establish a model ranking or coverage of a field population. They are
 descriptive intervals that we derived afterwards, not replacements for the campaigns' pre-registered analyses. A
 Refund interval can exceed the score's 0–100 bounds; we leave it untruncated to expose the weakness of an
 approximation with six fixed cases. Housing has one retained run per world and landlord arm, so its run-to-run variance is unmeasured. Procurement and
 Data center have two plays per world: the two plays of a world scored identically in 7 to 20 of the 20 Procurement
 worlds, depending on the model, and ended identically in 47 (Opus) and 28 (Codex) of the 80 Data center worlds
-(Appendix F.1). Refund has repeated episodes within fixed cases, and the derived
+(Appendix F.1). Refund V2.1 has repeated episodes within fixed cases, and the derived
 evidence retains its per-case outcome distributions. The source package includes component-level intervals,
 distributions, per-world amounts and input digests, together with a reproduction script that makes no provider
 call.
@@ -553,7 +640,7 @@ call.
 The figure draws the estimates below. Each component keeps its case's native units and classification rules, and
 the figure adds no new analysis or cross-case aggregate.
 
-**Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 pre-registered worlds of Table 5.3. Refund retains its development panel.**
+**Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 pre-registered worlds of Table 5.3. Refund uses the policy seat of the V2.5 calibration.**
 
 **(a) Housing**
 
@@ -601,15 +688,20 @@ All 80 worlds, with both focal roles averaged within each world. Joint outcomes 
 
 **(d) Refund**
 
-Percentage points below full resolution under the verifier, in V2.1.
+Percentage points below strict trajectory compliance in the policy seat of the V2.5 calibration.
 
-| Component | GPT-5.6 Luna | Gemini 2.5 Flash Lite |
-|---|---:|---:|
-| Required facts skipped | 15.0 | 0.0 |
-| Procedure or format | 5.8 | 98.3 |
-| **Total shortfall** | **20.8** | **98.3** |
+| Component | Gemini 2.5 Flash Lite | Gemini 2.5 Pro | GPT-6-sol |
+|---|---:|---:|---:|
+| Required facts skipped | 36.1 | 0.0 | 0.0 |
+| Procedure or format | 5.6 | 0.0 | 0.0 |
+| Resolution mismatch | 25.0 | 1.4 | 0.0 |
+| **Total shortfall** | **66.7** | **1.4** | **0.0** |
 
-120 episodes per model, averaged within each of the six fixed cases and then across cases.
+72 episodes per model; each failed episode is counted once, under the first applicable class (Appendix E.4). The
+historical V2.1 panel (GPT-5.6 Luna 20.8, Gemini 2.5 Flash Lite 98.3 points) is in Tables E.6 and E.9. In it, Flash
+Lite asked again for a fact it had already been given in 81% of its episodes, which ended the case with no decision
+(80.8 of its 98.3 points), and in most of the rest wrote the refund method as null where the format requires "none"
+(16.7 points); it reached the answer key's outcome in 18% of episodes and a wrong outcome in none.
 
 We omit rows that are zero for every displayed model, and rounded components may not add up to rounded totals.
 Signing below one's walk-away value is a separate, individual outcome. In v2 neither model signed below its walk-away
@@ -756,8 +848,9 @@ development sets fail Gate 1 because inclusion and type assignment were confound
 used the included evaluation set, which is still `partial` at Gate 1 because of the client seat's construct limit and
 incomplete measured-headroom qualification (Appendix F.2). Refund V2.5 fails Gate 3 on its lower controls (Appendix
 F.4) and is `partial` at Gates 1, 2 and 4: a constant full refund solves 38 of its 180 policy cases, its schema accepts
-a null refund method that its verifier then fails, and no adapter admits a model profile. No model has played it, so
-Gate 5 has not run.
+a null refund method that its verifier then fails, and no adapter admits a model profile. Its developmental
+calibration with three models (Section 5.1) is exploratory rather than pre-registered, so Gate 5 has not run, and the
+expanded public release is qualified only for environment conformance.
 
 We pre-registered and ran Housing v15 after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
 `partial` at Gate 4:
@@ -836,8 +929,10 @@ later under their own configuration, and Procurement's corrected schema ran unde
   failure), the development agreement receipts, which were replayed in-line, and all 1,295 scored receipts from the
   agreement's dry run, pilot and three confirmatory arms, which were replayed offline. We checked one failure receipt
   separately for its digest and seal, because the pinned driver cannot classify exclusions. Replay also covers the
-  procurement panels' receipts, replayed in-line, and Refund V2.5's 816 trajectories, which make no provider call
-  (they are unpublished, and 174 of them are distinct). The replay certificate does not cover two headline measures.
+  procurement panels' receipts, replayed in-line, the historical Refund V2.5 audit's 816
+  provider-free trajectories (174 of them distinct), and the later release's 1,072 scripted trajectories. The 792
+  model episodes of the Refund calibration were audited for seals, routes and offline replay on their own versioned
+  runner. The replay certificate does not cover two headline measures.
   Housing's seat-0 measure is computed by case code over each episode's outcome, whereas the receipts' own scores
   total all six tenants; the derived analyses of Table 5.2 re-derived the measure from the sealed event logs, and we
   re-extracted and regenerated it exactly on 16 October. Procurement's original report read an unsealed action list
@@ -906,6 +1001,8 @@ the same way on 2026-09-14.
   that collects nothing is fully right on 38 of 180 policy-seat cases, the evidence leaf scores any legal path as
   complete, the customer seat reduces to copying, and the payments seat reduces to how often the answer is no payment.
   Only the intake seat passes.
+  These are the original audit's counts. They are not a new lower-control test of the expanded thirteen-cohort
+  release or a reanalysis of the model calibration, and neither expansion establishes full quality control.
 - **A placebo outcome** was run after the agreement's look-back price signal. The same regression on the opening price
   of a scripted integrator that is never told the hidden type gave 0.38 [0.23, 0.52] where the true value must be 0,
   which exposed hidden types tied to the evaluation set's design cell; a random relabelling of types had not caught

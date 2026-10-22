@@ -115,3 +115,14 @@ the AERead repository (https://github.com/aeread-org/AERead) unless stated.
   `cli_isolation.py`.
 - Refund V2.1: the V2 runner is `v2_runner`; published projections carry `state_and_score`; the V2 gap figures
   regenerate with `v2_gap --check`.
+
+## Refund V2.5 calibration and release (ported from the Refund revision, 2026-10-21)
+
+- Source: the Refund revision of working draft 15.36 (PDF built 2026-10-21 by Yuchen Fang). Figure 5.3 is cropped
+  from its page 14; `analysis_evidence/refund_v25/policy_seat_panel.json` transcribes the counts behind Figure 5.2(d)
+  and Table E.10(d). The calibration's measurement files are not on a pushed branch.
+- Bootstrap: 20,000 stratified paired template-bootstrap draws with seed 20261011.
+- Release: draft PR #269 (`codex/refund-v25-shared-runner`), synced to main 1dd48cf5; documents
+  `docs/families/refund/refund_v2_5_release.md` and `refund_v2_5_v71_port.md`; panels `v71_intake` and `v71_customer`;
+  `python -m aeread_families.refund.v2_5_release --panel all --seed 301`.
+- Payment-unit contract version 5.1: `src/aeread_families/refund/v2_5_payment_units_v51.py`.

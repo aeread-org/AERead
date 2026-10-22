@@ -2,7 +2,8 @@
 
 Following TERMS-Bench \citep{zhang2026termsbench}, we write each case as an environment Γ (outcomes, private types and their prior,
 payoffs), a protocol (seats, order of play, actions, what each seat observes, termination), and fixed
-counterpart policies (Appendix B). We do not specify Refund here. Symbols are local to each case, and each case's
+counterpart policies (Appendix B). Refund is specified differently, as compliance with an authored policy and
+protocol rather than a monetary payoff optimum (Appendix A.4). Symbols are local to each case, and each case's
 table lists them together with the kind of quantity each one is. The subscript A denotes the evaluated seat and B a
 counterpart. In controlled comparisons, the prior and the counterpart policies are fixed across evaluated agents;
 head-to-head role swaps change the opponent as well, so they compare pairings rather than agents. Agent
@@ -480,6 +481,54 @@ week's delay, v = 110. Burn-in halves the incident probability, cutting the clie
 0.75 and 191 at 1.55. Joint cost therefore changes by 40 + 110 − (1 + ρ\_C)·75, that is, by +64, +19 or −41.
 Burn-in belongs in the best agreement only for a client with the high charge. The integrator does not know the
 client's charge, which is why the best agreement depends on the other side's type.
+
+\subsection{Refund: policy compliance across four seats}\label{refund-policy-compliance-across-four-seats}
+
+\textbf{Environment and reference.} A world binds a product category, a public claim, a private fact record, the
+identifiers of the facts that may be requested, the rendered policy, a reference resolution, a counterfactual pair and
+the facts that the pair changes. The public policy states the category and interaction rules, their precedence, the
+canonical outcomes, the conditional evidence requirements and the amount formulae. At inclusion, an independently
+authored reference and a resolver that applies the public rules must agree. The reference is therefore an
+answer-and-rule reference, not an optimal monetary policy or a full-information welfare bound. No model can read the
+reference; each must acquire the decisive facts through its own observations. Later intake extensions add synthetic
+collection priorities and access dependencies; these are stated experimental rules, not estimated business utilities
+or claims about which evidence implies another fact.
+
+\textbf{Protocol and information.} The customer submits its public claim, and intake requests facts. The customer then
+discloses what was requested. The policy seat requests further facts or proposes a resolution, the customer confirms
+that proposal, and the payments seat executes it or returns a no-op. The customer's private facts do not appear in
+intake's request catalogue. The policy seat sees only the facts disclosed so far, and the payments seat receives a
+confirmed ticket rather than an unconfirmed proposal or a policy oracle. The customer never receives the reference
+outcome or the complete policy oracle. In a controlled episode exactly one seat is played by a model. The other three
+follow fixed reference scripts, not further instances of the same model; the scripts carry out delegated service
+obligations and are not a population of strategic counterparts with conflicting payoffs.
+
+\textbf{Actions.} A policy action either requests facts or submits a resolution that sets eligibility, remedy, workflow,
+amount, refund method, payment mutation, shipping liability, policy basis and reason code. The required facts depend
+on the branch reached, so collecting every possible fact is not the reference. An intake or policy request must name
+relevant, existing facts that have not yet been disclosed, and the customer may disclose only requested private facts.
+A final resolution cannot also request evidence. Confirmation binds the current proposal, and execution binds the
+confirmed proposal together with, where applicable, the payment-ledger snapshot and an idempotency key. A positive
+refund is executed exactly once, and reviews, holds and zero obligations move no money.
+
+\textbf{Construction.} The full policy library has 38 pairs (76 variants): 12 core, 12 stress, six frontier and eight
+frontier-hard. Its mechanisms include evidence thresholds, seller-fault overrides, identity precedence, conditional
+collection, allocated bundle values, refund caps, payment reconciliation and multi-branch liability. The four-seat
+calibration of Section 5.1 uses a smaller selection, frozen separately (Appendix E.4). The cohorts of the other seats
+add collection budgets, batch limits, source and revision authority, confirmation binding, and payment allocation or
+repeated-delivery state. A pair that changes the decision must exhibit the stated difference in the reference;
+invariance controls are typed separately. World seeds vary only the conditions that each generator implements, so
+they do not create new independent rule templates.
+
+\textbf{Measures and inclusion.} A strict pass requires the evaluated seat's obligations to hold across the whole
+trajectory. Separate diagnostics check policy meaning, workflow, the prescribed or executed payment, evidence,
+contract format and operational status, together with collaboration checks and the coverage of each observation. A
+policy alias that means the same thing can fail canonical contract adherence without counting as a policy-meaning
+failure, whereas a change of eligibility, remedy, amount or liability is a semantic failure. Candidate resolutions
+rejected as premature are retained, so that their meaning can be checked separately from the sufficiency of the
+evidence. Inclusion checks fact-domain completeness, precedence, pair differences, the rendered contract and full
+scripted trajectories. These are necessary implementation checks; they do not show that naive controls lose (Appendix
+F.4) or that the cases represent deployed refund operations.
 
 \section{Counterpart policies}\label{counterpart-policies}
 

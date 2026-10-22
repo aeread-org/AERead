@@ -1,0 +1,15 @@
+{
+  "record": "refund_v25_policy_seat_panel",
+  "provenance": "Transcribed from the Refund revision of working draft 15.36 (PDF built 2026-10-21 by Yuchen Fang): Figure 5.2d, Table E.10(d), Table E.18 and Appendix E.4 'Figure accounting'. The calibration's measurement files are not on any pushed branch; this record holds the published counts so the panel can be rebuilt and checked.",
+  "seat": "policy",
+  "episodes_per_model": 72,
+  "templates": 18,
+  "strata": {"core": 6, "stress": 6, "frontier": 6},
+  "accounting": "each failed episode counted once, under the first applicable class: information_not_acquired (a decision attempted before the required facts), procedure_and_format (an invalid request or no scoreable final resolution), contrary_to_information_held (an observed policy, workflow or prescribed-payment mismatch), contract_only (a remaining contract-only error)",
+  "models": {
+    "Gemini 2.5 Flash Lite": {"classes": {"information_not_acquired": 26, "procedure_and_format": 4, "contrary_to_information_held": 18, "contract_only": 0}, "strict_pass": 24},
+    "Gemini 2.5 Pro": {"classes": {"information_not_acquired": 0, "procedure_and_format": 0, "contrary_to_information_held": 1, "contract_only": 0}, "strict_pass": 71},
+    "GPT-6-sol": {"classes": {"information_not_acquired": 0, "procedure_and_format": 0, "contrary_to_information_held": 0, "contract_only": 0}, "strict_pass": 72}
+  },
+  "weighted_strict_compliance_policy": {"Gemini 2.5 Flash Lite": 33.3, "Gemini 2.5 Pro": 98.6, "GPT-6-sol": 100.0}
+}

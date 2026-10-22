@@ -1,7 +1,7 @@
 Binary files aeread_working_draft_20261018_v14/.DS_Store and aeread_working_draft_20261018_v15/.DS_Store differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-21 17:31:11
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-10-21 17:40:37
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -10,8 +10,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    "shortfall_panels": 4,
 -  "shortfall_figure_bars_verified": 10,
 -  "shortfall_displayed_means_verified": 44,
-+  "shortfall_figure_bars_verified": 13,
-+  "shortfall_displayed_means_verified": 71,
++  "shortfall_figure_bars_verified": 14,
++  "shortfall_displayed_means_verified": 77,
    "runtime_tables": 2,
    "runtime_subsections": 4,
    "references": 15,
@@ -20,14 +20,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -  "runtime_words": 1898,
 -  "abstract_words": 189,
 -  "discussion_words": 350
-+  "runtime_words": 2120,
++  "runtime_words": 2153,
 +  "abstract_words": 300,
-+  "discussion_words": 1010
++  "discussion_words": 1092
  }
 Binary files aeread_working_draft_20261018_v14/__pycache__/export_latex.cpython-311.pyc and aeread_working_draft_20261018_v15/__pycache__/export_latex.cpython-311.pyc differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/build.py aeread_working_draft_20261018_v15/build.py
 --- aeread_working_draft_20261018_v14/build.py	2026-10-18 13:44:30
-+++ aeread_working_draft_20261018_v15/build.py	2026-10-21 15:19:06
++++ aeread_working_draft_20261018_v15/build.py	2026-10-21 17:38:07
 @@ -18,7 +18,7 @@
  
  ROOT = Path(__file__).resolve().parent
@@ -149,7 +149,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      for link in soup.find_all('a', attrs={'data-reference':True}):
          key = link['data-reference']; link.clear(); link.append(labels[key]); link['href'] = '#' + key
      for heading in soup.find_all(['h2','h3','h4']):
-@@ -208,17 +263,37 @@
+@@ -208,17 +263,50 @@
              if letter != 'H': heading['id'] = 'appendix-' + letter
          elif re.match(r'^[A-G]\.\d+\b',title): heading['id'] = 'appendix-' + title.split()[0]
      for paragraph in soup.find_all('p'):
@@ -172,6 +172,19 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    v3_figure.append(v3_figcaption)
 +    v3_caption.decompose()
 +    v3_marker.replace_with(v3_figure)
++    # Figure 5.3 (Refund V2.5 calibration) is the Refund owner's figure, copied unchanged from the Refund revision.
++    r_image = soup.find('img', src='figures/refund_v25_compliance.png')
++    r_marker = r_image.find_parent('p')
++    r_caption = r_marker.find_next_sibling('p')
++    assert r_caption.get_text().startswith('Figure 5.3.')
++    r_figure = soup.new_tag('figure', attrs={'id':'fig-refund-v25','class':'procurement-figure'})
++    r_figure.append(r_image.extract())
++    r_figcaption = soup.new_tag('figcaption')
++    for child in list(r_caption.contents): r_figcaption.append(child.extract())
++    r_figure.append(r_figcaption)
++    r_caption.decompose()
++    r_marker.replace_with(r_figure)
++    assert (SOURCE/'figures/refund_v25_compliance.png').read_bytes() == (ROOT/'figures/refund_v25_compliance.png').read_bytes()
 +    v3_checks = json.loads((ROOT/'figures/PROCUREMENT_V3_FIGURE_CHECKS.json').read_text())
 +    assert hashlib.sha256((ROOT/'figures/plot_procurement_v3.py').read_bytes()).hexdigest() == v3_checks['script_sha256']
 +    assert hashlib.sha256((ROOT/'figures/procurement_v3_gap_closed.svg').read_bytes()).hexdigest() == v3_checks['svg_sha256']
@@ -189,16 +202,16 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      figure = soup.new_tag('figure', attrs={'id':'fig-shortfall','class':'shortfall-figure'})
      image = source_image.extract()
      figure.append(image)
-@@ -231,7 +306,7 @@
+@@ -231,7 +319,7 @@
      assert hashlib.sha256((ROOT/figure_checks['source']).read_bytes()).hexdigest() == figure_checks['source_sha256']
      assert hashlib.sha256((ROOT/'figures/shortfall_by_case.svg').read_bytes()).hexdigest() == figure_checks['svg_sha256']
      assert (SOURCE/'figures/shortfall_by_case.svg').read_bytes() == (ROOT/'figures/shortfall_by_case.svg').read_bytes()
 -    assert len(figure_checks['bars']) == 10
-+    assert len(figure_checks['bars']) == 13
++    assert len(figure_checks['bars']) == 14
      # One numbered appendix table, four panels in the same order as the figure.
      caption = soup.find(id='table-E.10')
      panel_names = ['(a) Housing', '(b) Procurement', '(c) Data center', '(d) Refund']
-@@ -266,13 +341,13 @@
+@@ -266,24 +354,24 @@
          assert abs(bar['total']-values['total']['mean']) < 1e-9
          for component in bar['components']:
              assert abs(component['value']-values[component['key']]['mean']) < 1e-9
@@ -216,8 +229,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +         PROCUREMENT_KEYS),
          ('datacenter', ['Opus 5.5','Sol 6.1'],
           ['inferior_clauses','harmful_agreement','missed_deal','redline_fees','total']),
-         ('refund', ['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],
-@@ -283,7 +358,7 @@
+-        ('refund', ['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],
+-         ['information_not_acquired','procedure_and_format','total']),
++        ('refund', ['Gemini 2.5 Flash Lite','Gemini 2.5 Pro','GPT-6-sol'],
++         ['information_not_acquired','procedure_and_format','contrary_to_information_held','total']),
+     ]
+     displayed_means = 0
+     for panel, (case, names, keys) in zip(grid.select('.shortfall-panel'), displayed_panels, strict=True):
          for row, key in zip(panel.select('tbody tr'), keys, strict=True):
              for cell, name in zip(row.find_all('td')[1:], names, strict=True):
                  expected = decomposition[case][name]['summary'][key]['mean']
@@ -226,7 +244,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  displayed_means += 1
      runtime_notes = 0
      for heading in soup.find_all('h4'):
-@@ -303,7 +378,10 @@
+@@ -303,7 +391,10 @@
      assert not missing, missing
      assert len(parts['appendix'].find_all('h3')) == 4
      assert not re.search(r'\bH\.(?:[5-9]|1[0-2])\b', soup.get_text())
@@ -238,7 +256,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                'shortfall_panels':len(grid.select('.shortfall-panel')),
                'shortfall_figure_bars_verified':len(figure_checks['bars']),
                'shortfall_displayed_means_verified':displayed_means,
-@@ -315,7 +393,9 @@
+@@ -315,7 +406,9 @@
                'discussion_words':len(parts['discussion'].get_text(' ',strip=True).split())}
      assert checks['runtime_tables'] == 2
      title = 'AERead: Evaluating Economic Decisions in Interactive Environments'
@@ -249,7 +267,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      authors = json.loads((SOURCE / 'authors.json').read_text())
      full = document(title, subtitle, str(soup), styles, authors=authors)
      page = OUT.with_suffix('.html'); page.write_text(full)
-@@ -323,7 +403,7 @@
+@@ -323,7 +416,7 @@
      if not OUT.exists() or OUT.stat().st_mtime < page.stat().st_mtime:
          raise RuntimeError(result.stderr[-4000:])
      writer = PdfWriter(clone_from=PdfReader(OUT))
@@ -585,7 +603,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    compile_pdf()
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/ARCHITECTURE_CHECKS.json	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-21 17:27:40
++++ aeread_working_draft_20261018_v15/figures/ARCHITECTURE_CHECKS.json	2026-10-21 17:38:19
 @@ -2,11 +2,11 @@
    "figure": "Figure 4.1",
    "scope": "Conceptual architecture; applied coverage varies by campaign",
@@ -598,20 +616,20 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    "source/sec_opening.tex": "b2d344ed57d09754aaf91348433903683437423b3c9860b5ba98515c2ec6803b",
 +    "source/sec_runtime.tex": "c9ce8f81218ba064ca89c7cca9fe07c1e6b928d4d34d9d14c1bfb59d35947bfc",
 +    "source/app_runtime.tex": "05589334f4168856283cceb9460f3fa24537afeb2cac6b68dc6ee611b64dd2be",
-+    "source/paper_qc_design.md": "cbd1fef9d675988f1961624ad6197d545410f2b0450b31a1dcd181d7ae31fbc0",
-+    "source/tab_case_paths.tex": "d5f6e7dc2bae59ed6c208e950dadedb44f26d92eca43d1421196dc45b1ea580a"
++    "source/paper_qc_design.md": "5635d985fbd80abf9345a5d279d16160dc24934ab41b7daef7287003b653fcbb",
++    "source/tab_case_paths.tex": "3ac98b377a5f1151c0d06318a6d2b17ce36dee2dccb7791291426cbf141df05a"
    },
    "svg_sha256": "155ef02021fd32a9ce6578ecd739ed15c4d7c3f8b19c877de62e0b4e428f353f",
    "png_sha256": "f1fe4263b2402093050fc6db7983ac673170ee793bb17adc167c8f747f178e94"
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/FIGURE_CHECKS.json	2026-10-17 21:13:27
-+++ aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json	2026-10-21 13:21:34
++++ aeread_working_draft_20261018_v15/figures/FIGURE_CHECKS.json	2026-10-21 17:38:18
 @@ -1,70 +1,85 @@
  {
    "source": "analysis_evidence/shortfall_panels/panels.json",
 -  "source_sha256": "dd9d769ad4f8071d82cdf2bbdab45a637249153b8f5aee645e4d685971de1786",
 -  "figure": "Figure 5.1",
-+  "source_sha256": "383f768fc8caae2dfb61eb08370cdc5ae2a0ea7f612b4df8a145d2c5e2aec752",
++  "source_sha256": "d7995c58a32986dadb77c00996f032f16831dac313c1de6c85f8e7932a2004d1",
 +  "figure": "Figure 5.2",
    "table": "Table E.10",
 -  "component_sums_checked": 10,
@@ -622,7 +640,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    "interaction_cost",
 +    "total"
 +  ],
-+  "component_sums_checked": 13,
++  "component_sums_checked": 14,
    "bars": [
      {
        "case": "housing",
@@ -875,7 +893,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
          },
          {
            "key": "contrary_to_information_held",
-@@ -137,57 +236,85 @@
+@@ -137,78 +236,110 @@
          {
            "key": "worse_terms",
            "value": 0.0
@@ -974,8 +992,72 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
      },
      {
        "case": "refund",
-@@ -222,8 +349,8 @@
-       "axis_limit": 115
+-      "subject": "GPT-5.6 Luna",
+-      "total": 20.833333333333332,
++      "subject": "Gemini 2.5 Flash Lite",
++      "total": 66.66666666666667,
+       "components": [
+         {
+           "key": "information_not_acquired",
+-          "value": 15.0
++          "value": 36.111111111111114
+         },
+         {
+           "key": "procedure_and_format",
+-          "value": 5.833333333333333
++          "value": 5.555555555555555
++        },
++        {
++          "key": "contrary_to_information_held",
++          "value": 25.0
+         }
+       ],
+-      "axis_limit": 115
++      "axis_limit": 80
+     },
+     {
+       "case": "refund",
+-      "subject": "Gemini 2.5 Flash Lite",
+-      "total": 98.33333333333333,
++      "subject": "Gemini 2.5 Pro",
++      "total": 1.3888888888888888,
+       "components": [
+         {
+           "key": "information_not_acquired",
+@@ -216,14 +347,38 @@
+         },
+         {
+           "key": "procedure_and_format",
+-          "value": 98.33333333333333
++          "value": 0.0
++        },
++        {
++          "key": "contrary_to_information_held",
++          "value": 1.3888888888888888
+         }
+       ],
+-      "axis_limit": 115
++      "axis_limit": 80
++    },
++    {
++      "case": "refund",
++      "subject": "GPT-6-sol",
++      "total": 0.0,
++      "components": [
++        {
++          "key": "information_not_acquired",
++          "value": 0.0
++        },
++        {
++          "key": "procedure_and_format",
++          "value": 0.0
++        },
++        {
++          "key": "contrary_to_information_held",
++          "value": 0.0
++        }
++      ],
++      "axis_limit": 80
      }
    ],
 -  "negative_component_policy": "reject; a signed decomposition would require a diverging chart",
@@ -983,8 +1065,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
    "uncertainty": "Point estimates; descriptive intervals in Table E.9",
 -  "svg_sha256": "2476cb155f4599ab7e8b1823036c828789f3649786690421e060bb1390897c9f",
 -  "png_sha256": "09f339598a6a6842d4906a66b54d96d566142567255d3553a1dcaa191dd3fc46"
-+  "svg_sha256": "43a63591ed77faab5e701d786d38bed807b3789c1cdad90c013c84fac20595b8",
-+  "png_sha256": "c6ef7ac7d730478a947aba8a92391100d4ce3ad338f86d59fd6330f795d25970"
++  "svg_sha256": "5e03f33b5c8a933d42a81a3b9f47edfc724637c22d4f914791f2f2105fb29ee8",
++  "png_sha256": "52aa0f6dc291449165b2a08ed9f364ff9d7bf2415c3f586ed771795b1f4b5cd6"
  }
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/LEVELS_FIGURE_CHECKS.json aeread_working_draft_20261018_v15/figures/LEVELS_FIGURE_CHECKS.json
 --- aeread_working_draft_20261018_v14/figures/LEVELS_FIGURE_CHECKS.json	1969-12-31 16:00:00
@@ -1549,14 +1631,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +    main()
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/figures/plot_shortfalls.py aeread_working_draft_20261018_v15/figures/plot_shortfalls.py
 --- aeread_working_draft_20261018_v14/figures/plot_shortfalls.py	2026-10-17 21:13:26
-+++ aeread_working_draft_20261018_v15/figures/plot_shortfalls.py	2026-10-21 13:21:33
++++ aeread_working_draft_20261018_v15/figures/plot_shortfalls.py	2026-10-21 17:38:07
 @@ -1,4 +1,4 @@
 -"""Plot the checked Table E.10 accounting as Figure 5.1, with native units.
 +"""Plot the checked Table E.10 accounting as Figure 5.2, with native units.
  
  Run from the draft directory: uv run --with matplotlib python figures/plot_shortfalls.py
  Point estimates only; descriptive intervals remain in Table E.9.
-@@ -33,29 +33,30 @@
+@@ -33,40 +33,42 @@
  COST = '#D5A23A'
  PROCEDURE = '#7B899B'
  PANELS = [
@@ -1602,7 +1684,25 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
           parts=[('inferior_clauses','Inferior clauses',TERMS,''),
                  ('harmful_agreement','Harmful agreement',COMMIT,''),
                  ('missed_deal','Missed deal','#CAA4CB','///'),
-@@ -91,13 +92,16 @@
+                 ('redline_fees','Redline fees',COST,'')]),
+-    dict(case='refund', title='(d) Refund', subtitle='Development V2.1 · full resolution',
+-         names=['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],
+-         labels=['GPT-5.6 Luna','Gemini 2.5\nFlash Lite'],
+-         sample='6 fixed cases; 120 cells each', unit='Resolution shortfall (percentage points)',
+-         limit=115, ticks=[0,25,50,75,100],
++    dict(case='refund', title='(d) Refund', subtitle='V2.5 calibration · policy seat',
++         names=['Gemini 2.5 Flash Lite','Gemini 2.5 Pro','GPT-6-sol'],
++         labels=['Gemini 2.5\nFlash Lite','Gemini 2.5\nPro','GPT-6-sol'],
++         sample='72 policy-seat episodes per model', unit='Strict-compliance shortfall (percentage points)',
++         limit=80, ticks=[0,20,40,60,80],
+          parts=[('information_not_acquired','Required facts skipped',INFO,''),
+-                ('procedure_and_format','Procedure / format',PROCEDURE,'')]),
++                ('procedure_and_format','Procedure / format',PROCEDURE,''),
++                ('contrary_to_information_held','Resolution mismatch',CONTRARY,'')]),
+ ]
+ 
+ 
+@@ -91,13 +93,16 @@
          ax.set_axisbelow(True)
          ax.grid(axis='x',color='#DEE4E8',linewidth=.6)
          for j,name in enumerate(panel['names']):
@@ -1622,7 +1722,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  components.append(dict(key=key,value=value))
                  left+=value
              total=values['total']['mean']
-@@ -110,9 +114,9 @@
+@@ -110,9 +115,9 @@
                   for _,l,c,h in panel['parts']]
          # Legends align to the panel's left edge, independently of model labels.
          fig.legend(handles=handles,loc='upper left',
@@ -1634,7 +1734,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                     borderaxespad=0)
      svg=ROOT/'shortfall_by_case.svg'
      png=ROOT/'shortfall_by_case.png'
-@@ -125,9 +129,11 @@
+@@ -125,9 +130,11 @@
      plt.close(fig)
      report=dict(source=str(SOURCE.relative_to(ROOT.parent)),
                  source_sha256=hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
@@ -1650,7 +1750,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/main.tex aeread_working_draft_20261018_v15/latex/main.tex
 --- aeread_working_draft_20261018_v14/latex/main.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-21 17:31:16
++++ aeread_working_draft_20261018_v15/latex/main.tex	2026-10-21 17:40:39
 @@ -0,0 +1,51 @@
 +\documentclass[10pt]{article}
 +\usepackage[margin=0.9in]{geometry}
@@ -1684,7 +1784,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 +\title{AERead: Evaluating Economic Decisions in Interactive Environments}
 +\author{Chenyu Li \hspace{3em} Zeyu Sun \\[3pt] {\small contact@aeread.org}}
-+\date{Research working paper, version 15.41, 21 October 2026. Preliminary results; feedback and contributions welcome.}
++\date{Research working paper, version 15.42, 21 October 2026. Preliminary results; feedback and contributions welcome.}
 +
 +\begin{document}
 +\maketitle
@@ -1921,7 +2021,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/abstract.tex aeread_working_draft_20261018_v15/latex/sections/abstract.tex
 --- aeread_working_draft_20261018_v14/latex/sections/abstract.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-21 17:31:12
++++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-10-21 17:40:37
 @@ -0,0 +1,25 @@
 +\section*{Abstract}
 +
@@ -1950,13 +2050,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +the runtime, replay and the quality-control standard.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-21 17:31:15
-@@ -0,0 +1,912 @@
++++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-10-21 17:40:38
+@@ -0,0 +1,961 @@
 +\section{Case specifications}\label{case-specifications}
 +
 +Following TERMS-Bench \citep{zhang2026termsbench}, we write each case as an environment Γ (outcomes, private types and their prior,
 +payoffs), a protocol (seats, order of play, actions, what each seat observes, termination), and fixed
-+counterpart policies (Appendix B). We do not specify Refund here. Symbols are local to each case, and each case's
++counterpart policies (Appendix B). Refund is specified differently, as compliance with an authored policy and
++protocol rather than a monetary payoff optimum (Appendix A.4). Symbols are local to each case, and each case's
 +table lists them together with the kind of quantity each one is. The subscript A denotes the evaluated seat and B a
 +counterpart. In controlled comparisons, the prior and the counterpart policies are fixed across evaluated agents;
 +head-to-head role swaps change the opponent as well, so they compare pairings rather than agents. Agent
@@ -2435,6 +2536,54 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Burn-in belongs in the best agreement only for a client with the high charge. The integrator does not know the
 +client's charge, which is why the best agreement depends on the other side's type.
 +
++\subsection{Refund: policy compliance across four seats}\label{refund-policy-compliance-across-four-seats}
++
++\textbf{Environment and reference.} A world binds a product category, a public claim, a private fact record, the
++identifiers of the facts that may be requested, the rendered policy, a reference resolution, a counterfactual pair and
++the facts that the pair changes. The public policy states the category and interaction rules, their precedence, the
++canonical outcomes, the conditional evidence requirements and the amount formulae. At inclusion, an independently
++authored reference and a resolver that applies the public rules must agree. The reference is therefore an
++answer-and-rule reference, not an optimal monetary policy or a full-information welfare bound. No model can read the
++reference; each must acquire the decisive facts through its own observations. Later intake extensions add synthetic
++collection priorities and access dependencies; these are stated experimental rules, not estimated business utilities
++or claims about which evidence implies another fact.
++
++\textbf{Protocol and information.} The customer submits its public claim, and intake requests facts. The customer then
++discloses what was requested. The policy seat requests further facts or proposes a resolution, the customer confirms
++that proposal, and the payments seat executes it or returns a no-op. The customer's private facts do not appear in
++intake's request catalogue. The policy seat sees only the facts disclosed so far, and the payments seat receives a
++confirmed ticket rather than an unconfirmed proposal or a policy oracle. The customer never receives the reference
++outcome or the complete policy oracle. In a controlled episode exactly one seat is played by a model. The other three
++follow fixed reference scripts, not further instances of the same model; the scripts carry out delegated service
++obligations and are not a population of strategic counterparts with conflicting payoffs.
++
++\textbf{Actions.} A policy action either requests facts or submits a resolution that sets eligibility, remedy, workflow,
++amount, refund method, payment mutation, shipping liability, policy basis and reason code. The required facts depend
++on the branch reached, so collecting every possible fact is not the reference. An intake or policy request must name
++relevant, existing facts that have not yet been disclosed, and the customer may disclose only requested private facts.
++A final resolution cannot also request evidence. Confirmation binds the current proposal, and execution binds the
++confirmed proposal together with, where applicable, the payment-ledger snapshot and an idempotency key. A positive
++refund is executed exactly once, and reviews, holds and zero obligations move no money.
++
++\textbf{Construction.} The full policy library has 38 pairs (76 variants): 12 core, 12 stress, six frontier and eight
++frontier-hard. Its mechanisms include evidence thresholds, seller-fault overrides, identity precedence, conditional
++collection, allocated bundle values, refund caps, payment reconciliation and multi-branch liability. The four-seat
++calibration of Section 5.1 uses a smaller selection, frozen separately (Appendix E.4). The cohorts of the other seats
++add collection budgets, batch limits, source and revision authority, confirmation binding, and payment allocation or
++repeated-delivery state. A pair that changes the decision must exhibit the stated difference in the reference;
++invariance controls are typed separately. World seeds vary only the conditions that each generator implements, so
++they do not create new independent rule templates.
++
++\textbf{Measures and inclusion.} A strict pass requires the evaluated seat's obligations to hold across the whole
++trajectory. Separate diagnostics check policy meaning, workflow, the prescribed or executed payment, evidence,
++contract format and operational status, together with collaboration checks and the coverage of each observation. A
++policy alias that means the same thing can fail canonical contract adherence without counting as a policy-meaning
++failure, whereas a change of eligibility, remedy, amount or liability is a semantic failure. Candidate resolutions
++rejected as premature are retained, so that their meaning can be checked separately from the sufficiency of the
++evidence. Inclusion checks fact-domain completeness, precedence, pair differences, the rendered contract and full
++scripted trajectories. These are necessary implementation checks; they do not show that naive controls lose (Appendix
++F.4) or that the cases represent deployed refund operations.
++
 +\section{Counterpart policies}\label{counterpart-policies}
 +
 +\subsection{Housing: landlords and outside demand}\label{housing-landlords-and-outside-demand}
@@ -2866,8 +3015,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and each procedure the paper reports, to its implementation.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_details.tex aeread_working_draft_20261018_v15/latex/sections/app_details.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_details.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-21 17:31:16
-@@ -0,0 +1,1621 @@
++++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-10-21 17:40:39
+@@ -0,0 +1,1739 @@
 +\section{Case details}\label{case-details}
 +
 +\subsection{Every reported check}\label{every-reported-check}
@@ -3018,7 +3167,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Procurement v2 gate and pilot & 12 pilot worlds, two plays per model; one gate each & shared-source information value & Gemini 3.8 Flash, GPT-6 Luna & 50 episodes & \$0.2193 charged & stopped at sizing; no confirmatory run \\
 +Data center confirmatory v2 & 80 included + 12 pilot & 72 deal / 8 no-deal; both tools isolated & Opus 5.5, Sol 6.1 & 640 negotiations, all valid and replayed & \$55.41 & pre-registered; Gate 3 passed, the others partial \\
 +Data center confirmatory v1 & 60 included + 12 pilot & 45 deal / 15 no-deal in the confirmatory run & Opus 5.5, Sol 6.1 & 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs & \$74.41 & pre-registered primary contrasts; eight departures \\
-+Refund V2.5 & 180 distinct cases (seed 301) & eleven cohorts × four seats & deterministic reference profiles only & 816 trajectories & none & developmental release \\
++Refund V2.5 release & 244 distinct cases, 268 placements (seed 301) & thirteen cohorts × four seats & deterministic reference profiles only & 1,072 trajectories & none & developmental release \\
++Refund V2.5 calibration & 66 seat-specific pairs, 132 placements & four seats, two repeats & Gemini 2.5 Flash Lite, Gemini 2.5 Pro, GPT-6-sol & 792 episodes & not reported & exploratory calibration \\
 +Refund V2.1 & 6 cases & one policy seat & DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 & 480 episodes (20 repeats of each case) & & descriptive \\
 +\end{longtable}
 +
@@ -3026,10 +3176,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +effort, with one subprocess per action. Neither CLI exposes a seed or a temperature, so we record both
 +settings as unavailable rather than assume values for them. In the v1 confirmatory run the two CLIs
 +were not equally isolated from the operator's machine (Table H.1); for v2 we isolated both and probed
-+their context (Section 5.1). Refund V2.5 makes no paid model call. Its release qualifies the
-+environment with deterministic profiles in every seat and replays every trajectory, so it measures
-+the environment's conformance rather than a model. With every seat scripted, its 816 trajectories
-+reduce to 174 distinct action sequences (four payments cases share one reference trajectory).
++their context (Section 5.1). The Refund V2.5 release check makes no paid model call: its 1,072 scripted
++trajectories measure the environment's conformance, not model performance. The earlier release audit's 816 scripted
++trajectories reduce to 174 distinct action sequences (four payments cases share one reference trajectory). Both are
++separate from the 792 model episodes of the calibration in Section 5.1, which do not certify performance on the
++expanded release.
 +
 +\subsection{Results beyond the main text}\label{results-beyond-the-main-text}
 +
@@ -3428,6 +3579,108 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Firm / Sol & 14.3 & 4.0 & 13.8 & 83.8 & 115.8 \\
 +\end{longtable}
 +
++\subsubsection{Refund}\label{refund}
++
++\textbf{The four-seat calibration (Section 5.1).} This comparison is distinct from the historical V2.1 results retained in
++Tables E.6 and E.9, and from the later provider-free release. It uses version 5.1 of the payment-unit contract and the
++second version of the branching policy panel. The frozen selection has 132 seat--case placements, and each model played
++each placement twice. The 66 pairs are seat-specific templates, not 66 independent economic mechanisms, because seats
++can reuse a base policy. The policy seat has six pair templates in each of its core, stress and frontier strata; its
++world seed is 201, and the customer, intake and payments seats use seed 301. We ran no held-out model test, and later
++incomplete customer and intake collections are not pooled into this balanced panel.
++
++\textbf{Measurement and uncertainty.} The primary measure is the frozen seat-specific strict trajectory score. Within a
++stratum, a template's two variants and two repetitions are averaged before the templates receive equal weight, and
++the strata are then weighted:
++
++\[ \text{S = Σ\textsubscript{s} w\textsubscript{s} · (1/|T\textsubscript{s}|) · Σ\textsubscript{t ∈ T\_s} p̄\textsubscript{t},} \tag{E.3} \]
++
++where p̄\_t is the share of template t's four episodes that pass, T\_s holds the templates of stratum s, and w\_s is one
++third for each policy stratum and 0.4 and 0.6 for the baseline and difficult strata of the other seats. Conditional
++diagnostics keep their weighted coverage: a leaf that is never visited is neither an observed success nor an observed
++model error. Policy meaning is the mean of four field checks (eligibility, remedy, amount and liability), not the
++share of wholly correct resolutions. Workflow, payment, evidence, contract and operational status remain separate.
++The collaboration checks cover requested disclosure, intake quality, confirmation of the current proposal and payment
++binding; the payment-binding diagnostic includes allocation and method consistency, not only the proposal identifier.
++When the policy seat is evaluated, a passing payment leaf means that the scripted payments seat followed its
++obligation; it does not show that the model's proposal was right. The frozen intervals use 20,000 stratified paired
++template-bootstrap draws that carry the two variants, the repeats and the model pairing together. Two-sided template
++sign-flip tests give the p-values, with Holm correction across all eight comparisons. Shared mechanisms can make
++templates dependent, and a single world per seat, sequential model collection and developmental amendments further
++limit inference. These are exploratory intervals on this panel, not population rankings or the confirmation of an
++original primary hypothesis, and more seeds or repeats would not substitute for new independent templates.
++
++\renewcommand{\thetable}{E.19}
++\begin{longtable}[]{@{}
++  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
++  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
++  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}
++  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2500}}@{}}
++\caption{\textbf{Refund V2.5 calibration: the eight frozen paired contrasts, in percentage points of weighted strict compliance, with 95\% template-bootstrap intervals.}}\label{tab:E.19}\tabularnewline
++\toprule\noalign{}
++\begin{minipage}[b]{\linewidth}\raggedright
++Seat
++\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
++Contrast
++\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
++Difference {[}95\% interval{]}
++\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
++Holm p
++\end{minipage} \\
++\midrule\noalign{}
++\endhead
++\bottomrule\noalign{}
++\endlastfoot
++Customer & Pro minus Lite & 0.0 {[}0.0, 0.0{]} & 1.000 \\
++Customer & GPT minus Pro & 0.0 {[}0.0, 0.0{]} & 1.000 \\
++Intake & Pro minus Lite & 60.8 {[}44.2, 78.3{]} & 0.00586 \\
++Intake & GPT minus Pro & 0.8 {[}0.0, 2.5{]} & 1.000 \\
++Policy & Pro minus Lite & 65.3 {[}54.2, 76.4{]} & 0.0000610 \\
++Policy & GPT minus Pro & 1.4 {[}0.0, 4.2{]} & 1.000 \\
++Payments & Pro minus Lite & 63.3 {[}60.0, 67.8{]} & 0.00342 \\
++Payments & GPT minus Pro & 0.0 {[}−3.3, 3.3{]} & 1.000 \\
++\end{longtable}
++
++The customer, intake, policy and payments seats have 52, 64, 72 and 76 episodes per model, and all 792 included
++episodes have replay-audited receipts; the denominator is valid episodes, not every provider attempt. Unweighted
++strict pass counts are 52, 32, 24 and 32 for Flash Lite, 52, 63, 71 and 75 for Pro, and 52, 64, 72 and 75 for
++GPT-6-sol; these counts do not replace the frozen weights of Figure 5.3. Requiring both variants of a pair to pass
++within a repetition gives 100.0\%, 31.3\%, 0.0\% and 36.8\% for Flash Lite, 100.0\%, 96.9\%, 97.2\% and 97.4\% for Pro, and
++100.0\%, 100.0\%, 100.0\% and 97.4\% for GPT-6-sol. The zero-width interval in the customer seat reflects a saturated
++template pool, not certainty of equal performance on unseen worlds. In the intake seat, the scripted downstream checks
++pass whenever they are reached, but Flash Lite reaches them in only 38.3\% of weighted trajectories, so that
++conditional full score does not measure its policy ability. Because the counterparts are scripted, a full downstream
++score in Figure 5.3 does not show a capability of the evaluated model; the figure's operational row covers the 792
++included episodes, not every provider attempt.
++
++\textbf{Failure checks.} Pro has three strict failures: an intake request that names three relevant facts despite a batch
++capacity of two, a one-cent allocation error in a refund whose total is nevertheless correct, and the liability error
++in the policy seat described in Section 5.2. GPT-6-sol has one: it selects the correct fallback instrument but writes
++it into the ticket's immutable logical refund-method field, so the error is not evidence that funds went to the wrong
++destination. All four failures occur in the second repetition, and each first repetition of the same case passes.
++Replaying the four recorded actions reproduces their outcomes, and replacing only the erroneous action by a
++correction derived from the public rules yields four full-score trajectories. Twelve scripted positive controls pass
++and fifteen injected errors are detected. These checks support the local attributions; they do not show that the
++verifier has no other defects.
++
++\textbf{Figure accounting.} Figure 5.2(d) uses the policy seat only. Its priority order, fixed after the runs, assigns
++each failed episode once: first a decision attempted before the required facts, then an invalid request or no
++scoreable final resolution, then an observed policy, workflow or payment mismatch, and last a remaining contract-only
++error. Overlapping taxonomy tags are not added. For Flash Lite this assigns 26, 4, 18 and 0 of 72 episodes, a total
++shortfall of 66.7 points; Pro has one mismatch in 72 (1.4 points), and GPT-6-sol has none. The resolution-mismatch
++segment includes policy, workflow and prescribed-payment meaning, not only the four-field policy score. Some premature
++candidates also have wrong fields but are counted once, under the first class. The accounting describes the first
++applicable failure, not its causal effect.
++
++\textbf{Release scope.} The figure data record the digests of the frozen configuration, the merged 792 episodes, the
++analysis and the offline audit, and this paper does not change the analysis. The model outcomes remain bound to their
++original versioned runner and adapter. The public release adds customer and intake panels, giving 13 public cohorts,
++268 placements and 244 distinct case identifiers per seed; the 24 core cases overlap the 76-case policy panel. Its
++1,072 provider-free reference trajectories (every cohort under each of the four controlled seats) complete with full
++scores, independent replay and audit, and no operational exclusions. They are not 1,072 distinct worlds or additional
++model observations. The earlier lower-control results on 11 cohorts (Appendix F.4) remain historical quality-control
++evidence, and the expanded release has not been promoted to full publication qualification.
++
 +\subsection{Failure classes: rules and full tables}\label{failure-classes-rules-and-full-tables}
 +
 +\renewcommand{\thetable}{E.4}
@@ -3478,10 +3731,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +surplus counts as worse terms, while allocation loss in a world without positive available surplus is a harmful
 +agreement, which is a commitment error. Redline fees are interaction cost. Figure 5.2c separates harmful agreements
 +from missed beneficial deals. We count signing below one's own walk-away value separately: that individual loss is
-+not an additive component of joint loss, although the same agreement may also destroy joint value. \emph{Refund.} The
++not an additive component of joint loss, although the same agreement may also destroy joint value. \emph{Refund V2.1 (historical).} The
 +parts of the published gap decomposition map onto the classes: deciding before a required fact maps to information
 +not acquired, a wrong decision to acting contrary to information held, and re-asked or unknown facts and the null
-+refund method to procedure and format.
++refund method to procedure and format. The V2.5 panel instead counts each failed episode once, under the first
++applicable class (Appendix E.4).
 +
 +\textbf{Interpreting negotiation costs.} A redline that improves the final agreement's joint value by
 +\$100k while costing \$25k reduces total shortfall by \$75k: allocation loss falls by \$100k and
@@ -3554,7 +3808,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}
 +  >{\raggedleft\arraybackslash}p{(\linewidth - 16\tabcolsep) * \real{0.1143}}@{}}
-+\caption{\textbf{Data center development (\$k joint value lost per deal world) and Refund (points of episodes unresolved).}}\label{tab:E.6}\tabularnewline
++\caption{\textbf{Data center development (\$k joint value lost per deal world) and historical Refund V2.1 (points of episodes unresolved).}}\label{tab:E.6}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Class
@@ -3682,7 +3936,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}
 +  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1875}}@{}}
-+\caption{\textbf{Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).}}\label{tab:E.9}\tabularnewline
++\caption{\textbf{Distribution of total shortfall (each case's own units). The Refund rows are the historical V2.1 panel; the V2.5 results are in Table E.19.}}\label{tab:E.9}\tabularnewline
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Case / subject
@@ -3710,20 +3964,20 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Procurement: GPT-6 Luna & 20 & 58.1 {[}52.3, 63.9{]} & 57.2 {[}50.4, 67.1{]} & 0 / 0 \\
 +Data center: Opus 5.5 & 80 & 83.6 {[}68.8, 98.4{]} & 57.2 {[}27.8, 137.3{]} & 0 / 0 \\
 +Data center: Sol 6.1 & 80 & 140.2 {[}120.6, 159.7{]} & 117.3 {[}87.5, 189.8{]} & 4 / 0 \\
-+Refund: GPT-5.6 Luna & 6 & 20.8 {[}-1.0, 42.7{]} & 20.0 {[}3.8, 28.8{]} & 2 / 0 \\
-+Refund: Gemini 2.5 Flash Lite & 6 & 98.3 {[}94.0, 102.6{]} & 100.0 {[}100.0, 100.0{]} & 0 / 0 \\
++Refund V2.1: GPT-5.6 Luna & 6 & 20.8 {[}-1.0, 42.7{]} & 20.0 {[}3.8, 28.8{]} & 2 / 0 \\
++Refund V2.1: Gemini 2.5 Flash Lite & 6 & 98.3 {[}94.0, 102.6{]} & 100.0 {[}100.0, 100.0{]} & 0 / 0 \\
 +\end{longtable}
 +
 +Opus and Gemini bought from the recorded supplier in every play, so their Procurement rows coincide. The intervals
 +are Student t intervals over independent worlds (for Housing after averaging the arms, and for Data center after
-+averaging the focal roles), or over the six fixed Refund cases after averaging 20 episodes per case. They describe
++averaging the focal roles), or over the six fixed Refund V2.1 cases after averaging 20 episodes per case. They describe
 +variation in these panels; they do not establish a model ranking or coverage of a field population. They are
 +descriptive intervals that we derived afterwards, not replacements for the campaigns' pre-registered analyses. A
 +Refund interval can exceed the score's 0--100 bounds; we leave it untruncated to expose the weakness of an
 +approximation with six fixed cases. Housing has one retained run per world and landlord arm, so its run-to-run variance is unmeasured. Procurement and
 +Data center have two plays per world: the two plays of a world scored identically in 7 to 20 of the 20 Procurement
 +worlds, depending on the model, and ended identically in 47 (Opus) and 28 (Codex) of the 80 Data center worlds
-+(Appendix F.1). Refund has repeated episodes within fixed cases, and the derived
++(Appendix F.1). Refund V2.1 has repeated episodes within fixed cases, and the derived
 +evidence retains its per-case outcome distributions. The source package includes component-level intervals,
 +distributions, per-world amounts and input digests, together with a reproduction script that makes no provider
 +call.
@@ -3733,7 +3987,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +The figure draws the estimates below. Each component keeps its case's native units and classification rules, and
 +the figure adds no new analysis or cross-case aggregate.
 +
-+\textbf{Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 pre-registered worlds of Table 5.3. Refund retains its development panel.}
++\textbf{Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 pre-registered worlds of Table 5.3. Refund uses the policy seat of the V2.5 calibration.}
 +
 +\textbf{(a) Housing}
 +
@@ -3841,30 +4095,38 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +\textbf{(d) Refund}
 +
-+Percentage points below full resolution under the verifier, in V2.1.
++Percentage points below strict trajectory compliance in the policy seat of the V2.5 calibration.
 +
 +\begin{longtable}[]{@{}
-+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2727}}
-+  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3636}}
-+  >{\raggedleft\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3636}}@{}}
++  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2000}}
++  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
++  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}
++  >{\raggedleft\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2667}}@{}}
 +\toprule\noalign{}
 +\begin{minipage}[b]{\linewidth}\raggedright
 +Component
 +\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-+GPT-5.6 Luna
-+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
 +Gemini 2.5 Flash Lite
++\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
++Gemini 2.5 Pro
++\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
++GPT-6-sol
 +\end{minipage} \\
 +\midrule\noalign{}
 +\endhead
 +\bottomrule\noalign{}
 +\endlastfoot
-+Required facts skipped & 15.0 & 0.0 \\
-+Procedure or format & 5.8 & 98.3 \\
-+\textbf{Total shortfall} & \textbf{20.8} & \textbf{98.3} \\
++Required facts skipped & 36.1 & 0.0 & 0.0 \\
++Procedure or format & 5.6 & 0.0 & 0.0 \\
++Resolution mismatch & 25.0 & 1.4 & 0.0 \\
++\textbf{Total shortfall} & \textbf{66.7} & \textbf{1.4} & \textbf{0.0} \\
 +\end{longtable}
 +
-+120 episodes per model, averaged within each of the six fixed cases and then across cases.
++72 episodes per model; each failed episode is counted once, under the first applicable class (Appendix E.4). The
++historical V2.1 panel (GPT-5.6 Luna 20.8, Gemini 2.5 Flash Lite 98.3 points) is in Tables E.6 and E.9. In it, Flash
++Lite asked again for a fact it had already been given in 81\% of its episodes, which ended the case with no decision
++(80.8 of its 98.3 points), and in most of the rest wrote the refund method as null where the format requires ``none''
++(16.7 points); it reached the answer key's outcome in 18\% of episodes and a wrong outcome in none.
 +
 +We omit rows that are zero for every displayed model, and rounded components may not add up to rounded totals.
 +Signing below one's walk-away value is a separate, individual outcome. In v2 neither model signed below its walk-away
@@ -4065,8 +4327,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +used the included evaluation set, which is still \texttt{partial} at Gate 1 because of the client seat's construct limit and
 +incomplete measured-headroom qualification (Appendix F.2). Refund V2.5 fails Gate 3 on its lower controls (Appendix
 +F.4) and is \texttt{partial} at Gates 1, 2 and 4: a constant full refund solves 38 of its 180 policy cases, its schema accepts
-+a null refund method that its verifier then fails, and no adapter admits a model profile. No model has played it, so
-+Gate 5 has not run.
++a null refund method that its verifier then fails, and no adapter admits a model profile. Its developmental
++calibration with three models (Section 5.1) is exploratory rather than pre-registered, so Gate 5 has not run, and the
++expanded public release is qualified only for environment conformance.
 +\end{sloppypar}
 +
 +We pre-registered and ran Housing v15 after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
@@ -4184,8 +4447,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  failure), the development agreement receipts, which were replayed in-line, and all 1,295 scored receipts from the
 +  agreement's dry run, pilot and three confirmatory arms, which were replayed offline. We checked one failure receipt
 +  separately for its digest and seal, because the pinned driver cannot classify exclusions. Replay also covers the
-+  procurement panels' receipts, replayed in-line, and Refund V2.5's 816 trajectories, which make no provider call
-+  (they are unpublished, and 174 of them are distinct). The replay certificate does not cover two headline measures.
++  procurement panels' receipts, replayed in-line, the historical Refund V2.5 audit's 816
++  provider-free trajectories (174 of them distinct), and the later release's 1,072 scripted trajectories. The 792
++  model episodes of the Refund calibration were audited for seals, routes and offline replay on their own versioned
++  runner. The replay certificate does not cover two headline measures.
 +  Housing's seat-0 measure is computed by case code over each episode's outcome, whereas the receipts' own scores
 +  total all six tenants; the derived analyses of Table 5.2 re-derived the measure from the sealed event logs, and we
 +  re-extracted and regenerated it exactly on 16 October. Procurement's original report read an unsealed action list
@@ -4265,6 +4530,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  that collects nothing is fully right on 38 of 180 policy-seat cases, the evidence leaf scores any legal path as
 +  complete, the customer seat reduces to copying, and the payments seat reduces to how often the answer is no payment.
 +  Only the intake seat passes.
++  These are the original audit's counts. They are not a new lower-control test of the expanded thirteen-cohort
++  release or a reanalysis of the model calibration, and neither expansion establishes full quality control.
 +\item
 +  \textbf{A placebo outcome} was run after the agreement's look-back price signal. The same regression on the opening price
 +  of a scripted integrator that is never told the hidden type gave 0.38 {[}0.23, 0.52{]} where the true value must be 0,
@@ -4491,7 +4758,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-21 17:31:12
++++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-10-21 17:40:37
 @@ -0,0 +1,175 @@
 +% Condensed paper appendix; full prior technical reference preserved in the supplement.
 +\section{Runtime contract and experimental coverage}
@@ -4670,16 +4937,16 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and later checks or repairs do not retroactively qualify earlier runs.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-21 17:31:14
-@@ -0,0 +1,402 @@
++++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-10-21 17:40:37
+@@ -0,0 +1,449 @@
 +\section{Case studies}\label{case-studies}\label{sec:cases}
 +
 +We present four cases (Table 5.1). Each is a starting point for questions about the decision it models, and Section
 +7.2 lists the questions we consider open. The cases show how the counterpart changes measured value and how a shortfall divides
 +into typed action classes. We also reimplemented three counterpart families of an external benchmark, TERMS-Bench, as
 +an AERead family. Its pre-registered reproduction stopped at its first check, so we report it in Appendix E.10 as
-+work in progress. We describe Housing,
-+Procurement and Data center here and specify them in Appendices A--D; Refund appears only in the cross-case comparison.
++work in progress. We describe all four cases here and specify them in Appendices A--D. Refund
++reports compliance with a written policy rather than monetary value.
 +Each case is a family rather than a fixed task set. It consists of a generator of worlds; a case-specific reference,
 +which is either a policy that uses only what the deciding side may know or an explicitly labelled full-information
 +upper bound; an inclusion criterion that keeps the worlds in which the decision matters (its form varies by case;
@@ -4721,11 +4988,12 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Housing & informal rental listings & which listing to inspect, what to offer, and whether to sign when some listings are lemons & scripted landlords; other tenants take listings it leaves & a scripted tenant that uses only what the tenant knows \\
 +Procurement & wholesale sourcing & pay more for an established supplier, or test a cheaper newcomer, before a deadline & scripted suppliers & the best plan given what the buyer knows, solved exactly \\
 +Data center & AI-infrastructure contracting & which risk clauses to change, what price to name, and when to sign or walk away & the other side: a script, another model or the same model & the best agreement at both sides' true costs, which neither side knows \\
-+Refund & customer refund claims & what to ask, decide and pay on a claim under a written policy & the other parties to the claim, scripted & a hand-written correct resolution \\
++Refund & customer refund claims & what to ask, disclose, decide and execute under a written policy & three fixed scripted seats; one evaluated seat at a time & the authored policy and protocol, not a monetary optimum \\
 +\end{longtable}
 +
-+We report how much room each case leaves as a share of that case's own reference value. Tables 5.2 to 5.4 give each
-+subject's result and gap in this form, and Figure 5.2 divides the gap by action class in the case's own units. The
++For the three monetary cases, we report how much room each case leaves as a share of that case's own reference
++value. Tables 5.2 to 5.4 give each subject's result and gap in this form. Refund instead reports compliance rates.
++Figure 5.2 divides the shortfall by action class in each case's own units. The
 +cases rely on four kinds of check: an answer key, stated rules, the value of the best policy or a bound, and relative
 +standing against another agent. None uses a rubric. Every score
 +is computed by code, with no model in the loop. The kernel's replay recomputes each receipt's own score from its
@@ -4979,6 +5247,46 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +client's walk-away point in its task prompt, and without the inclusion screen against the price-only rule. Appendix
 +E.4 reports it, with the development results and the figures behind this paragraph.
 +
++\textbf{Refund.} A refund is more than a choice between approving and denying a claim. The intake desk must ask for the
++facts that decide it, the customer must disclose the requested records, the policy seat must apply the rules in their
++stated order, and the payments seat must execute the confirmed obligation exactly once. A correct outcome proposed
++before the evidence arrives is therefore not a correct decision, and a payment that follows a wrong proposal is not a
++correct payment. The score is compliance with an authored policy, not money recovered or business value; a refund
++amount is a field to verify, not a welfare measure. A world combines a product category (perishable goods,
++electronics, software or apparel) with an interaction rule, such as conflicting identity records, a pending payment
++or an evidence threshold. The public policy states the precedence of its rules, which facts each branch requires, the
++allowed outcomes and the amount formulae. The customer holds the private facts, and no evaluated seat sees the answer
++key. Each world comes as a counterfactual pair that changes the stated facts and keeps the rest of the world fixed. We
++evaluate one seat at a time while the other three follow fixed scripts. The comparison reported here is an amended,
++sequential developmental calibration, not a pre-registered comparison: Gemini 2.5 Flash Lite, Gemini 2.5 Pro and
++GPT-6-sol each played a frozen selection of 66 seat-specific pair templates, both variants twice, for 792 episodes in
++all. Appendix A.4 specifies the case.
++
++Flash Lite separates from the two stronger models in three of the four seats, and the panel cannot separate the
++stronger models from each other (Figure 5.3). Strict trajectory compliance requires the evaluated seat's decisions
++and protocol obligations to hold together. Flash Lite reaches 38.3\% of it as intake, 33.3\% as policy and 35.6\% as
++payments, whereas Gemini 2.5 Pro and GPT-6-sol reach at least 98.6\% in every seat. The differences between Pro and
++Flash Lite in those three seats, from 60.8 to 65.3 percentage points, have template-cluster bootstrap intervals that
++exclude zero and remain significant after Holm adjustment across the eight frozen contrasts. No contrast between
++GPT-6-sol and Pro separates them. That is not evidence that they are equivalent: both stronger models pass 62 of the
++66 templates on both variants in both repetitions, and all three models pass every customer episode, so the panel
++leaves little room above them.
++
++\begin{figure}[htbp]\centering\renewcommand{\thefigure}{5.3}
++\includegraphics[width=\linewidth]{figures/refund_v25_compliance.png}
++\caption{\textbf{Refund V2.5 calibration, by evaluated seat and model (Lite = Gemini 2.5 Flash Lite, Pro = Gemini 2.5
++Pro, GPT = GPT-6-sol).} (a) Weighted strict compliance, with episodes per model in parentheses; (b) share of template
++repeats in which both variants pass; (c, d) conditional score / weighted coverage, in percent. Panels are not added.}
++\label{fig:5.3}
++\end{figure}
++
++\textbf{Further runs.} A later public release of the environment adds customer and intake panels. Its 1,072 scripted
++trajectories on the current runtime pass with full scores, which establishes the environment's conformance, not model
++performance. The calibration's model episodes ran on an earlier, versioned runner and were audited there; porting the
++environment to the current runtime does not turn them into results on the current kernel (Appendix H). A separate
++redesign, Refund V3, is not part of these results. Appendix E.4 gives the weights, the eight contrasts and the
++failure checks.
++
 +\subsection{Where the shortfall comes from}\label{where-the-shortfall-comes-from}
 +
 +Figure 5.2 divides each case's shortfall into observed action classes. The components sum to the total under a stated
@@ -4986,7 +5294,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +models and three addendum agents (A: GLM; B: Sol and Opus through their command-line tools), measured below the
 +reachable rule \texttt{inspect\_\allowbreak{}lowball}. Negative components, at most \$0.4 a world, are not drawn. The Data center panel
 +shows v2's joint loss relative to the full-information bound against the firm counterparts, with each redline after
-+the first move charged \$25k, across all 80 worlds with both seats averaged. Appendix E.5 gives the classification
++the first move charged \$25k, across all 80 worlds with both seats averaged. The Refund panel shows the policy seat of
++the V2.5 calibration, 72 episodes per model, in percentage points of strict compliance; each failed episode is
++counted once, under the first applicable class. Appendix E.5 gives the classification
 +rules and full subject tables, Appendix E.7 the Data-center breakdown and its uncertainty, and Tables 5.3, E.9 and
 +E.10 the intervals and exact values.
 +
@@ -4994,7 +5304,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\includegraphics[width=\linewidth]{figures/shortfall_by_case.png}
 +\caption{\textbf{Shortfall to each case's reference, divided by observed action class.} Labels give mean totals (lower
 +is better); each panel has its own reference, units and scale. Housing uses the 260 main worlds of Table 5.2,
-+Procurement the 20 worlds of Table 5.3, and Data center the 80 worlds of Table 5.4.}
++Procurement the 20 worlds of Table 5.3, Data center the 80 worlds of Table 5.4, and Refund the 72 policy-seat
++episodes per model of Figure 5.3.}
 +\label{fig:5.2}
 +\end{figure}
 +
@@ -5044,11 +5355,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Sol's \$15.3 shortfall (\$15.7, offset by \$0.4 of inspection fees it saved) and for 84\% of Opus's \$46.1 (\$38.8); ending
 +with no lease where the rule leased costs Opus a further \$6.3.
 +
-+\textbf{Refund, Gemini 2.5 Flash Lite: the case ends before it decides.} In 81\% of its episodes it asked again for a fact
-+it had already been given; the environment rejects a repeated request, and the case ends with no decision (80.8 of its
-+98.3 points). In most of the remaining episodes it denied the claim correctly but wrote the refund method as null
-+where the policy's format requires ``none'' (16.7 points). It reached the answer key's outcome in 18\% of episodes and a
-+wrong outcome in none.
++\textbf{Refund, Flash Lite: a plausible answer is not a complete policy path.} In the policy seat, 26 of its 72 episodes
++propose a decision before the required evidence has been collected, including proposals whose stated outcome is
++correct. Another 4 end with an invalid request or no scoreable final resolution, and 18 reach a resolution that
++does not match the policy, the workflow or the prescribed payment. Counted once each in that order, these classes
++account for 36.1, 5.6 and 25.0 points of its 66.7-point shortfall. Pro's 1.4-point shortfall is a single error in the
++liability field, and GPT-6-sol has none in this selection. Figure 5.3 shows why the diagnostic measures stay beside
++strict compliance: Flash Lite passes a third of the individual policy episodes, but in no pair do both variants pass
++within a repetition.
 +
 +\textbf{Data center: fees, then deals the client walked away from.} Every redline after the opening move costs \$25k. The
 +full-information reference signs the best agreement at once, so each fee counts as loss, whichever side paid it.
@@ -5076,8 +5390,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +until a pre-registered test confirms it.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-21 17:31:12
-@@ -0,0 +1,110 @@
++++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-10-21 17:40:37
+@@ -0,0 +1,119 @@
 +\section{Discussion and conclusion}
 +\label{sec:discussion}
 +
@@ -5092,6 +5406,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +this to information acquisition, bargaining and commitment in housing,
 +procurement and contracting, and a reimplementation of part of TERMS-Bench
 +runs on the same runtime.
++
++Refund tests a different obligation: compliance with an explicit policy,
++not money earned. Separating the four seats, and keeping each diagnostic
++score beside its coverage, distinguishes a plausible resolution from an
++evidence-complete, correctly executed path. Its developmental calibration
++separates Flash Lite from the stronger models in three seats, but the
++saturated customer seat and the little room left above the stronger models
++limit further comparisons. The scripted conformance of the later release
++does not remove the lower-control concerns of Section~\ref{sec:qc}.
 +
 +The cases teach three lessons that bear on any evaluation of this kind.
 +The counterpart is part of the measurement: counting each transfer between
@@ -5190,7 +5513,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-21 17:31:12
++++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-10-21 17:40:37
 @@ -0,0 +1,251 @@
 +% Sections 1--3, drafting pass 16 October 2026.
 +% Empirical scope follows the merged Sections 4--6 review snapshot.
@@ -5445,7 +5768,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contributors.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-21 17:31:14
++++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-10-21 17:40:37
 @@ -0,0 +1,88 @@
 +\section{Quality control}\label{quality-control}\label{sec:qc}
 +
@@ -5505,7 +5828,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Housing v15 & ● & ● & ● & ● & ◐ & ● & profile probe ran after the freeze \\
 +Procurement, pre-registered evaluation set & ● & ● & ● & ● & ◐ & ● & the agents take no seed \\
 +Data-center agreement v2, integrator seat & ◐ & ◐ & ◐ & ● & ◐ & ◐ & not on the main branch; Gate 1 needs a new evaluation set \\
-+Refund V2.5, developmental & ● & ◐ & ◐ & ✗ & ◐ & -- & a constant full refund passes 38 of 180 cases \\
++Refund V2.5, developmental & ● & ◐ & ◐ & ✗ & ◐ & -- & Gate 3 fails on the original audit (a constant full refund passes 38 of 180 policy cases); the expanded release is not qualified \\
 +\end{longtable}
 +
 +\textbf{Headroom (Gate 1).} When a case computes its reference exactly, as Housing and Procurement do, every shortcut named
@@ -5537,7 +5860,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +open. The same checks corrected three of our own statements while we wrote this paper.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-21 17:31:12
++++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-10-21 17:40:37
 @@ -0,0 +1,85 @@
 +% Revision 10. Concise main text; technical contract retained in appendix.
 +% Runtime baseline: dec1a40f. Evidence review dated 2026-10-14.
@@ -5626,8 +5949,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +versions behind each reported panel.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-21 17:31:12
-@@ -0,0 +1,47 @@
++++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-10-21 17:40:37
+@@ -0,0 +1,51 @@
 +\renewcommand{\thetable}{H.2}
 +\begingroup
 +\small
@@ -5670,14 +5993,18 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +& September kernel; the V2 runner; Arena client. Contributed registration calls the shared executor and finalizer.
 +& Published projections carry state-and-score replay; inline replay. Gap figures are regenerated by the gap tool's check mode. Produces kernel receipts despite being outside the trusted scoring-contract fixture.\\
 +\addlinespace[4pt]
-+Refund V2.5\newline 816 provider-free trajectories
-+& A Refund release on the October runtime, without kernel changes. Contributed QC path; all seats use a scripted provider; paid calls refused.
-+& Release replays and audits all 816 receipts. No published bundle in the review. These runs qualify release conformance, not paid-model performance; they do not replace the V2.1 results.\\
++Refund V2.5 calibration\newline 792 model episodes
++& The historical versioned adapter, with one evaluated seat and three deterministic counterparts; the frozen four-seat comparison.
++& All 792 included receipts audited for seals, routes and offline replay. Amended, sequential exploratory evidence; not a test on the current kernel.\\
++\addlinespace[4pt]
++Refund V2.5 release\newline 1,072 provider-free trajectories
++& The October shared runtime, without kernel changes; thirteen public cohorts; scripted profiles only.
++& All receipts replayed and audited with full reference scores. Release conformance, not model performance or full publication qualification. The earlier release audit replayed 816 receipts.\\
 +\end{longtable}
 +\endgroup
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-21 17:31:12
++++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-10-21 17:40:37
 @@ -0,0 +1,18 @@
 +\renewcommand{\thetable}{H.1}
 +\begin{longtable}{@{}P{1.25in}P{2.6in}P{2.6in}@{}}
@@ -6216,7 +6543,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 \ No newline at end of file
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_case_specs.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-21 17:27:19
++++ aeread_working_draft_20261018_v15/source/paper_appendix_case_specs.md	2026-10-21 17:38:07
 @@ -2,7 +2,7 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-13. Written from a reading of each
@@ -6226,7 +6553,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  [Quality control](paper_qc_design.md). Amounts are in dollars for Housing and Procurement and in
  $ thousands for Data center.
  
-@@ -10,28 +10,58 @@
+@@ -10,28 +10,59 @@
  
  ## Appendix A. Case specifications
  
@@ -6239,7 +6566,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -recorded in Appendix H. The reference policies of Appendix C are computed in the same Γ.
 +Following TERMS-Bench [TB], we write each case as an environment Γ (outcomes, private types and their prior,
 +payoffs), a protocol (seats, order of play, actions, what each seat observes, termination), and fixed
-+counterpart policies (Appendix B). We do not specify Refund here. Symbols are local to each case, and each case's
++counterpart policies (Appendix B). Refund is specified differently, as compliance with an authored policy and
++protocol rather than a monetary payoff optimum (Appendix A.4). Symbols are local to each case, and each case's
 +table lists them together with the kind of quantity each one is. The subscript A denotes the evaluated seat and B a
 +counterpart. In controlled comparisons, the prior and the counterpart policies are fixed across evaluated agents;
 +head-to-head role swaps change the opponent as well, so they compare pairings rather than agents. Agent
@@ -6296,7 +6624,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table A.1. Housing parameters.**
  
  | Symbol | Meaning | Value |
-@@ -41,77 +71,111 @@
+@@ -41,77 +72,111 @@
  | D | lemon loss (cuts the tenant's value and the landlord's cost alike) | $1,000 |
  | c | inspection fee | $25 |
  | a_ℓ | ask | ⌊U(1500, 3200)⌋ |
@@ -6449,7 +6777,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table A.3. Procurement actions.**
  
  | Action | Cost | Reveals |
-@@ -119,30 +183,63 @@
+@@ -119,30 +184,63 @@
  | request a quote | $2, 1 day | a binding offer at the listed terms and the true on-time rate, which identifies L |
  | request a sample | the listed fee and days | 100 inspected units, yield 0.97 or 0.55, which identifies P; no noise |
  | inquire | $1, 1 day | verbal claims; every seller claims 0.97 and 0.97 |
@@ -6525,7 +6853,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table A.4. The eight clauses.**
  
  | Clause | Positions |
-@@ -156,24 +253,26 @@
+@@ -156,24 +254,26 @@
  | escrow E | no, yes (effective only with a deposit) |
  | burn-in B | no, yes |
  
@@ -6565,7 +6893,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | q₀, q₁ | probability | a defect without and with pre-staging | 0.25–0.35; 0.04–0.08 |
  | u | probability | a late facility (×0.4 if the site is prepared) | 0.20–0.30 |
  | ι | probability | an incident (×0.5 with burn-in) | 0.04–0.06 |
-@@ -183,180 +282,250 @@
+@@ -183,180 +283,298 @@
  | Φ | money | an incident's loss | 2,500–3,500 |
  | v | money per week | the client's cost of a week's delay | 90–130 |
  | w_def, w_late | duration (weeks) | delay from a defect; from a late facility | 3–5; 2–4 |
@@ -6688,6 +7016,54 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Burn-in belongs in the best agreement only for a client with the high charge. The integrator does not know the
 +client's charge, which is why the best agreement depends on the other side's type.
  
++### A.4 Refund: policy compliance across four seats
++
++**Environment and reference.** A world binds a product category, a public claim, a private fact record, the
++identifiers of the facts that may be requested, the rendered policy, a reference resolution, a counterfactual pair and
++the facts that the pair changes. The public policy states the category and interaction rules, their precedence, the
++canonical outcomes, the conditional evidence requirements and the amount formulae. At inclusion, an independently
++authored reference and a resolver that applies the public rules must agree. The reference is therefore an
++answer-and-rule reference, not an optimal monetary policy or a full-information welfare bound. No model can read the
++reference; each must acquire the decisive facts through its own observations. Later intake extensions add synthetic
++collection priorities and access dependencies; these are stated experimental rules, not estimated business utilities
++or claims about which evidence implies another fact.
++
++**Protocol and information.** The customer submits its public claim, and intake requests facts. The customer then
++discloses what was requested. The policy seat requests further facts or proposes a resolution, the customer confirms
++that proposal, and the payments seat executes it or returns a no-op. The customer's private facts do not appear in
++intake's request catalogue. The policy seat sees only the facts disclosed so far, and the payments seat receives a
++confirmed ticket rather than an unconfirmed proposal or a policy oracle. The customer never receives the reference
++outcome or the complete policy oracle. In a controlled episode exactly one seat is played by a model. The other three
++follow fixed reference scripts, not further instances of the same model; the scripts carry out delegated service
++obligations and are not a population of strategic counterparts with conflicting payoffs.
++
++**Actions.** A policy action either requests facts or submits a resolution that sets eligibility, remedy, workflow,
++amount, refund method, payment mutation, shipping liability, policy basis and reason code. The required facts depend
++on the branch reached, so collecting every possible fact is not the reference. An intake or policy request must name
++relevant, existing facts that have not yet been disclosed, and the customer may disclose only requested private facts.
++A final resolution cannot also request evidence. Confirmation binds the current proposal, and execution binds the
++confirmed proposal together with, where applicable, the payment-ledger snapshot and an idempotency key. A positive
++refund is executed exactly once, and reviews, holds and zero obligations move no money.
++
++**Construction.** The full policy library has 38 pairs (76 variants): 12 core, 12 stress, six frontier and eight
++frontier-hard. Its mechanisms include evidence thresholds, seller-fault overrides, identity precedence, conditional
++collection, allocated bundle values, refund caps, payment reconciliation and multi-branch liability. The four-seat
++calibration of Section 5.1 uses a smaller selection, frozen separately (Appendix E.4). The cohorts of the other seats
++add collection budgets, batch limits, source and revision authority, confirmation binding, and payment allocation or
++repeated-delivery state. A pair that changes the decision must exhibit the stated difference in the reference;
++invariance controls are typed separately. World seeds vary only the conditions that each generator implements, so
++they do not create new independent rule templates.
++
++**Measures and inclusion.** A strict pass requires the evaluated seat's obligations to hold across the whole
++trajectory. Separate diagnostics check policy meaning, workflow, the prescribed or executed payment, evidence,
++contract format and operational status, together with collaboration checks and the coverage of each observation. A
++policy alias that means the same thing can fail canonical contract adherence without counting as a policy-meaning
++failure, whereas a change of eligibility, remedy, amount or liability is a semantic failure. Candidate resolutions
++rejected as premature are retained, so that their meaning can be checked separately from the sufficiency of the
++evidence. Inclusion checks fact-domain completeness, precedence, pair differences, the rendered contract and full
++scripted trajectories. These are necessary implementation checks; they do not show that naive controls lose (Appendix
++F.4) or that the cases represent deployed refund operations.
++
  ## Appendix B. Counterpart policies
  
  ### B.1 Housing: landlords and outside demand
@@ -6938,7 +7314,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  - V, at the start of a round, chooses whether to inspect, and which uncertain listing;
  - U, the contact step, chooses which listing to make an offer on, or none;
  - W_ℓ averages over the replies the landlord of ℓ may give, when none has been heard yet;
-@@ -375,79 +544,108 @@
+@@ -375,79 +593,108 @@
  | h = (θ, Λ) | hypothesis | the landlord kind and the lemon pair; the belief is uniform over those consistent with q and z, and z_ℓ = L ⇔ (θ = leaky ∧ ℓ ∈ Λ) |
  | λ_ℓ | probability | P(ℓ ∈ Λ) under the belief |
  | ψ_ℓ | probability | P(θ = leaky ∧ ℓ ∈ Λ), the chance that ℓ's reply will be low |
@@ -7086,7 +7462,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ## Appendix D. Measures
  
  Each measure answers one question in the case's own units.
-@@ -455,60 +653,69 @@
+@@ -455,60 +702,69 @@
  **D.1 Housing.** *What did the tenant's decisions earn, with luck taken out?* The measure is the
  tenant's net in dollars, except that a listing signed without knowing its quality is valued at what
  the tenant could expect from it rather than at the quality that happened to be drawn. A decision is
@@ -7203,7 +7579,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and each procedure the paper reports, to its implementation.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-21 17:26:40
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-10-21 17:38:07
 @@ -21,47 +21,76 @@
  | Data center | joint value lost against the best of 600 agreements | value | dollars | outcome |
  | Data center | each side's surplus, by counterpart | relative | dollars | outcome |
@@ -7315,7 +7691,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### E.3 What was run
  
-@@ -69,81 +98,215 @@
+@@ -69,81 +98,217 @@
  
  | Case | Worlds or cases | Strata | Subjects | Plays | Cost (list) | Status |
  |---|---|---|---|---|---|---|
@@ -7327,6 +7703,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -| Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one declared test |
 -| Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 cells | $0.2193 charged | stopped at sizing; no confirmatory |
 -| Data center confirmatory | 60 admitted + 12 pilot | 45 deal / 15 no-deal in confirmatory | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | declared primaries; eight departures |
+-| Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
+-| Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
 +| Housing v14 | 260 main + 40 holdout | favourite lemon (200 + 30), favourite sound (60 + 10); both landlord kinds in every world | Gemini 3.8 Flash, GLM 5.3 Flash, GPT-6 Luna | 1,800 episodes and a 48-episode fill | about $8 | confirmatory |
 +| Housing v15 | 260 main + 40 holdout (outside demand 0.3), from a screened evaluation set | as v14 | Gemini 3.8 Flash, GPT-6 Luna, and Luna's A/A twin | 1,720 episodes, all verified by replay; pilot 160 episodes | $8.64 (pilot $1.08) | pre-registered; Gates 1, 2, 3 and 5 passed, 4 partial |
 +| Housing v15 addendum B | the v15 evaluation set: 260 main + 40 holdout | as v15 | Sol 6.1 (Codex), Opus 5.5 (Claude Code), both isolated | 1,200 episodes, all completed and verified by replay | $24.30 and $54.03 at list price (subscriptions) | pre-registered addendum, outside v15's contrasts |
@@ -7338,8 +7716,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 episodes | $0.2193 charged | stopped at sizing; no confirmatory run |
 +| Data center confirmatory v2 | 80 included + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | pre-registered; Gate 3 passed, the others partial |
 +| Data center confirmatory v1 | 60 included + 12 pilot | 45 deal / 15 no-deal in the confirmatory run | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | pre-registered primary contrasts; eight departures |
- | Refund V2.5 | 180 distinct cases (seed 301) | eleven cohorts × four seats | deterministic reference profiles only | 816 trajectories | none | developmental release |
--| Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 cells (20 repeats of each case) | | descriptive |
++| Refund V2.5 release | 244 distinct cases, 268 placements (seed 301) | thirteen cohorts × four seats | deterministic reference profiles only | 1,072 trajectories | none | developmental release |
++| Refund V2.5 calibration | 66 seat-specific pairs, 132 placements | four seats, two repeats | Gemini 2.5 Flash Lite, Gemini 2.5 Pro, GPT-6-sol | 792 episodes | not reported | exploratory calibration |
 +| Refund V2.1 | 6 cases | one policy seat | DeepSeek V4 Flash, Gemini 2.5 Flash Lite, GPT-5.6 Luna, Grok 4.3 | 480 episodes (20 repeats of each case) | | descriptive |
  
 -Opus 5.5 ran through Claude Code and Sol 6.1 through the Codex CLI, without tools, at low
@@ -7353,10 +7731,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +effort, with one subprocess per action. Neither CLI exposes a seed or a temperature, so we record both
 +settings as unavailable rather than assume values for them. In the v1 confirmatory run the two CLIs
 +were not equally isolated from the operator's machine (Table H.1); for v2 we isolated both and probed
-+their context (Section 5.1). Refund V2.5 makes no paid model call. Its release qualifies the
-+environment with deterministic profiles in every seat and replays every trajectory, so it measures
-+the environment's conformance rather than a model. With every seat scripted, its 816 trajectories
-+reduce to 174 distinct action sequences (four payments cases share one reference trajectory).
++their context (Section 5.1). The Refund V2.5 release check makes no paid model call: its 1,072 scripted
++trajectories measure the environment's conformance, not model performance. The earlier release audit's 816 scripted
++trajectories reduce to 174 distinct action sequences (four payments cases share one reference trajectory). Both are
++separate from the 792 model episodes of the calibration in Section 5.1, which do not certify performance on the
++expanded release.
  
  ### E.4 Results beyond the main text
  
@@ -7589,7 +7968,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table E.3. Development results: Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
  
  | Counterpart | As integrator | As client |
-@@ -155,49 +318,86 @@
+@@ -155,49 +320,170 @@
  | Collapse | +88 [+51, +126] | +148 [+117, +179] |
  | Overreach | +32 [+10, +53] | +108 [+72, +144] |
  
@@ -7709,10 +8088,94 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Firm / Opus | 15.5 | 41.8 | 12.9 | 27.1 | 97.2 |
 +| Firm / Sol | 14.3 | 4.0 | 13.8 | 83.8 | 115.8 |
 +
++#### Refund
++
++**The four-seat calibration (Section 5.1).** This comparison is distinct from the historical V2.1 results retained in
++Tables E.6 and E.9, and from the later provider-free release. It uses version 5.1 of the payment-unit contract and the
++second version of the branching policy panel. The frozen selection has 132 seat–case placements, and each model played
++each placement twice. The 66 pairs are seat-specific templates, not 66 independent economic mechanisms, because seats
++can reuse a base policy. The policy seat has six pair templates in each of its core, stress and frontier strata; its
++world seed is 201, and the customer, intake and payments seats use seed 301. We ran no held-out model test, and later
++incomplete customer and intake collections are not pooled into this balanced panel.
++
++**Measurement and uncertainty.** The primary measure is the frozen seat-specific strict trajectory score. Within a
++stratum, a template's two variants and two repetitions are averaged before the templates receive equal weight, and
++the strata are then weighted:
++
++[[eq E.3]] S = Σ_s w_s · (1/|T_s|) · Σ_{t ∈ T_s} p̄_t,
++
++where p̄_t is the share of template t's four episodes that pass, T_s holds the templates of stratum s, and w_s is one
++third for each policy stratum and 0.4 and 0.6 for the baseline and difficult strata of the other seats. Conditional
++diagnostics keep their weighted coverage: a leaf that is never visited is neither an observed success nor an observed
++model error. Policy meaning is the mean of four field checks (eligibility, remedy, amount and liability), not the
++share of wholly correct resolutions. Workflow, payment, evidence, contract and operational status remain separate.
++The collaboration checks cover requested disclosure, intake quality, confirmation of the current proposal and payment
++binding; the payment-binding diagnostic includes allocation and method consistency, not only the proposal identifier.
++When the policy seat is evaluated, a passing payment leaf means that the scripted payments seat followed its
++obligation; it does not show that the model's proposal was right. The frozen intervals use 20,000 stratified paired
++template-bootstrap draws that carry the two variants, the repeats and the model pairing together. Two-sided template
++sign-flip tests give the p-values, with Holm correction across all eight comparisons. Shared mechanisms can make
++templates dependent, and a single world per seat, sequential model collection and developmental amendments further
++limit inference. These are exploratory intervals on this panel, not population rankings or the confirmation of an
++original primary hypothesis, and more seeds or repeats would not substitute for new independent templates.
++
++**Table E.19. Refund V2.5 calibration: the eight frozen paired contrasts, in percentage points of weighted strict compliance, with 95% template-bootstrap intervals.**
++
++| Seat | Contrast | Difference [95% interval] | Holm p |
++|---|---|---|---|
++| Customer | Pro minus Lite | 0.0 [0.0, 0.0] | 1.000 |
++| Customer | GPT minus Pro | 0.0 [0.0, 0.0] | 1.000 |
++| Intake | Pro minus Lite | 60.8 [44.2, 78.3] | 0.00586 |
++| Intake | GPT minus Pro | 0.8 [0.0, 2.5] | 1.000 |
++| Policy | Pro minus Lite | 65.3 [54.2, 76.4] | 0.0000610 |
++| Policy | GPT minus Pro | 1.4 [0.0, 4.2] | 1.000 |
++| Payments | Pro minus Lite | 63.3 [60.0, 67.8] | 0.00342 |
++| Payments | GPT minus Pro | 0.0 [−3.3, 3.3] | 1.000 |
++
++The customer, intake, policy and payments seats have 52, 64, 72 and 76 episodes per model, and all 792 included
++episodes have replay-audited receipts; the denominator is valid episodes, not every provider attempt. Unweighted
++strict pass counts are 52, 32, 24 and 32 for Flash Lite, 52, 63, 71 and 75 for Pro, and 52, 64, 72 and 75 for
++GPT-6-sol; these counts do not replace the frozen weights of Figure 5.3. Requiring both variants of a pair to pass
++within a repetition gives 100.0%, 31.3%, 0.0% and 36.8% for Flash Lite, 100.0%, 96.9%, 97.2% and 97.4% for Pro, and
++100.0%, 100.0%, 100.0% and 97.4% for GPT-6-sol. The zero-width interval in the customer seat reflects a saturated
++template pool, not certainty of equal performance on unseen worlds. In the intake seat, the scripted downstream checks
++pass whenever they are reached, but Flash Lite reaches them in only 38.3% of weighted trajectories, so that
++conditional full score does not measure its policy ability. Because the counterparts are scripted, a full downstream
++score in Figure 5.3 does not show a capability of the evaluated model; the figure's operational row covers the 792
++included episodes, not every provider attempt.
++
++**Failure checks.** Pro has three strict failures: an intake request that names three relevant facts despite a batch
++capacity of two, a one-cent allocation error in a refund whose total is nevertheless correct, and the liability error
++in the policy seat described in Section 5.2. GPT-6-sol has one: it selects the correct fallback instrument but writes
++it into the ticket's immutable logical refund-method field, so the error is not evidence that funds went to the wrong
++destination. All four failures occur in the second repetition, and each first repetition of the same case passes.
++Replaying the four recorded actions reproduces their outcomes, and replacing only the erroneous action by a
++correction derived from the public rules yields four full-score trajectories. Twelve scripted positive controls pass
++and fifteen injected errors are detected. These checks support the local attributions; they do not show that the
++verifier has no other defects.
++
++**Figure accounting.** Figure 5.2(d) uses the policy seat only. Its priority order, fixed after the runs, assigns
++each failed episode once: first a decision attempted before the required facts, then an invalid request or no
++scoreable final resolution, then an observed policy, workflow or payment mismatch, and last a remaining contract-only
++error. Overlapping taxonomy tags are not added. For Flash Lite this assigns 26, 4, 18 and 0 of 72 episodes, a total
++shortfall of 66.7 points; Pro has one mismatch in 72 (1.4 points), and GPT-6-sol has none. The resolution-mismatch
++segment includes policy, workflow and prescribed-payment meaning, not only the four-field policy score. Some premature
++candidates also have wrong fields but are counted once, under the first class. The accounting describes the first
++applicable failure, not its causal effect.
++
++**Release scope.** The figure data record the digests of the frozen configuration, the merged 792 episodes, the
++analysis and the offline audit, and this paper does not change the analysis. The model outcomes remain bound to their
++original versioned runner and adapter. The public release adds customer and intake panels, giving 13 public cohorts,
++268 placements and 244 distinct case identifiers per seed; the 24 core cases overlap the 76-case policy panel. Its
++1,072 provider-free reference trajectories (every cohort under each of the four controlled seats) complete with full
++scores, independent replay and audit, and no operational exclusions. They are not 1,072 distinct worlds or additional
++model observations. The earlier lower-control results on 11 cohorts (Appendix F.4) remain historical quality-control
++evidence, and the expanded release has not been promoted to full publication qualification.
++
  ### E.5 Failure classes: rules and full tables
  
  **Table E.4. The shared classes.**
-@@ -210,26 +410,37 @@
+@@ -210,26 +496,38 @@
  | Commitment error | signed what it should have refused or refused what it should have signed: no lease where the reference leased; deferred where an award or a test was worth more; no deal where one was available |
  | Interaction cost | the charge for moves the case prices: redline fees after the opening; inquiries, counter-offers and checks; inspection spend above the reference's on a lease of the same value. Any gain such a move brings appears in another class (a better clause set is smaller worse-terms loss), so this class prices the moves and does not judge them |
  | Procedure and format | an action the environment rejected or could not parse; a fact request the case rejects; a format the verifier rejects |
@@ -7759,15 +8222,16 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +surplus counts as worse terms, while allocation loss in a world without positive available surplus is a harmful
 +agreement, which is a commitment error. Redline fees are interaction cost. Figure 5.2c separates harmful agreements
 +from missed beneficial deals. We count signing below one's own walk-away value separately: that individual loss is
-+not an additive component of joint loss, although the same agreement may also destroy joint value. *Refund.* The
++not an additive component of joint loss, although the same agreement may also destroy joint value. *Refund V2.1 (historical).* The
 +parts of the published gap decomposition map onto the classes: deciding before a required fact maps to information
 +not acquired, a wrong decision to acting contrary to information held, and re-asked or unknown facts and the null
-+refund method to procedure and format.
++refund method to procedure and format. The V2.5 panel instead counts each failed episode once, under the first
++applicable class (Appendix E.4).
 +
  **Interpreting negotiation costs.** A redline that improves the final agreement's joint value by
  $100k while costing $25k reduces total shortfall by $75k: allocation loss falls by $100k and
  interaction cost rises by $25k. The score therefore credits improvements net of their cost. The
-@@ -237,24 +448,24 @@
+@@ -237,24 +535,24 @@
  free opening move. Its advantage includes negotiation costs that agents with limited information
  may need to incur; the decomposition does not identify which costs were avoidable. It also does
  not establish robustness to the chosen $25k fee per additional redline. Appendix E.9 tests
@@ -7802,11 +8266,11 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Housing's totals reproduce the published v15 differences from `inspect_lowball` (51.13 and 99.92 $ a world; GLM's addendum row R3, 127.32; Sol's and Opus's addendum row R, 15.34 and 46.07), and every one of the 520 main episodes per model completed, so no world is excluded. Main-world means average both landlord arms within a world. We retain negative amounts where the model beats the reference. The inspection-cost row is a residual after the earlier classes, so inspection costs already inside other classes are not counted again.
  
 -**Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of cells unresolved).**
-+**Table E.6. Data center development ($k joint value lost per deal world) and Refund (points of episodes unresolved).**
++**Table E.6. Data center development ($k joint value lost per deal world) and historical Refund V2.1 (points of episodes unresolved).**
  
  | Class | DC Sol int. × Opus | DC Opus int. × Sol | DC Sol × firm | DC Opus × firm | Refund DeepSeek | Refund Gemini 2.5 FL | Refund GPT-5.6 Luna | Refund Grok |
  |---|---:|---:|---:|---:|---:|---:|---:|---:|
-@@ -266,121 +477,131 @@
+@@ -266,149 +564,164 @@
  | Procedure and format | 0 | 0 | 0 | 0 | 5.8 | 98.3 | 5.8 | 17.5 |
  | Total | 81.5 | 78.6 | 121.3 | 41.5 | 50.0 | 98.3 | 20.8 | 47.5 |
  
@@ -7869,7 +8333,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Firm / Sol | 12.4 | 0.0 | 53.6 | 92.8 | 158.8 |
  
 -**Table E.9. Distribution of total shortfall for the subjects in Figure 5.1 (each case's own units).**
-+**Table E.9. Distribution of total shortfall for the subjects in Figure 5.2 (each case's own units).**
++**Table E.9. Distribution of total shortfall (each case's own units). The Refund rows are the historical V2.1 panel; the V2.5 results are in Table E.19.**
  
  | Case / subject | Units (n) | Mean [95% interval] | Median [Q1, Q3] | Zero / negative units |
  |---|---:|---|---|---|
@@ -7879,6 +8343,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -| Procurement: Gemini 3.8 Flash | 24 | 75.2 [46.9, 103.5] | 81.8 [0.0, 127.4] | 8 / 0 |
 -| Data center: Opus 5.5 | 60 | 70.8 [55.3, 86.4] | 53.0 [36.6, 95.1] | 0 / 0 |
 -| Data center: Sol 6.1 | 60 | 103.4 [84.2, 122.6] | 87.5 [61.2, 129.4] | 5 / 0 |
+-| Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
+-| Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
 +| Housing: Gemini 3.8 Flash | 260 | 51.1 [38.3, 63.9] | 29.9 [0.0, 98.3] | 60 / 45 |
 +| Housing: GPT-6 Luna | 260 | 99.9 [83.8, 116.0] | 72.1 [0.0, 167.6] | 46 / 32 |
 +| Housing: Sol 6.1 (addendum B) | 260 | 15.3 [6.2, 24.5] | 0.0 [0.0, 53.7] | 78 / 59 |
@@ -7890,8 +8356,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Procurement: GPT-6 Luna | 20 | 58.1 [52.3, 63.9] | 57.2 [50.4, 67.1] | 0 / 0 |
 +| Data center: Opus 5.5 | 80 | 83.6 [68.8, 98.4] | 57.2 [27.8, 137.3] | 0 / 0 |
 +| Data center: Sol 6.1 | 80 | 140.2 [120.6, 159.7] | 117.3 [87.5, 189.8] | 4 / 0 |
- | Refund: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
- | Refund: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
++| Refund V2.1: GPT-5.6 Luna | 6 | 20.8 [-1.0, 42.7] | 20.0 [3.8, 28.8] | 2 / 0 |
++| Refund V2.1: Gemini 2.5 Flash Lite | 6 | 98.3 [94.0, 102.6] | 100.0 [100.0, 100.0] | 0 / 0 |
  
 -Intervals here are Student t intervals over independent worlds (Housing after averaging arms;
 -Data center after averaging focal roles), or over the six fixed Refund cases after averaging
@@ -7906,14 +8372,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -`analysis_evidence/shortfall_panels/panels.json`, with a provider-free reproduction script.
 +Opus and Gemini bought from the recorded supplier in every play, so their Procurement rows coincide. The intervals
 +are Student t intervals over independent worlds (for Housing after averaging the arms, and for Data center after
-+averaging the focal roles), or over the six fixed Refund cases after averaging 20 episodes per case. They describe
++averaging the focal roles), or over the six fixed Refund V2.1 cases after averaging 20 episodes per case. They describe
 +variation in these panels; they do not establish a model ranking or coverage of a field population. They are
 +descriptive intervals that we derived afterwards, not replacements for the campaigns' pre-registered analyses. A
 +Refund interval can exceed the score's 0–100 bounds; we leave it untruncated to expose the weakness of an
 +approximation with six fixed cases. Housing has one retained run per world and landlord arm, so its run-to-run variance is unmeasured. Procurement and
 +Data center have two plays per world: the two plays of a world scored identically in 7 to 20 of the 20 Procurement
 +worlds, depending on the model, and ended identically in 47 (Opus) and 28 (Codex) of the 80 Data center worlds
-+(Appendix F.1). Refund has repeated episodes within fixed cases, and the derived
++(Appendix F.1). Refund V2.1 has repeated episodes within fixed cases, and the derived
 +evidence retains its per-case outcome distributions. The source package includes component-level intervals,
 +distributions, per-world amounts and input digests, together with a reproduction script that makes no provider
 +call.
@@ -7927,7 +8393,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +the figure adds no new analysis or cross-case aggregate.
  
 -**Table E.10. Shortfall by case. Housing uses the corrected measure; Data center uses the confirmatory pack. Procurement and Refund retain their development panels.**
-+**Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 pre-registered worlds of Table 5.3. Refund retains its development panel.**
++**Table E.10. Shortfall by case. Housing uses v15 (Table 5.2) under its primary measure; Data center uses v2, the comparison of Table 5.4; Procurement uses the 20 pre-registered worlds of Table 5.3. Refund uses the policy seat of the V2.5 calibration.**
  
  **(a) Housing**
  
@@ -8000,16 +8466,26 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **(d) Refund**
  
 -Percentage points below full resolution under the verifier; V2.1.
-+Percentage points below full resolution under the verifier, in V2.1.
++Percentage points below strict trajectory compliance in the policy seat of the V2.5 calibration.
  
- | Component | GPT-5.6 Luna | Gemini 2.5 Flash Lite |
- |---|---:|---:|
-@@ -388,27 +609,27 @@
- | Procedure or format | 5.8 | 98.3 |
- | **Total shortfall** | **20.8** | **98.3** |
+-| Component | GPT-5.6 Luna | Gemini 2.5 Flash Lite |
+-|---|---:|---:|
+-| Required facts skipped | 15.0 | 0.0 |
+-| Procedure or format | 5.8 | 98.3 |
+-| **Total shortfall** | **20.8** | **98.3** |
++| Component | Gemini 2.5 Flash Lite | Gemini 2.5 Pro | GPT-6-sol |
++|---|---:|---:|---:|
++| Required facts skipped | 36.1 | 0.0 | 0.0 |
++| Procedure or format | 5.6 | 0.0 | 0.0 |
++| Resolution mismatch | 25.0 | 1.4 | 0.0 |
++| **Total shortfall** | **66.7** | **1.4** | **0.0** |
  
 -120 cells per model, averaged within each of six fixed cases and then across cases.
-+120 episodes per model, averaged within each of the six fixed cases and then across cases.
++72 episodes per model; each failed episode is counted once, under the first applicable class (Appendix E.4). The
++historical V2.1 panel (GPT-5.6 Luna 20.8, Gemini 2.5 Flash Lite 98.3 points) is in Tables E.6 and E.9. In it, Flash
++Lite asked again for a fact it had already been given in 81% of its episodes, which ended the case with no decision
++(80.8 of its 98.3 points), and in most of the rest wrote the refund method as null where the format requires "none"
++(16.7 points); it reached the answer key's outcome in 18% of episodes and a wrong outcome in none.
  
 -Rows that are zero for every displayed subject are omitted; rounded components may not add to
 -rounded totals. Below-walk-away signings are a separate individual outcome: against the firm
@@ -8049,7 +8525,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **Table E.11. Fee sensitivity on the 45 deal-feasible worlds ($ thousands per world; fixed actions). Sol earnings lead is Sol minus Opus against the firm population. Lower joint loss is better; a positive earnings lead favors Sol.**
  
-@@ -421,13 +642,13 @@
+@@ -421,13 +734,13 @@
  | 50 | 210.0 | 99.1 | -1.9 |
  | 100 | 381.1 | 169.6 | -58.6 |
  
@@ -8069,7 +8545,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Fee per redline | Sol joint loss | Opus joint loss |
  |---|---:|---:|
-@@ -438,55 +659,150 @@
+@@ -438,55 +751,151 @@
  | 50 | 175.7 | 99.4 |
  | 100 | 320.3 | 156.5 |
  
@@ -8200,8 +8676,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +used the included evaluation set, which is still `partial` at Gate 1 because of the client seat's construct limit and
 +incomplete measured-headroom qualification (Appendix F.2). Refund V2.5 fails Gate 3 on its lower controls (Appendix
 +F.4) and is `partial` at Gates 1, 2 and 4: a constant full refund solves 38 of its 180 policy cases, its schema accepts
-+a null refund method that its verifier then fails, and no adapter admits a model profile. No model has played it, so
-+Gate 5 has not run.
++a null refund method that its verifier then fails, and no adapter admits a model profile. Its developmental
++calibration with three models (Section 5.1) is exploratory rather than pre-registered, so Gate 5 has not run, and the
++expanded public release is qualified only for environment conformance.
  
 +We pre-registered and ran Housing v15 after these profiles were first written. It passes Gates 1, 2, 3 and 5 and is
 +`partial` at Gate 4:
@@ -8255,7 +8732,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### F.2 Checks applied to the four cases
  
-@@ -494,136 +810,137 @@
+@@ -494,136 +903,141 @@
  
  | Kind | Must be shown | How it is shown in the four cases |
  |---|---|---|
@@ -8335,8 +8812,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  failure), the development agreement receipts, which were replayed in-line, and all 1,295 scored receipts from the
 +  agreement's dry run, pilot and three confirmatory arms, which were replayed offline. We checked one failure receipt
 +  separately for its digest and seal, because the pinned driver cannot classify exclusions. Replay also covers the
-+  procurement panels' receipts, replayed in-line, and Refund V2.5's 816 trajectories, which make no provider call
-+  (they are unpublished, and 174 of them are distinct). The replay certificate does not cover two headline measures.
++  procurement panels' receipts, replayed in-line, the historical Refund V2.5 audit's 816
++  provider-free trajectories (174 of them distinct), and the later release's 1,072 scripted trajectories. The 792
++  model episodes of the Refund calibration were audited for seals, routes and offline replay on their own versioned
++  runner. The replay certificate does not cover two headline measures.
 +  Housing's seat-0 measure is computed by case code over each episode's outcome, whereas the receipts' own scores
 +  total all six tenants; the derived analyses of Table 5.2 re-derived the measure from the sealed event logs, and we
 +  re-extracted and regenerated it exactly on 16 October. Procurement's original report read an unsealed action list
@@ -8444,6 +8923,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  that collects nothing is fully right on 38 of 180 policy-seat cases, the evidence leaf scores any legal path as
 +  complete, the customer seat reduces to copying, and the payments seat reduces to how often the answer is no payment.
 +  Only the intake seat passes.
++  These are the original audit's counts. They are not a new lower-control test of the expanded thirteen-cohort
++  release or a reanalysis of the model calibration, and neither expansion establishes full quality control.
 +- **A placebo outcome** was run after the agreement's look-back price signal. The same regression on the opening price
 +  of a scripted integrator that is never told the hidden type gave 0.38 [0.23, 0.52] where the true value must be 0,
 +  which exposed hidden types tied to the evaluation set's design cell; a random relabelling of types had not caught
@@ -8506,7 +8987,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **Table F.3. Incident-log entries about each case and its predecessors, by category (as of 16 October 2026).**
  
-@@ -634,8 +951,8 @@
+@@ -634,8 +1048,8 @@
  | Data center | 37 | 22 | 22 | 9 | 90 |
  | Refund | 12 | 0 | 8 | 3 | 23 |
  
@@ -8517,7 +8998,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### F.7 What quality control found
  
-@@ -643,107 +960,102 @@
+@@ -643,107 +1057,102 @@
  
  | Case | What was wrong | Visible in one world? | How it was found | What changed |
  |---|---|---|---|---|
@@ -8688,8 +9169,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-21 17:26:40
-@@ -2,200 +2,375 @@
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-10-21 17:39:58
+@@ -2,200 +2,421 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
  details are in [Appendix E](paper_appendix_details.md), formal specifications in
@@ -8719,8 +9200,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +7.2 lists the questions we consider open. The cases show how the counterpart changes measured value and how a shortfall divides
 +into typed action classes. We also reimplemented three counterpart families of an external benchmark, TERMS-Bench, as
 +an AERead family. Its pre-registered reproduction stopped at its first check, so we report it in Appendix E.10 as
-+work in progress. We describe Housing,
-+Procurement and Data center here and specify them in Appendices A–D; Refund appears only in the cross-case comparison.
++work in progress. We describe all four cases here and specify them in Appendices A–D. Refund
++reports compliance with a written policy rather than monetary value.
 +Each case is a family rather than a fixed task set. It consists of a generator of worlds; a case-specific reference,
 +which is either a policy that uses only what the deciding side may know or an explicitly labelled full-information
 +upper bound; an inclusion criterion that keeps the worlds in which the decision matters (its form varies by case;
@@ -8755,7 +9236,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Housing | informal rental listings | which listing to inspect, what to offer, and whether to sign when some listings are lemons | scripted landlords; other tenants take listings it leaves | a scripted tenant that uses only what the tenant knows |
 +| Procurement | wholesale sourcing | pay more for an established supplier, or test a cheaper newcomer, before a deadline | scripted suppliers | the best plan given what the buyer knows, solved exactly |
 +| Data center | AI-infrastructure contracting | which risk clauses to change, what price to name, and when to sign or walk away | the other side: a script, another model or the same model | the best agreement at both sides' true costs, which neither side knows |
-+| Refund | customer refund claims | what to ask, decide and pay on a claim under a written policy | the other parties to the claim, scripted | a hand-written correct resolution |
++| Refund | customer refund claims | what to ask, disclose, decide and execute under a written policy | three fixed scripted seats; one evaluated seat at a time | the authored policy and protocol, not a monetary optimum |
  
 -The Verifiers column uses the kinds of check defined with the runner's measurement layer (§4):
 -an answer key, declared rules, the value of the best policy or a bound, relative standing
@@ -8763,8 +9244,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -no model in the loop; the kernel's replay recomputes each receipt's own score from its sealed
 -events, while the headline measures of Housing and Procurement are computed by case code outside
 -that certificate (Appendix F.2). Table E.1 lists every check.
-+We report how much room each case leaves as a share of that case's own reference value. Tables 5.2 to 5.4 give each
-+subject's result and gap in this form, and Figure 5.2 divides the gap by action class in the case's own units. The
++For the three monetary cases, we report how much room each case leaves as a share of that case's own reference
++value. Tables 5.2 to 5.4 give each subject's result and gap in this form. Refund instead reports compliance rates.
++Figure 5.2 divides the shortfall by action class in each case's own units. The
 +cases rely on four kinds of check: an answer key, stated rules, the value of the best policy or a bound, and relative
 +standing against another agent. None uses a rubric. Every score
 +is computed by code, with no model in the loop. The kernel's replay recomputes each receipt's own score from its
@@ -9026,6 +9508,44 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +client's walk-away point in its task prompt, and without the inclusion screen against the price-only rule. Appendix
 +E.4 reports it, with the development results and the figures behind this paragraph.
 +
++**Refund.** A refund is more than a choice between approving and denying a claim. The intake desk must ask for the
++facts that decide it, the customer must disclose the requested records, the policy seat must apply the rules in their
++stated order, and the payments seat must execute the confirmed obligation exactly once. A correct outcome proposed
++before the evidence arrives is therefore not a correct decision, and a payment that follows a wrong proposal is not a
++correct payment. The score is compliance with an authored policy, not money recovered or business value; a refund
++amount is a field to verify, not a welfare measure. A world combines a product category (perishable goods,
++electronics, software or apparel) with an interaction rule, such as conflicting identity records, a pending payment
++or an evidence threshold. The public policy states the precedence of its rules, which facts each branch requires, the
++allowed outcomes and the amount formulae. The customer holds the private facts, and no evaluated seat sees the answer
++key. Each world comes as a counterfactual pair that changes the stated facts and keeps the rest of the world fixed. We
++evaluate one seat at a time while the other three follow fixed scripts. The comparison reported here is an amended,
++sequential developmental calibration, not a pre-registered comparison: Gemini 2.5 Flash Lite, Gemini 2.5 Pro and
++GPT-6-sol each played a frozen selection of 66 seat-specific pair templates, both variants twice, for 792 episodes in
++all. Appendix A.4 specifies the case.
++
++Flash Lite separates from the two stronger models in three of the four seats, and the panel cannot separate the
++stronger models from each other (Figure 5.3). Strict trajectory compliance requires the evaluated seat's decisions
++and protocol obligations to hold together. Flash Lite reaches 38.3% of it as intake, 33.3% as policy and 35.6% as
++payments, whereas Gemini 2.5 Pro and GPT-6-sol reach at least 98.6% in every seat. The differences between Pro and
++Flash Lite in those three seats, from 60.8 to 65.3 percentage points, have template-cluster bootstrap intervals that
++exclude zero and remain significant after Holm adjustment across the eight frozen contrasts. No contrast between
++GPT-6-sol and Pro separates them. That is not evidence that they are equivalent: both stronger models pass 62 of the
++66 templates on both variants in both repetitions, and all three models pass every customer episode, so the panel
++leaves little room above them.
++
++![Refund V2.5 calibration: weighted strict compliance, both-variant pass rates, policy-active diagnostics and active-seat collaboration for Gemini 2.5 Flash Lite, Gemini 2.5 Pro and GPT-6-sol.](figures/refund_v25_compliance.png)
++
++**Figure 5.3. Refund V2.5 calibration, by evaluated seat and model (Lite = Gemini 2.5 Flash Lite, Pro = Gemini 2.5
++Pro, GPT = GPT-6-sol).** (a) Weighted strict compliance, with episodes per model in parentheses; (b) share of template
++repeats in which both variants pass; (c, d) conditional score / weighted coverage, in percent. Panels are not added.
++
++**Further runs.** A later public release of the environment adds customer and intake panels. Its 1,072 scripted
++trajectories on the current runtime pass with full scores, which establishes the environment's conformance, not model
++performance. The calibration's model episodes ran on an earlier, versioned runner and were audited there; porting the
++environment to the current runtime does not turn them into results on the current kernel (Appendix H). A separate
++redesign, Refund V3, is not part of these results. Appendix E.4 gives the weights, the eight contrasts and the
++failure checks.
++
  ### 5.2 Where the shortfall comes from
  
 -Figure 5.1 separates each case's shortfall into observed action classes. The components sum to
@@ -9037,7 +9557,9 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +models and three addendum agents (A: GLM; B: Sol and Opus through their command-line tools), measured below the
 +reachable rule `inspect_lowball`. Negative components, at most $0.4 a world, are not drawn. The Data center panel
 +shows v2's joint loss relative to the full-information bound against the firm counterparts, with each redline after
-+the first move charged $25k, across all 80 worlds with both seats averaged. Appendix E.5 gives the classification
++the first move charged $25k, across all 80 worlds with both seats averaged. The Refund panel shows the policy seat of
++the V2.5 calibration, 72 episodes per model, in percentage points of strict compliance; each failed episode is
++counted once, under the first applicable class. Appendix E.5 gives the classification
 +rules and full subject tables, Appendix E.7 the Data-center breakdown and its uncertainty, and Tables 5.3, E.9 and
 +E.10 the intervals and exact values.
  
@@ -9050,7 +9572,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -are separate (Table 5.4). Intervals and exact values appear in Tables 5.3, E.9 and E.10.
 +**Figure 5.2. Shortfall to each case's reference, divided by observed action class.** Labels give mean totals (lower
 +is better); each panel has its own reference, units and scale. Housing uses the 260 main worlds of Table 5.2,
-+Procurement the 20 worlds of Table 5.3, and Data center the 80 worlds of Table 5.4.
++Procurement the 20 worlds of Table 5.3, Data center the 80 worlds of Table 5.4, and Refund the 72 policy-seat
++episodes per model of Figure 5.3.
  
 -Procurement's Gemini loss comes entirely from foregoing useful tests; Housing's Gemini loss is
 -mostly worse lease terms. Luna's largest Housing class is signing at a rent above a lemon's value
@@ -9123,11 +9646,14 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +Sol's $15.3 shortfall ($15.7, offset by $0.4 of inspection fees it saved) and for 84% of Opus's $46.1 ($38.8); ending
 +with no lease where the rule leased costs Opus a further $6.3.
  
-+**Refund, Gemini 2.5 Flash Lite: the case ends before it decides.** In 81% of its episodes it asked again for a fact
-+it had already been given; the environment rejects a repeated request, and the case ends with no decision (80.8 of its
-+98.3 points). In most of the remaining episodes it denied the claim correctly but wrote the refund method as null
-+where the policy's format requires "none" (16.7 points). It reached the answer key's outcome in 18% of episodes and a
-+wrong outcome in none.
++**Refund, Flash Lite: a plausible answer is not a complete policy path.** In the policy seat, 26 of its 72 episodes
++propose a decision before the required evidence has been collected, including proposals whose stated outcome is
++correct. Another 4 end with an invalid request or no scoreable final resolution, and 18 reach a resolution that
++does not match the policy, the workflow or the prescribed payment. Counted once each in that order, these classes
++account for 36.1, 5.6 and 25.0 points of its 66.7-point shortfall. Pro's 1.4-point shortfall is a single error in the
++liability field, and GPT-6-sol has none in this selection. Figure 5.3 shows why the diagnostic measures stay beside
++strict compliance: Flash Lite passes a third of the individual policy episodes, but in no pair do both variants pass
++within a repetition.
 +
 +**Data center: fees, then deals the client walked away from.** Every redline after the opening move costs $25k. The
 +full-information reference signs the best agreement at once, so each fee counts as loss, whichever side paid it.
@@ -9190,7 +9716,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -| Data-center fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 -| Housing corrected measure and control contrasts (Table 5.2) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
 -| Housing scripted controls (Table 5.2, last row) | derived analysis `evidence/housing/housing_lemons_price_v14_controls/` on branch `codex/housing-lemons-outside-demand` (55ce9d84), `reports/controls.json`, block `beatability_main_pack_primary_v1` | derived after the runs |
-+| Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
++| Refund V2.5 calibration (Section 5.1, Figures 5.2d and 5.3, Tables E.10(d) and E.19) | the Refund revision of working draft 15.36 (Yuchen Fang, PDF of 2026-10-21); Figure 5.3 is cropped from it, and the panel record `analysis_evidence/refund_v25/policy_seat_panel.json` transcribes its counts; the calibration's measurement files are not on a pushed branch; the 1,072 scripted trajectories are documented in `refund_v2_5_release.md` as the 816-trajectory rerun plus the V7.1 port's 960, not as one run (to confirm with Yuchen) | exploratory |
++| Historical Refund V2.1 rows (Tables E.6 and E.9) | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
 +| Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch (Housing's addendum B subjects added in 2443c035, reading the run roots of `codex/housing-v15-cli`), built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
 +| Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 +| Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |
@@ -9208,7 +9735,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_qc_design.md aeread_working_draft_20261018_v15/source/paper_qc_design.md
 --- aeread_working_draft_20261018_v14/source/paper_qc_design.md	2026-10-18 13:41:03
-+++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-21 17:24:17
++++ aeread_working_draft_20261018_v15/source/paper_qc_design.md	2026-10-21 17:38:07
 @@ -12,47 +12,63 @@
  
  ## 6. Quality control
@@ -9269,7 +9796,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +| Housing v15 | ● | ● | ● | ● | ◐ | ● | profile probe ran after the freeze |
 +| Procurement, pre-registered evaluation set | ● | ● | ● | ● | ◐ | ● | the agents take no seed |
 +| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ● | ◐ | ◐ | not on the main branch; Gate 1 needs a new evaluation set |
-+| Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | a constant full refund passes 38 of 180 cases |
++| Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | Gate 3 fails on the original audit (a constant full refund passes 38 of 180 policy cases); the expanded release is not qualified |
  
 -**What it found.** Discovered failures are recorded in an incident log in design,
 -operational, tooling and judgment rows that are never deleted (51, 57, 90 and 23 distinct entries across
@@ -9324,8 +9851,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  | Data-center measurement facts (Appendix F.5) | `agreement_results_2026-10.md` on branch `codex/datacenter-agreement`, section "What the runs showed about measurement" |
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/replication_note.md aeread_working_draft_20261018_v15/source/replication_note.md
 --- aeread_working_draft_20261018_v14/source/replication_note.md	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/replication_note.md	2026-10-21 15:35:12
-@@ -0,0 +1,117 @@
++++ aeread_working_draft_20261018_v15/source/replication_note.md	2026-10-21 17:38:07
+@@ -0,0 +1,128 @@
 +# AERead replication note
 +
 +This note maps the formulas, rules and reported procedures of the AERead paper to their implementation: Appendices A–D first, then Appendices E–G, then Sections 1–4, 6, 7 and Appendix H. Paths are
@@ -9443,6 +9970,17 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +  `cli_isolation.py`.
 +- Refund V2.1: the V2 runner is `v2_runner`; published projections carry `state_and_score`; the V2 gap figures
 +  regenerate with `v2_gap --check`.
++
++## Refund V2.5 calibration and release (ported from the Refund revision, 2026-10-21)
++
++- Source: the Refund revision of working draft 15.36 (PDF built 2026-10-21 by Yuchen Fang). Figure 5.3 is cropped
++  from its page 14; `analysis_evidence/refund_v25/policy_seat_panel.json` transcribes the counts behind Figure 5.2(d)
++  and Table E.10(d). The calibration's measurement files are not on a pushed branch.
++- Bootstrap: 20,000 stratified paired template-bootstrap draws with seed 20261011.
++- Release: draft PR #269 (`codex/refund-v25-shared-runner`), synced to main 1dd48cf5; documents
++  `docs/families/refund/refund_v2_5_release.md` and `refund_v2_5_v71_port.md`; panels `v71_intake` and `v71_customer`;
++  `python -m aeread_families.refund.v2_5_release --panel all --seed 301`.
++- Payment-unit contract version 5.1: `src/aeread_families/refund/v2_5_payment_units_v51.py`.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/runtime.bib aeread_working_draft_20261018_v15/source/runtime.bib
 --- aeread_working_draft_20261018_v14/source/runtime.bib	2026-10-16 13:48:40
 +++ aeread_working_draft_20261018_v15/source/runtime.bib	2026-10-18 21:06:06
@@ -9462,8 +10000,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/sec_discussion.tex aeread_working_draft_20261018_v15/source/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/source/sec_discussion.tex	2026-10-17 20:33:40
-+++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-21 17:26:40
-@@ -1,48 +1,110 @@
++++ aeread_working_draft_20261018_v15/source/sec_discussion.tex	2026-10-21 17:38:07
+@@ -1,48 +1,119 @@
  \section{Discussion and conclusion}
  \label{sec:discussion}
  
@@ -9503,6 +10041,24 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -These post-run checks strengthen the results' provenance. They do not
 -retroactively qualify the campaigns or resolve Housing's historical
 -seat attribution (Appendix H).
++Refund tests a different obligation: compliance with an explicit policy,
++not money earned. Separating the four seats, and keeping each diagnostic
++score beside its coverage, distinguishes a plausible resolution from an
++evidence-complete, correctly executed path. Its developmental calibration
++separates Flash Lite from the stronger models in three seats, but the
++saturated customer seat and the little room left above the stronger models
++limit further comparisons. The scripted conformance of the later release
++does not remove the lower-control concerns of Section~\ref{sec:qc}.
+ 
+-Procurement and Data center are grounded in realistic purchasing and
+-contracting decisions. The present experiments use controlled scenarios;
+-empirical calibration of their parameter distributions and transfer to
+-field settings remain to be established. Coverage is limited to two
+-transaction classes and a small set of agent configurations, with no
+-human policy baseline. Several qualification checks were added after
+-the runs, and hosted-model and CLI behavior limits attribution from
+-declared settings. These examples do not establish general model
+-rankings or deployment readiness.
 +The cases teach three lessons that bear on any evaluation of this kind.
 +The counterpart is part of the measurement: counting each transfer between
 +them once, the same two agents differ by about three times as much when they
@@ -9517,24 +10073,6 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +validity requires evidence about the worlds, the information and the
 +controls.
  
--Procurement and Data center are grounded in realistic purchasing and
--contracting decisions. The present experiments use controlled scenarios;
--empirical calibration of their parameter distributions and transfer to
--field settings remain to be established. Coverage is limited to two
--transaction classes and a small set of agent configurations, with no
--human policy baseline. Several qualification checks were added after
--the runs, and hosted-model and CLI behavior limits attribution from
--declared settings. These examples do not establish general model
--rankings or deployment readiness.
-+These properties matter most where agents are deployed. An organization
-+that delegates a decision to an agent needs to know what the agent's
-+choices are worth against what was achievable, and where its losses come
-+from; a value score against a stated reference and a typed account of
-+losses answer both questions. Where one person makes such decisions
-+without specialized expertise or review before a commitment, delegating
-+them to an agent also requires evidence that the agent keeps value against
-+the counterparts it will meet.
- 
 -Future campaigns should bind actual seat assignments and headline
 -scorers into frozen evaluation identities and run the required controls
 -before comparisons. Practitioner review, human baselines and externally
@@ -9543,6 +10081,15 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 -structure for constructing these evaluations and an evidence-based
 -account of the checks needed to interpret their measures of economic
 -value delivery.
++These properties matter most where agents are deployed. An organization
++that delegates a decision to an agent needs to know what the agent's
++choices are worth against what was achievable, and where its losses come
++from; a value score against a stated reference and a typed account of
++losses answer both questions. Where one person makes such decisions
++without specialized expertise or review before a commitment, delegating
++them to an agent also requires evidence that the agent keeps value against
++the counterparts it will meet.
++
 +The present evidence has clear limits. The cases take their decision
 +structure from informal rentals, wholesale sourcing and AI-infrastructure
 +contracting, but we set their parameters; calibration to
@@ -9915,8 +10462,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +versions behind each reported panel.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/tab_case_paths.tex aeread_working_draft_20261018_v15/source/tab_case_paths.tex
 --- aeread_working_draft_20261018_v14/source/tab_case_paths.tex	2026-10-18 13:44:18
-+++ aeread_working_draft_20261018_v15/source/tab_case_paths.tex	2026-10-21 15:24:58
-@@ -15,29 +15,29 @@
++++ aeread_working_draft_20261018_v15/source/tab_case_paths.tex	2026-10-21 17:38:07
+@@ -15,32 +15,36 @@
  \midrule\endhead
  \midrule\multicolumn{3}{r}{\textit{Continued on the next page}}\\\endfoot
  \bottomrule\endlastfoot
@@ -9960,8 +10507,18 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +& September kernel; the V2 runner; Arena client. Contributed registration calls the shared executor and finalizer.
 +& Published projections carry state-and-score replay; inline replay. Gap figures are regenerated by the gap tool's check mode. Produces kernel receipts despite being outside the trusted scoring-contract fixture.\\
  \addlinespace[4pt]
- Refund V2.5\newline 816 provider-free trajectories
- & A Refund release on the October runtime, without kernel changes. Contributed QC path; all seats use a scripted provider; paid calls refused.
+-Refund V2.5\newline 816 provider-free trajectories
+-& A Refund release on the October runtime, without kernel changes. Contributed QC path; all seats use a scripted provider; paid calls refused.
+-& Release replays and audits all 816 receipts. No published bundle in the review. These runs qualify release conformance, not paid-model performance; they do not replace the V2.1 results.\\
++Refund V2.5 calibration\newline 792 model episodes
++& The historical versioned adapter, with one evaluated seat and three deterministic counterparts; the frozen four-seat comparison.
++& All 792 included receipts audited for seals, routes and offline replay. Amended, sequential exploratory evidence; not a test on the current kernel.\\
++\addlinespace[4pt]
++Refund V2.5 release\newline 1,072 provider-free trajectories
++& The October shared runtime, without kernel changes; thirteen public cohorts; scripted profiles only.
++& All receipts replayed and audited with full reference scores. Release conformance, not model performance or full publication qualification. The earlier release audit replayed 816 receipts.\\
+ \end{longtable}
+ \endgroup
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/tab_cli_controls.tex aeread_working_draft_20261018_v15/source/tab_cli_controls.tex
 --- aeread_working_draft_20261018_v14/source/tab_cli_controls.tex	2026-10-16 12:42:26
 +++ aeread_working_draft_20261018_v15/source/tab_cli_controls.tex	2026-10-21 17:24:51
@@ -9990,10 +10547,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-10-21 17:30:51
++++ aeread_working_draft_20261018_v15/source/version.json	2026-10-21 17:40:11
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.41",
++  "version": "15.42",
 +  "date": "21 October 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}

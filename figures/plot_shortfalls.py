@@ -61,13 +61,14 @@ PANELS = [
                 ('harmful_agreement','Harmful agreement',COMMIT,''),
                 ('missed_deal','Missed deal','#CAA4CB','///'),
                 ('redline_fees','Redline fees',COST,'')]),
-    dict(case='refund', title='(d) Refund', subtitle='Development V2.1 · full resolution',
-         names=['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],
-         labels=['GPT-5.6 Luna','Gemini 2.5\nFlash Lite'],
-         sample='6 fixed cases; 120 cells each', unit='Resolution shortfall (percentage points)',
-         limit=115, ticks=[0,25,50,75,100],
+    dict(case='refund', title='(d) Refund', subtitle='V2.5 calibration · policy seat',
+         names=['Gemini 2.5 Flash Lite','Gemini 2.5 Pro','GPT-6-sol'],
+         labels=['Gemini 2.5\nFlash Lite','Gemini 2.5\nPro','GPT-6-sol'],
+         sample='72 policy-seat episodes per model', unit='Strict-compliance shortfall (percentage points)',
+         limit=80, ticks=[0,20,40,60,80],
          parts=[('information_not_acquired','Required facts skipped',INFO,''),
-                ('procedure_and_format','Procedure / format',PROCEDURE,'')]),
+                ('procedure_and_format','Procedure / format',PROCEDURE,''),
+                ('contrary_to_information_held','Resolution mismatch',CONTRARY,'')]),
 ]
 
 

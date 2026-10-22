@@ -1,6 +1,6 @@
 {
   "source": "analysis_evidence/shortfall_panels/panels.json",
-  "source_sha256": "383f768fc8caae2dfb61eb08370cdc5ae2a0ea7f612b4df8a145d2c5e2aec752",
+  "source_sha256": "d7995c58a32986dadb77c00996f032f16831dac313c1de6c85f8e7932a2004d1",
   "figure": "Figure 5.2",
   "table": "Table E.10",
   "procurement_table_keys": [
@@ -10,7 +10,7 @@
     "interaction_cost",
     "total"
   ],
-  "component_sums_checked": 13,
+  "component_sums_checked": 14,
   "bars": [
     {
       "case": "housing",
@@ -318,24 +318,28 @@
     },
     {
       "case": "refund",
-      "subject": "GPT-5.6 Luna",
-      "total": 20.833333333333332,
+      "subject": "Gemini 2.5 Flash Lite",
+      "total": 66.66666666666667,
       "components": [
         {
           "key": "information_not_acquired",
-          "value": 15.0
+          "value": 36.111111111111114
         },
         {
           "key": "procedure_and_format",
-          "value": 5.833333333333333
+          "value": 5.555555555555555
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 25.0
         }
       ],
-      "axis_limit": 115
+      "axis_limit": 80
     },
     {
       "case": "refund",
-      "subject": "Gemini 2.5 Flash Lite",
-      "total": 98.33333333333333,
+      "subject": "Gemini 2.5 Pro",
+      "total": 1.3888888888888888,
       "components": [
         {
           "key": "information_not_acquired",
@@ -343,14 +347,38 @@
         },
         {
           "key": "procedure_and_format",
-          "value": 98.33333333333333
+          "value": 0.0
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 1.3888888888888888
         }
       ],
-      "axis_limit": 115
+      "axis_limit": 80
+    },
+    {
+      "case": "refund",
+      "subject": "GPT-6-sol",
+      "total": 0.0,
+      "components": [
+        {
+          "key": "information_not_acquired",
+          "value": 0.0
+        },
+        {
+          "key": "procedure_and_format",
+          "value": 0.0
+        },
+        {
+          "key": "contrary_to_information_held",
+          "value": 0.0
+        }
+      ],
+      "axis_limit": 80
     }
   ],
   "negative_component_policy": "a negative component above -1 is not drawn and is reported in the caption and Table E.10 (Housing inspection cost: GLM 5.3 Flash -0.2, Sol 6.1 and Opus 5.5 -0.4); positive components stack from zero",
   "uncertainty": "Point estimates; descriptive intervals in Table E.9",
-  "svg_sha256": "43a63591ed77faab5e701d786d38bed807b3789c1cdad90c013c84fac20595b8",
-  "png_sha256": "c6ef7ac7d730478a947aba8a92391100d4ce3ad338f86d59fd6330f795d25970"
+  "svg_sha256": "5e03f33b5c8a933d42a81a3b9f47edfc724637c22d4f914791f2f2105fb29ee8",
+  "png_sha256": "52aa0f6dc291449165b2a08ed9f364ff9d7bf2415c3f586ed771795b1f4b5cd6"
 }

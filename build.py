@@ -281,6 +281,19 @@ def main():
     v3_figure.append(v3_figcaption)
     v3_caption.decompose()
     v3_marker.replace_with(v3_figure)
+    # Figure 5.3 (Refund V2.5 calibration) is the Refund owner's figure, copied unchanged from the Refund revision.
+    r_image = soup.find('img', src='figures/refund_v25_compliance.png')
+    r_marker = r_image.find_parent('p')
+    r_caption = r_marker.find_next_sibling('p')
+    assert r_caption.get_text().startswith('Figure 5.3.')
+    r_figure = soup.new_tag('figure', attrs={'id':'fig-refund-v25','class':'procurement-figure'})
+    r_figure.append(r_image.extract())
+    r_figcaption = soup.new_tag('figcaption')
+    for child in list(r_caption.contents): r_figcaption.append(child.extract())
+    r_figure.append(r_figcaption)
+    r_caption.decompose()
+    r_marker.replace_with(r_figure)
+    assert (SOURCE/'figures/refund_v25_compliance.png').read_bytes() == (ROOT/'figures/refund_v25_compliance.png').read_bytes()
     v3_checks = json.loads((ROOT/'figures/PROCUREMENT_V3_FIGURE_CHECKS.json').read_text())
     assert hashlib.sha256((ROOT/'figures/plot_procurement_v3.py').read_bytes()).hexdigest() == v3_checks['script_sha256']
     assert hashlib.sha256((ROOT/'figures/procurement_v3_gap_closed.svg').read_bytes()).hexdigest() == v3_checks['svg_sha256']
@@ -306,7 +319,7 @@ def main():
     assert hashlib.sha256((ROOT/figure_checks['source']).read_bytes()).hexdigest() == figure_checks['source_sha256']
     assert hashlib.sha256((ROOT/'figures/shortfall_by_case.svg').read_bytes()).hexdigest() == figure_checks['svg_sha256']
     assert (SOURCE/'figures/shortfall_by_case.svg').read_bytes() == (ROOT/'figures/shortfall_by_case.svg').read_bytes()
-    assert len(figure_checks['bars']) == 13
+    assert len(figure_checks['bars']) == 14
     # One numbered appendix table, four panels in the same order as the figure.
     caption = soup.find(id='table-E.10')
     panel_names = ['(a) Housing', '(b) Procurement', '(c) Data center', '(d) Refund']
@@ -350,8 +363,8 @@ def main():
          PROCUREMENT_KEYS),
         ('datacenter', ['Opus 5.5','Sol 6.1'],
          ['inferior_clauses','harmful_agreement','missed_deal','redline_fees','total']),
-        ('refund', ['GPT-5.6 Luna','Gemini 2.5 Flash Lite'],
-         ['information_not_acquired','procedure_and_format','total']),
+        ('refund', ['Gemini 2.5 Flash Lite','Gemini 2.5 Pro','GPT-6-sol'],
+         ['information_not_acquired','procedure_and_format','contrary_to_information_held','total']),
     ]
     displayed_means = 0
     for panel, (case, names, keys) in zip(grid.select('.shortfall-panel'), displayed_panels, strict=True):

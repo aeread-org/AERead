@@ -14,8 +14,8 @@ We present four cases (Table 5.1). Each is a starting point for questions about 
 7.2 lists the questions we consider open. The cases show how the counterpart changes measured value and how a shortfall divides
 into typed action classes. We also reimplemented three counterpart families of an external benchmark, TERMS-Bench, as
 an AERead family. Its pre-registered reproduction stopped at its first check, so we report it in Appendix E.10 as
-work in progress. We describe Housing,
-Procurement and Data center here and specify them in Appendices A–D; Refund appears only in the cross-case comparison.
+work in progress. We describe all four cases here and specify them in Appendices A–D. Refund
+reports compliance with a written policy rather than monetary value.
 Each case is a family rather than a fixed task set. It consists of a generator of worlds; a case-specific reference,
 which is either a policy that uses only what the deciding side may know or an explicitly labelled full-information
 upper bound; an inclusion criterion that keeps the worlds in which the decision matters (its form varies by case;
@@ -37,10 +37,11 @@ and counterpart, not to sample a representative distribution.
 | Housing | informal rental listings | which listing to inspect, what to offer, and whether to sign when some listings are lemons | scripted landlords; other tenants take listings it leaves | a scripted tenant that uses only what the tenant knows |
 | Procurement | wholesale sourcing | pay more for an established supplier, or test a cheaper newcomer, before a deadline | scripted suppliers | the best plan given what the buyer knows, solved exactly |
 | Data center | AI-infrastructure contracting | which risk clauses to change, what price to name, and when to sign or walk away | the other side: a script, another model or the same model | the best agreement at both sides' true costs, which neither side knows |
-| Refund | customer refund claims | what to ask, decide and pay on a claim under a written policy | the other parties to the claim, scripted | a hand-written correct resolution |
+| Refund | customer refund claims | what to ask, disclose, decide and execute under a written policy | three fixed scripted seats; one evaluated seat at a time | the authored policy and protocol, not a monetary optimum |
 
-We report how much room each case leaves as a share of that case's own reference value. Tables 5.2 to 5.4 give each
-subject's result and gap in this form, and Figure 5.2 divides the gap by action class in the case's own units. The
+For the three monetary cases, we report how much room each case leaves as a share of that case's own reference
+value. Tables 5.2 to 5.4 give each subject's result and gap in this form. Refund instead reports compliance rates.
+Figure 5.2 divides the shortfall by action class in each case's own units. The
 cases rely on four kinds of check: an answer key, stated rules, the value of the best policy or a bound, and relative
 standing against another agent. None uses a rubric. Every score
 is computed by code, with no model in the loop. The kernel's replay recomputes each receipt's own score from its
@@ -237,6 +238,44 @@ between the price-only rule and that policy.
 client's walk-away point in its task prompt, and without the inclusion screen against the price-only rule. Appendix
 E.4 reports it, with the development results and the figures behind this paragraph.
 
+**Refund.** A refund is more than a choice between approving and denying a claim. The intake desk must ask for the
+facts that decide it, the customer must disclose the requested records, the policy seat must apply the rules in their
+stated order, and the payments seat must execute the confirmed obligation exactly once. A correct outcome proposed
+before the evidence arrives is therefore not a correct decision, and a payment that follows a wrong proposal is not a
+correct payment. The score is compliance with an authored policy, not money recovered or business value; a refund
+amount is a field to verify, not a welfare measure. A world combines a product category (perishable goods,
+electronics, software or apparel) with an interaction rule, such as conflicting identity records, a pending payment
+or an evidence threshold. The public policy states the precedence of its rules, which facts each branch requires, the
+allowed outcomes and the amount formulae. The customer holds the private facts, and no evaluated seat sees the answer
+key. Each world comes as a counterfactual pair that changes the stated facts and keeps the rest of the world fixed. We
+evaluate one seat at a time while the other three follow fixed scripts. The comparison reported here is an amended,
+sequential developmental calibration, not a pre-registered comparison: Gemini 2.5 Flash Lite, Gemini 2.5 Pro and
+GPT-6-sol each played a frozen selection of 66 seat-specific pair templates, both variants twice, for 792 episodes in
+all. Appendix A.4 specifies the case.
+
+Flash Lite separates from the two stronger models in three of the four seats, and the panel cannot separate the
+stronger models from each other (Figure 5.3). Strict trajectory compliance requires the evaluated seat's decisions
+and protocol obligations to hold together. Flash Lite reaches 38.3% of it as intake, 33.3% as policy and 35.6% as
+payments, whereas Gemini 2.5 Pro and GPT-6-sol reach at least 98.6% in every seat. The differences between Pro and
+Flash Lite in those three seats, from 60.8 to 65.3 percentage points, have template-cluster bootstrap intervals that
+exclude zero and remain significant after Holm adjustment across the eight frozen contrasts. No contrast between
+GPT-6-sol and Pro separates them. That is not evidence that they are equivalent: both stronger models pass 62 of the
+66 templates on both variants in both repetitions, and all three models pass every customer episode, so the panel
+leaves little room above them.
+
+![Refund V2.5 calibration: weighted strict compliance, both-variant pass rates, policy-active diagnostics and active-seat collaboration for Gemini 2.5 Flash Lite, Gemini 2.5 Pro and GPT-6-sol.](figures/refund_v25_compliance.png)
+
+**Figure 5.3. Refund V2.5 calibration, by evaluated seat and model (Lite = Gemini 2.5 Flash Lite, Pro = Gemini 2.5
+Pro, GPT = GPT-6-sol).** (a) Weighted strict compliance, with episodes per model in parentheses; (b) share of template
+repeats in which both variants pass; (c, d) conditional score / weighted coverage, in percent. Panels are not added.
+
+**Further runs.** A later public release of the environment adds customer and intake panels. Its 1,072 scripted
+trajectories on the current runtime pass with full scores, which establishes the environment's conformance, not model
+performance. The calibration's model episodes ran on an earlier, versioned runner and were audited there; porting the
+environment to the current runtime does not turn them into results on the current kernel (Appendix H). A separate
+redesign, Refund V3, is not part of these results. Appendix E.4 gives the weights, the eight contrasts and the
+failure checks.
+
 ### 5.2 Where the shortfall comes from
 
 Figure 5.2 divides each case's shortfall into observed action classes. The components sum to the total under a stated
@@ -244,7 +283,9 @@ priority order, and they describe what happened, not its cause. The Housing pane
 models and three addendum agents (A: GLM; B: Sol and Opus through their command-line tools), measured below the
 reachable rule `inspect_lowball`. Negative components, at most $0.4 a world, are not drawn. The Data center panel
 shows v2's joint loss relative to the full-information bound against the firm counterparts, with each redline after
-the first move charged $25k, across all 80 worlds with both seats averaged. Appendix E.5 gives the classification
+the first move charged $25k, across all 80 worlds with both seats averaged. The Refund panel shows the policy seat of
+the V2.5 calibration, 72 episodes per model, in percentage points of strict compliance; each failed episode is
+counted once, under the first applicable class. Appendix E.5 gives the classification
 rules and full subject tables, Appendix E.7 the Data-center breakdown and its uncertainty, and Tables 5.3, E.9 and
 E.10 the intervals and exact values.
 
@@ -252,7 +293,8 @@ E.10 the intervals and exact values.
 
 **Figure 5.2. Shortfall to each case's reference, divided by observed action class.** Labels give mean totals (lower
 is better); each panel has its own reference, units and scale. Housing uses the 260 main worlds of Table 5.2,
-Procurement the 20 worlds of Table 5.3, and Data center the 80 worlds of Table 5.4.
+Procurement the 20 worlds of Table 5.3, Data center the 80 worlds of Table 5.4, and Refund the 72 policy-seat
+episodes per model of Figure 5.3.
 
 The labels name what happened. The mechanism behind each large segment is as follows.
 
@@ -300,11 +342,14 @@ knew, and neither left a worthwhile inspection undone, apart from Opus's $1.4 a 
 Sol's $15.3 shortfall ($15.7, offset by $0.4 of inspection fees it saved) and for 84% of Opus's $46.1 ($38.8); ending
 with no lease where the rule leased costs Opus a further $6.3.
 
-**Refund, Gemini 2.5 Flash Lite: the case ends before it decides.** In 81% of its episodes it asked again for a fact
-it had already been given; the environment rejects a repeated request, and the case ends with no decision (80.8 of its
-98.3 points). In most of the remaining episodes it denied the claim correctly but wrote the refund method as null
-where the policy's format requires "none" (16.7 points). It reached the answer key's outcome in 18% of episodes and a
-wrong outcome in none.
+**Refund, Flash Lite: a plausible answer is not a complete policy path.** In the policy seat, 26 of its 72 episodes
+propose a decision before the required evidence has been collected, including proposals whose stated outcome is
+correct. Another 4 end with an invalid request or no scoreable final resolution, and 18 reach a resolution that
+does not match the policy, the workflow or the prescribed payment. Counted once each in that order, these classes
+account for 36.1, 5.6 and 25.0 points of its 66.7-point shortfall. Pro's 1.4-point shortfall is a single error in the
+liability field, and GPT-6-sol has none in this selection. Figure 5.3 shows why the diagnostic measures stay beside
+strict compliance: Flash Lite passes a third of the individual policy episodes, but in no pair do both variants pass
+within a repetition.
 
 **Data center: fees, then deals the client walked away from.** Every redline after the opening move costs $25k. The
 full-information reference signs the best agreement at once, so each fee counts as loss, whichever side paid it.
@@ -358,7 +403,8 @@ until a pre-registered test confirms it.
 | Data center v1 (Tables E.16, E.17; Appendix E.9) | `agreement_confirmatory_results_2026-10.md` at `12516caf`; plan `ca9d5cac`; `agreement_confirmatory_analysis/reports/analysis.json` and five `datacenter_agreement_confirm_*_v1` bundles on `codex/datacenter-agreement` | declared primaries; eight departures; Gate 5 partial in the 16 October review |
 | Procurement v2 gate and pilot | `pay_or_test_v2_results.md`, `pay_or_test_v2_confirmatory_plan.md`, the four retained gate/pilot roots on `codex/procurement-pay-or-test` (`29c00d83`); incident P-D-27 | development; stopped at sizing, no confirmatory run |
 | Refund V2.5 cohorts, verifiers and qualification | `refund_v2_5_release.md` and the code on branch `codex/refund-v25-shared-runner` (draft PR #269); a provider-free rerun of the release, 816 of 816; incident rows RF-D-05, RF-D-06 | developmental release |
-| Refund rows of Table 5.1 and Figure 5.2d | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
+| Refund V2.5 calibration (Section 5.1, Figures 5.2d and 5.3, Tables E.10(d) and E.19) | the Refund revision of working draft 15.36 (Yuchen Fang, PDF of 2026-10-21); Figure 5.3 is cropped from it, and the panel record `analysis_evidence/refund_v25/policy_seat_panel.json` transcribes its counts; the calibration's measurement files are not on a pushed branch; the 1,072 scripted trajectories are documented in `refund_v2_5_release.md` as the 816-trajectory rerun plus the V7.1 port's 960, not as one run (to confirm with Yuchen) | exploratory |
+| Historical Refund V2.1 rows (Tables E.6 and E.9) | `evidence/refund/refund_v2_1_gap` (branch `codex/refund-gap-analysis`, draft PR #222); incident rows RF-D-01 to RF-D-04 | descriptive |
 | Failure classes (Figure 5.2, Table E.10, Appendix E.5) | `tools/paper/failure_taxonomy/` on this branch (Housing's addendum B subjects added in 2443c035, reading the run roots of `codex/housing-v15-cli`), built from the bundles and run roots above; `analysis_evidence/shortfall_panels/derive_panels.py` matches Housing v15's classes (`housing_v15.py`, 5522d543) to the published v15 analysis and GLM's addendum (copied to `analysis_evidence/housing_v15/`, v14's kept beside them), Procurement's sealed reanalysis, the Data-center v2 bundles' grades (v1's kept beside them for Table E.17) and Refund's cell decomposition; components sum to the corresponding total | derived |
 | Data-center v1 fee sensitivity (Appendix E.9, Tables E.11-E.12) | `analysis_evidence/datacenter_fee_sensitivity/`: supplied `analyze.py` replayed against all 240 v1 firm-population negotiations; `results.json`, `rows.json`, `edits.json`, source hashes and cohort checks | exploratory after the runs; fixed actions, six fee levels; no new model calls |
 | Housing corrected measure and control contrasts (Table E.13) | derived analyses `evidence/housing/housing_lemons_price_v14_reply_conditioned/` (765e99a7) and `..._v14_controls/` (55ce9d84) on branch `codex/housing-lemons-outside-demand`; `tools/paper/housing_controls_v14.py` on this branch | derived after the runs |

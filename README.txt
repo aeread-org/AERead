@@ -1,6 +1,6 @@
 AERead working draft v15 - 18 October 2026
 
-Current version: 15.41 (21 October 2026). The number is printed under the paper's title and in the PDF's
+Current version: 15.42 (21 October 2026). The number is printed under the paper's title and in the PDF's
 Subject field; it lives in source/version.json and goes up by one on every push (sync_and_push.sh refuses
 another push at the same number).
 
@@ -385,3 +385,11 @@ current one saturated"):
   'proves sound' under the leaky kind; (C.7) with general beta; Table A.2 'less'; quote validity stated; the $65.90
   example qualified; raw symbols fixed; LaTeX equations set real sub- and superscripts. '600 vs 580 agreements': 600
   is right and 580 appears nowhere.
+- Version 15.42 (2026-10-21): Refund incorporated from Yuchen Fang's Refund revision of 15.36 (PDF of 2026-10-21; its
+  source was not available): a Refund results paragraph and Figure 5.3 (V2.5 calibration: Gemini 2.5 Flash Lite,
+  Gemini 2.5 Pro, GPT-6-sol; 66 templates, 792 episodes), Figure 5.2(d) and Table E.10(d) on the V2.5 policy seat
+  (14 bars), a V2.5 Section 5.2 paragraph, new Appendix A.4 (the Refund case), an E.4 calibration section with Table
+  E.19, the Refund row of Table 6.1, and release-scope notes in F.2, F.4, Section 7 and Table H.2, all in the paper's
+  current style. The calibration's records are not on any branch yet, so its numbers are checked for internal
+  consistency only (sources table); Figure 5.3 is cropped from the PDF. Not ported: the added author, an owner
+  decision.

@@ -56,7 +56,7 @@ def main():
     result = dict(analysis_id='paper_shortfall_panels_v11_20261020',
                   status='post-run descriptive accounting',
                   interval_method='95% Student t interval across worlds; Refund across six fixed cases, descriptive only',
-                  housing={}, housing_v14={}, procurement={}, datacenter={}, datacenter_v1={}, refund={})
+                  housing={}, housing_v14={}, procurement={}, datacenter={}, datacenter_v1={}, refund={}, refund_v21={})
     # Housing v15 (Table 5.2, Figure 5.2a): the 260 main worlds, measure v2 primary, shortfall to inspect_lowball.
     # Each cell's class and gap come from housing_v15.py (5522d543; Sol and Opus, addendum B, from 2443c035); a world is the mean of its two landlord arms.
     v15 = read(ROOT/'housing_v15_taxonomy.json')
@@ -275,15 +275,29 @@ def main():
         for k in CLASSES:
             close(summary[k]['mean'], subject['per_world'][k])
         close(summary['total']['mean'], subject['total_shortfall_per_world'])
-        result['refund'][name] = dict(summary=summary, units=units,
+        result['refund_v21'][name] = dict(summary=summary, units=units,
             fixed_cases=6, cells=120, missing_cells=0,
             per_case_cell_totals={k:[r['total'] for r in rs] for k,rs in by_case.items()})
+    # Refund V2.5 (Figure 5.2d): the calibration's policy seat, 72 episodes per model, each failed episode counted once
+    # under its first applicable class. The measurement files are not on a pushed branch; the record transcribes the
+    # published counts, and each total must equal 100 minus the published strict compliance.
+    v25 = read(EVIDENCE/'refund_v25/policy_seat_panel.json')
+    for name, model in v25['models'].items():
+        n = v25['episodes_per_model']
+        counts = model['classes']
+        assert sum(counts.values()) + model['strict_pass'] == n and counts['contract_only'] == 0
+        values = {k: 100*counts.get(k, 0)/n for k in CLASSES}
+        values['total'] = sum(values.values())
+        close(values['total'], 100 - v25['weighted_strict_compliance_policy'][name], .051)
+        result['refund'][name] = dict(summary={k: dict(n=n, mean=v) for k, v in values.items()},
+            episodes=n, templates=v25['templates'], accounting='first applicable class',
+            intervals='none for this panel: see Appendix E.4')
     result['inputs_sha256'] = INPUTS
     result['checks'] = dict(all_component_sums=True, all_primary_source_totals_reproduced=True,
         all_housing_cell_corrections_matched=True, housing_v15_published_totals_reproduced=True, dc_publication_artifact_hashes=True, dc_v2_table_hashes_and_published_leaves=True,
         dc_all_worlds_denominator_verified=True, procurement_all_worlds_matched=True)
     (ROOT/'panels.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
-    for case in ('housing','housing_v14','procurement','datacenter','datacenter_v1','refund'):
+    for case in ('housing','housing_v14','procurement','datacenter','datacenter_v1','refund','refund_v21'):
         for name, value in result[case].items():
             print(case, name, {k:round(v['mean'],4) for k,v in value['summary'].items()})
 

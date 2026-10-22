@@ -31147,6 +31147,7 @@
     "procurement_v3/readout_gpt6_luna.json": "c760cf34931d541945fabc242445077d63ec5fb86bfe9998179f00895f833253",
     "procurement_v3/readout_opus55.json": "7c5b755e298c8e1c07a03c6a03d10b87cf28c88c062b1301f5d7771922f86d0b",
     "procurement_v3/readout_sol61.json": "858a652fe7b0d565649ca39f09a7549fb31c69e8dff8e712e15a215dbbbc1a67",
+    "refund_v25/policy_seat_panel.json": "d9818aa920bd63b63614f495286a435ff2c883afb81af3446d696693ce2ed0f7",
     "shortfall_panels/housing_v14_taxonomy.json": "ad6fa43398c4b56b90ea417b9a316aebaf6f48a5b95f0afdd09a7b0ecf0e0de4",
     "shortfall_panels/housing_v15_taxonomy.json": "7d9d1fbda19b9c3fb45759305e6f1df911bcb090a9262034160dfbc395c31bd6",
     "shortfall_panels/procurement_pay_or_test_v3_taxonomy.json": "52dc2c5dc5c9122aef221a95d4d83484209c153a18fff1d7b10ee73d1f4515ac",
@@ -32472,6 +32473,128 @@
     }
   },
   "refund": {
+    "GPT-6-sol": {
+      "accounting": "first applicable class",
+      "episodes": 72,
+      "intervals": "none for this panel: see Appendix E.4",
+      "summary": {
+        "commitment_error": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "contrary_to_information_held": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "information_not_acquired": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "interaction_cost": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "operational": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "procedure_and_format": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "total": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "worse_terms": {
+          "mean": 0.0,
+          "n": 72
+        }
+      },
+      "templates": 18
+    },
+    "Gemini 2.5 Flash Lite": {
+      "accounting": "first applicable class",
+      "episodes": 72,
+      "intervals": "none for this panel: see Appendix E.4",
+      "summary": {
+        "commitment_error": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "contrary_to_information_held": {
+          "mean": 25.0,
+          "n": 72
+        },
+        "information_not_acquired": {
+          "mean": 36.111111111111114,
+          "n": 72
+        },
+        "interaction_cost": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "operational": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "procedure_and_format": {
+          "mean": 5.555555555555555,
+          "n": 72
+        },
+        "total": {
+          "mean": 66.66666666666667,
+          "n": 72
+        },
+        "worse_terms": {
+          "mean": 0.0,
+          "n": 72
+        }
+      },
+      "templates": 18
+    },
+    "Gemini 2.5 Pro": {
+      "accounting": "first applicable class",
+      "episodes": 72,
+      "intervals": "none for this panel: see Appendix E.4",
+      "summary": {
+        "commitment_error": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "contrary_to_information_held": {
+          "mean": 1.3888888888888888,
+          "n": 72
+        },
+        "information_not_acquired": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "interaction_cost": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "operational": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "procedure_and_format": {
+          "mean": 0.0,
+          "n": 72
+        },
+        "total": {
+          "mean": 1.3888888888888888,
+          "n": 72
+        },
+        "worse_terms": {
+          "mean": 0.0,
+          "n": 72
+        }
+      },
+      "templates": 18
+    }
+  },
+  "refund_v21": {
     "DeepSeek V4 Flash": {
       "cells": 120,
       "fixed_cases": 6,
