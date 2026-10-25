@@ -1,0 +1,2 @@
+# CSV is emitted with RFC 4180 CRLF record endings; preserve the sealed bytes.
+refund_v34_developmental_20261025/tables/*.csv -text whitespace=cr-at-eol

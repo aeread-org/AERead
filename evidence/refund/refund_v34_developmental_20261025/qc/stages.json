@@ -1,0 +1,135 @@
+{
+  "refund_v34_gpt_low_full1": {
+    "local_final_audit": {
+      "calls_returned": 654,
+      "completed": 220,
+      "full_native_coverage_qualified": true,
+      "historical_660_results_unchanged": true,
+      "historical_billing_resolved": false,
+      "historical_gpt_none_receipts_unchanged": true,
+      "known_spend_usd": 2.6201742000000037,
+      "new_provider_calls": 0,
+      "new_stage_billing_complete": true,
+      "rows_sha256": "3b76b0fb2064844bb2d677bd76c9861730477ca73579c75b9c1447670092dfe3",
+      "source_snapshot_unchanged": true,
+      "status": "passed_complete_full_gpt_low_final_audit",
+      "summary_sha256": "f248a13d6ddc27478eeff604ec386c763b999e038d0d07e75ae00d2efc8b4073",
+      "traces_sha256": "6f93209d9638725ad3cd5e222a8d942109cd2ca21fab6a8298c262c2d8eac61a",
+      "unresolved_calls": 0,
+      "verifier_sha256": "1a013590639f3632ee06c1f4c81ebbf0b260a37b279123bb59bbaf25f33e9959"
+    },
+    "projection_not_original_audit": true,
+    "summary": {
+      "billing_complete": true,
+      "calls_returned": 654,
+      "calls_started": 654,
+      "completed": 220,
+      "elapsed_minutes": 26.057042573616734,
+      "known_spend_usd": 2.6201742000000037,
+      "max_minutes": 120,
+      "max_usd": 10,
+      "planned": 220,
+      "status": "complete",
+      "unresolved_calls": 0
+    }
+  },
+  "refund_v34_gpt_medium_full1": {
+    "local_final_audit": {
+      "calls_returned": 650,
+      "completed": 220,
+      "full_native_coverage_qualified": true,
+      "historical_660_results_unchanged": true,
+      "historical_billing_resolved": false,
+      "historical_gpt_low_receipts_unchanged": true,
+      "historical_gpt_none_receipts_unchanged": true,
+      "known_spend_usd": 2.785661200000003,
+      "new_provider_calls": 0,
+      "new_stage_billing_complete": true,
+      "rows_sha256": "892018596bfb1e094253b5cf83dee853feebbe3c826c3c6c70aaa7ad31043ecb",
+      "source_snapshot_unchanged": true,
+      "status": "passed_complete_full_gpt_medium_final_audit",
+      "summary_sha256": "d8a82de2025d93d3d319e55d4169ec3a667a51c8e2aee31797bf9e57a9a4d13a",
+      "traces_sha256": "944efc3d01a83e7883d9d5b0048307a3778acac060ec201cd206316bc9bfae41",
+      "unresolved_calls": 0,
+      "verifier_sha256": "50644cfb869e7882dbf2a8daf4aab4f18c3e0377b76bbee49621962836d3db3a"
+    },
+    "projection_not_original_audit": true,
+    "summary": {
+      "billing_complete": true,
+      "calls_returned": 650,
+      "calls_started": 650,
+      "completed": 220,
+      "elapsed_minutes": 27.848650927783456,
+      "known_spend_usd": 2.785661200000003,
+      "max_minutes": 60,
+      "max_usd": 5,
+      "planned": 220,
+      "status": "complete",
+      "unresolved_calls": 0
+    }
+  },
+  "refund_v34_pro_output_continuation1": {
+    "local_final_audit": {
+      "calls_returned": 63,
+      "completed": 33,
+      "full_native_coverage_qualified": true,
+      "historical_660_results_unchanged": true,
+      "historical_billing_resolved": false,
+      "known_spend_usd": 1.3455848750000001,
+      "new_provider_calls": 0,
+      "new_stage_billing_complete": true,
+      "rows_sha256": "19bc370a1d8ed22290e434d2d60905e666ba4797638a70c3bd4632d151933b2c",
+      "source_snapshot_unchanged": true,
+      "status": "passed_complete_remaining33_pro_final_audit",
+      "summary_sha256": "971fcd124f4ea74574aa701a184cf3837b6a45fdf6b9f84c61c367c2499c1791",
+      "unresolved_calls": 0,
+      "verifier_sha256": "73ad3fb0676b9184c54127edb4cc43c8a2927c5038e3c6f13716c3ed427c7d55"
+    },
+    "projection_not_original_audit": true,
+    "summary": {
+      "billing_complete": true,
+      "calls_returned": 63,
+      "calls_started": 63,
+      "completed": 33,
+      "elapsed_minutes": 17.517569159016663,
+      "known_spend_usd": 1.3455848750000001,
+      "max_minutes": 120,
+      "max_usd": 10,
+      "planned": 33,
+      "status": "complete",
+      "unresolved_calls": 0
+    }
+  },
+  "refund_v34_pro_output_full1": {
+    "local_final_audit": {
+      "calls_returned": 578,
+      "completed": 187,
+      "full_native_coverage_qualified": false,
+      "historical_660_results_unchanged": true,
+      "historical_billing_resolved": false,
+      "known_spend_usd": 12.471796750000008,
+      "new_provider_calls": 0,
+      "new_stage_billing_complete": true,
+      "rows_sha256": "f0c7c2f789a342a6d5752c94d8fe65727f3f3c490cd80467007c095a69bb5178",
+      "source_snapshot_unchanged": true,
+      "status": "passed_partial_stopped_evidence_audit",
+      "summary_sha256": "286e68ca6c36712125cd64651e57369734b3c5da2cb37d182a843daf2c1d29a1",
+      "unresolved_calls": 0,
+      "verifier_sha256": "2c94589b12b8578b6111e0d9d30c9a8ad01164ad70e7ccf653274fadd04cb925"
+    },
+    "projection_not_original_audit": true,
+    "summary": {
+      "billing_complete": true,
+      "calls_returned": 578,
+      "calls_started": 578,
+      "completed": 187,
+      "elapsed_minutes": 157.02153849931685,
+      "known_spend_usd": 12.471796750000008,
+      "max_minutes": 160,
+      "max_usd": 15,
+      "planned": 220,
+      "status": "stopped",
+      "unresolved_calls": 0
+    }
+  }
+}

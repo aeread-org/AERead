@@ -1,0 +1,2 @@
+# Archival source bytes are pinned; do not rewrite legacy trailing blank lines.
+source/**/*.py -text whitespace=-blank-at-eof

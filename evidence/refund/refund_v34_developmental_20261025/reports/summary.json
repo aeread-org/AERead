@@ -1,0 +1,2460 @@
+{
+  "confirmatory_ranking": false,
+  "episodes": 1100,
+  "label": "amended sequential developmental/exploratory",
+  "matched_descriptive_comparisons": {
+    "gpt_low_to_gpt_medium": {
+      "both_fail": 15,
+      "both_pass": 191,
+      "new_pass": 11,
+      "regression": 3,
+      "unknown": 0
+    },
+    "gpt_none_to_gpt_low": {
+      "both_fail": 23,
+      "both_pass": 157,
+      "new_pass": 37,
+      "regression": 3,
+      "unknown": 0
+    },
+    "gpt_none_to_gpt_medium": {
+      "both_fail": 16,
+      "both_pass": 158,
+      "new_pass": 44,
+      "regression": 2,
+      "unknown": 0
+    }
+  },
+  "overlapping_dimensions_are_not_additive": true,
+  "profiles": {
+    "gpt_low": {
+      "complete_pairs": 110,
+      "failure": 26,
+      "seats": {
+        "customer": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 51,
+              "nonfull_score": 5,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 43,
+              "nonfull_score": 13,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 55,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 51,
+              "nonfull_score": 0,
+              "unmeasured": 5,
+              "valid": 51,
+              "validity_counts": {
+                "invalid": 5,
+                "valid": 51
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 46,
+              "nonfull_score": 5,
+              "unmeasured": 5,
+              "valid": 51,
+              "validity_counts": {
+                "invalid": 5,
+                "valid": 51
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 50,
+              "nonfull_score": 6,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 43,
+              "nonfull_score": 13,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 39,
+              "nonfull_score": 12,
+              "unmeasured": 5,
+              "valid": 51,
+              "validity_counts": {
+                "invalid": 5,
+                "valid": 51
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 52,
+              "nonfull_score": 4,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 13,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "customer_disclosure": 13
+          },
+          "primary_classes": {
+            "customer.disclosure_content_integrity": 13,
+            "pass": 43
+          },
+          "success": 43,
+          "unknown": 0
+        },
+        "intake": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 51,
+              "nonfull_score": 5,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 45,
+              "nonfull_score": 11,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 45,
+              "nonfull_score": 1,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 11,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "intake_planning": 5
+          },
+          "primary_classes": {
+            "collection.illegal_request": 1,
+            "collection.round_limit": 9,
+            "collection.suboptimal_plan": 1,
+            "pass": 45
+          },
+          "success": 45,
+          "unknown": 0
+        },
+        "payments": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 25,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 25,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 25,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            }
+          },
+          "complete_pairs": 13,
+          "failure": 1,
+          "n": 26,
+          "overlapping_failed_dimensions": {
+            "payment_execution": 1
+          },
+          "primary_classes": {
+            "pass": 25,
+            "payment.duplicate_mutation": 1
+          },
+          "success": 25,
+          "unknown": 0
+        },
+        "policy": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 81,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 81,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 81,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            }
+          },
+          "complete_pairs": 41,
+          "failure": 1,
+          "n": 82,
+          "overlapping_failed_dimensions": {
+            "evidence": 1
+          },
+          "primary_classes": {
+            "evidence.insufficient_or_inefficient": 1,
+            "pass": 81
+          },
+          "success": 81,
+          "unknown": 0
+        }
+      },
+      "success": 194,
+      "unknown": 0
+    },
+    "gpt_medium": {
+      "complete_pairs": 110,
+      "failure": 18,
+      "seats": {
+        "customer": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 49,
+              "nonfull_score": 7,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 49,
+              "nonfull_score": 7,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 52,
+              "nonfull_score": 4,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 53,
+              "nonfull_score": 0,
+              "unmeasured": 3,
+              "valid": 53,
+              "validity_counts": {
+                "invalid": 3,
+                "valid": 53
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 46,
+              "nonfull_score": 7,
+              "unmeasured": 3,
+              "valid": 53,
+              "validity_counts": {
+                "invalid": 3,
+                "valid": 53
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 49,
+              "nonfull_score": 7,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 49,
+              "nonfull_score": 7,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 46,
+              "nonfull_score": 7,
+              "unmeasured": 3,
+              "valid": 53,
+              "validity_counts": {
+                "invalid": 3,
+                "valid": 53
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 50,
+              "nonfull_score": 6,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 7,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "customer_disclosure": 7
+          },
+          "primary_classes": {
+            "customer.disclosure_content_integrity": 7,
+            "pass": 49
+          },
+          "success": 49,
+          "unknown": 0
+        },
+        "intake": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 50,
+              "nonfull_score": 6,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 45,
+              "nonfull_score": 11,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 45,
+              "nonfull_score": 1,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 46,
+              "nonfull_score": 0,
+              "unmeasured": 10,
+              "valid": 46,
+              "validity_counts": {
+                "invalid": 10,
+                "valid": 46
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 11,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "intake_planning": 6
+          },
+          "primary_classes": {
+            "collection.illegal_request": 1,
+            "collection.round_limit": 9,
+            "collection.suboptimal_plan": 1,
+            "pass": 45
+          },
+          "success": 45,
+          "unknown": 0
+        },
+        "payments": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            }
+          },
+          "complete_pairs": 13,
+          "failure": 0,
+          "n": 26,
+          "overlapping_failed_dimensions": {},
+          "primary_classes": {
+            "pass": 26
+          },
+          "success": 26,
+          "unknown": 0
+        },
+        "policy": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            }
+          },
+          "complete_pairs": 41,
+          "failure": 0,
+          "n": 82,
+          "overlapping_failed_dimensions": {},
+          "primary_classes": {
+            "pass": 82
+          },
+          "success": 82,
+          "unknown": 0
+        }
+      },
+      "success": 202,
+      "unknown": 0
+    },
+    "gpt_none": {
+      "complete_pairs": 110,
+      "failure": 60,
+      "seats": {
+        "customer": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 39,
+              "nonfull_score": 17,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 33,
+              "nonfull_score": 23,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 54,
+              "nonfull_score": 2,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 51,
+              "nonfull_score": 0,
+              "unmeasured": 5,
+              "valid": 51,
+              "validity_counts": {
+                "invalid": 5,
+                "valid": 51
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 34,
+              "nonfull_score": 17,
+              "unmeasured": 5,
+              "valid": 51,
+              "validity_counts": {
+                "invalid": 5,
+                "valid": 51
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 38,
+              "nonfull_score": 18,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 33,
+              "nonfull_score": 23,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 29,
+              "nonfull_score": 22,
+              "unmeasured": 5,
+              "valid": 51,
+              "validity_counts": {
+                "invalid": 5,
+                "valid": 51
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 40,
+              "nonfull_score": 16,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 23,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "customer_disclosure": 23
+          },
+          "primary_classes": {
+            "customer.disclosure_content_integrity": 23,
+            "pass": 33
+          },
+          "success": 33,
+          "unknown": 0
+        },
+        "intake": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 23,
+              "nonfull_score": 33,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 20,
+              "nonfull_score": 36,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 20,
+              "nonfull_score": 23,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 43,
+              "nonfull_score": 0,
+              "unmeasured": 13,
+              "valid": 43,
+              "validity_counts": {
+                "invalid": 13,
+                "valid": 43
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 36,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "intake_planning": 33
+          },
+          "primary_classes": {
+            "collection.illegal_request": 4,
+            "collection.round_limit": 9,
+            "collection.suboptimal_plan": 23,
+            "pass": 20
+          },
+          "success": 20,
+          "unknown": 0
+        },
+        "payments": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 25,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 25,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 25,
+              "nonfull_score": 1,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            }
+          },
+          "complete_pairs": 13,
+          "failure": 1,
+          "n": 26,
+          "overlapping_failed_dimensions": {
+            "payment_execution": 1
+          },
+          "primary_classes": {
+            "pass": 25,
+            "payment.unsafe_mutation": 1
+          },
+          "success": 25,
+          "unknown": 0
+        },
+        "policy": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            }
+          },
+          "complete_pairs": 41,
+          "failure": 0,
+          "n": 82,
+          "overlapping_failed_dimensions": {},
+          "primary_classes": {
+            "pass": 82
+          },
+          "success": 82,
+          "unknown": 0
+        }
+      },
+      "success": 160,
+      "unknown": 0
+    },
+    "lite": {
+      "complete_pairs": 110,
+      "failure": 197,
+      "seats": {
+        "customer": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 19,
+              "nonfull_score": 15,
+              "unmeasured": 22,
+              "valid": 34,
+              "validity_counts": {
+                "invalid": 22,
+                "valid": 34
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 20,
+              "nonfull_score": 14,
+              "unmeasured": 22,
+              "valid": 34,
+              "validity_counts": {
+                "invalid": 22,
+                "valid": 34
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 9,
+              "nonfull_score": 47,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 34,
+              "nonfull_score": 0,
+              "unmeasured": 22,
+              "valid": 34,
+              "validity_counts": {
+                "invalid": 22,
+                "valid": 34
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 22,
+              "nonfull_score": 0,
+              "unmeasured": 34,
+              "valid": 22,
+              "validity_counts": {
+                "invalid": 34,
+                "valid": 22
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 9,
+              "nonfull_score": 13,
+              "unmeasured": 34,
+              "valid": 22,
+              "validity_counts": {
+                "invalid": 34,
+                "valid": 22
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 16,
+              "nonfull_score": 18,
+              "unmeasured": 22,
+              "valid": 34,
+              "validity_counts": {
+                "invalid": 22,
+                "valid": 34
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 4,
+              "nonfull_score": 52,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 4,
+              "nonfull_score": 18,
+              "unmeasured": 34,
+              "valid": 22,
+              "validity_counts": {
+                "invalid": 34,
+                "valid": 22
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 20,
+              "nonfull_score": 14,
+              "unmeasured": 22,
+              "valid": 34,
+              "validity_counts": {
+                "invalid": 22,
+                "valid": 34
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 52,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "customer_confirmation": 14,
+            "customer_disclosure": 47
+          },
+          "primary_classes": {
+            "customer.confirmation_preference_mismatch": 4,
+            "customer.confirmation_terms_mismatch": 4,
+            "customer.disclosure_content_integrity": 22,
+            "customer.unrequested_disclosure": 22,
+            "pass": 4
+          },
+          "success": 4,
+          "unknown": 0
+        },
+        "intake": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 5,
+              "nonfull_score": 51,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 0,
+              "nonfull_score": 56,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 0,
+              "nonfull_score": 1,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 1,
+              "nonfull_score": 0,
+              "unmeasured": 55,
+              "valid": 1,
+              "validity_counts": {
+                "invalid": 55,
+                "valid": 1
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 56,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "intake_planning": 51
+          },
+          "primary_classes": {
+            "collection.illegal_request": 55,
+            "collection.suboptimal_plan": 1
+          },
+          "success": 0,
+          "unknown": 0
+        },
+        "payments": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 0,
+              "nonfull_score": 26,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 0,
+              "nonfull_score": 26,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 0,
+              "nonfull_score": 26,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            }
+          },
+          "complete_pairs": 13,
+          "failure": 26,
+          "n": 26,
+          "overlapping_failed_dimensions": {
+            "payment_execution": 26
+          },
+          "primary_classes": {
+            "payment.capacity_exceeded": 5,
+            "payment.duplicate_mutation": 10,
+            "payment.unauthorized_destination": 1,
+            "payment.unsafe_mutation": 10
+          },
+          "success": 0,
+          "unknown": 0
+        },
+        "policy": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 59,
+              "nonfull_score": 3,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 62,
+              "nonfull_score": 0,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 31,
+              "nonfull_score": 31,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 62,
+              "nonfull_score": 0,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 44,
+              "nonfull_score": 18,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 44,
+              "nonfull_score": 18,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 19,
+              "nonfull_score": 63,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 19,
+              "nonfull_score": 43,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 59,
+              "nonfull_score": 3,
+              "unmeasured": 20,
+              "valid": 62,
+              "validity_counts": {
+                "invalid": 20,
+                "valid": 62
+              }
+            }
+          },
+          "complete_pairs": 41,
+          "failure": 63,
+          "n": 82,
+          "overlapping_failed_dimensions": {
+            "contract": 3,
+            "evidence": 31,
+            "policy_semantic": 18,
+            "workflow": 3
+          },
+          "primary_classes": {
+            "collection.illegal_request": 20,
+            "evidence.insufficient_or_inefficient": 24,
+            "pass": 19,
+            "policy.semantic_mismatch": 18,
+            "workflow.routing_mismatch": 1
+          },
+          "success": 19,
+          "unknown": 0
+        }
+      },
+      "success": 23,
+      "unknown": 0
+    },
+    "pro_low": {
+      "complete_pairs": 110,
+      "failure": 28,
+      "seats": {
+        "customer": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 54,
+              "nonfull_score": 1,
+              "unmeasured": 1,
+              "valid": 55,
+              "validity_counts": {
+                "invalid": 1,
+                "valid": 55
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 55,
+              "nonfull_score": 0,
+              "unmeasured": 1,
+              "valid": 55,
+              "validity_counts": {
+                "invalid": 1,
+                "valid": 55
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 51,
+              "nonfull_score": 5,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 55,
+              "nonfull_score": 0,
+              "unmeasured": 1,
+              "valid": 55,
+              "validity_counts": {
+                "invalid": 1,
+                "valid": 55
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 50,
+              "nonfull_score": 0,
+              "unmeasured": 6,
+              "valid": 50,
+              "validity_counts": {
+                "invalid": 6,
+                "valid": 50
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 49,
+              "nonfull_score": 1,
+              "unmeasured": 6,
+              "valid": 50,
+              "validity_counts": {
+                "invalid": 6,
+                "valid": 50
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 53,
+              "nonfull_score": 2,
+              "unmeasured": 1,
+              "valid": 55,
+              "validity_counts": {
+                "invalid": 1,
+                "valid": 55
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 51,
+              "nonfull_score": 5,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 47,
+              "nonfull_score": 3,
+              "unmeasured": 6,
+              "valid": 50,
+              "validity_counts": {
+                "invalid": 6,
+                "valid": 50
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 53,
+              "nonfull_score": 2,
+              "unmeasured": 1,
+              "valid": 55,
+              "validity_counts": {
+                "invalid": 1,
+                "valid": 55
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 5,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "customer_disclosure": 5
+          },
+          "primary_classes": {
+            "customer.disclosure_content_integrity": 4,
+            "customer.unowned_record": 1,
+            "pass": 51
+          },
+          "success": 51,
+          "unknown": 0
+        },
+        "intake": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 56,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 48,
+              "nonfull_score": 8,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 44,
+              "nonfull_score": 12,
+              "unmeasured": 0,
+              "valid": 56,
+              "validity_counts": {
+                "valid": 56
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 44,
+              "nonfull_score": 3,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 47,
+              "nonfull_score": 0,
+              "unmeasured": 9,
+              "valid": 47,
+              "validity_counts": {
+                "invalid": 9,
+                "valid": 47
+              }
+            }
+          },
+          "complete_pairs": 28,
+          "failure": 12,
+          "n": 56,
+          "overlapping_failed_dimensions": {
+            "intake_planning": 8
+          },
+          "primary_classes": {
+            "collection.round_limit": 9,
+            "collection.suboptimal_plan": 3,
+            "pass": 44
+          },
+          "success": 44,
+          "unknown": 0
+        },
+        "payments": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 24,
+              "nonfull_score": 2,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 24,
+              "nonfull_score": 2,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 24,
+              "nonfull_score": 2,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 26,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 26,
+              "validity_counts": {
+                "valid": 26
+              }
+            }
+          },
+          "complete_pairs": 13,
+          "failure": 2,
+          "n": 26,
+          "overlapping_failed_dimensions": {
+            "payment_execution": 2
+          },
+          "primary_classes": {
+            "pass": 24,
+            "payment.incorrect_execution": 1,
+            "payment.unauthorized_destination": 1
+          },
+          "success": 24,
+          "unknown": 0
+        },
+        "policy": {
+          "all_native_leaves": {
+            "refund_v34_native_contract_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_confirmation_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_customer_disclosure_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_evidence_leaf": {
+              "full_score": 76,
+              "nonfull_score": 6,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_intake_planning_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_binding_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_payment_execution_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_policy_semantic_leaf": {
+              "full_score": 78,
+              "nonfull_score": 4,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_seat_strict_leaf": {
+              "full_score": 73,
+              "nonfull_score": 9,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_system_strict_leaf": {
+              "full_score": 73,
+              "nonfull_score": 9,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            },
+            "refund_v34_native_workflow_leaf": {
+              "full_score": 82,
+              "nonfull_score": 0,
+              "unmeasured": 0,
+              "valid": 82,
+              "validity_counts": {
+                "valid": 82
+              }
+            }
+          },
+          "complete_pairs": 41,
+          "failure": 9,
+          "n": 82,
+          "overlapping_failed_dimensions": {
+            "evidence": 6,
+            "policy_semantic": 4
+          },
+          "primary_classes": {
+            "evidence.insufficient_or_inefficient": 5,
+            "pass": 73,
+            "policy.semantic_mismatch": 4
+          },
+          "success": 73,
+          "unknown": 0
+        }
+      },
+      "success": 192,
+      "unknown": 0
+    }
+  },
+  "taxonomy_is_cognitive_cause": false,
+  "taxonomy_precedence": "format/schema then active-seat guards then seat-scoped business components"
+}
