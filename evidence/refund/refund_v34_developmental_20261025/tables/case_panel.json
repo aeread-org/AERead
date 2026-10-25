@@ -1,0 +1,1982 @@
+[
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.corroboration_after_registry_match.corroborated_customer_evidence.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_corroboration_after_registry_match.610001",
+    "payload_sha256": "70a784dbd02ca0e762ef5f2f65e0c01a385b1a02b8defd85cb60b84b9bc8e69a",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.corroboration_after_registry_match.customer_assertion_only.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_corroboration_after_registry_match.610001",
+    "payload_sha256": "80d6e9d784edd366c1fd3d7fa7dca8ff5d9a6799fbe1de58b32f2955b02b59e8",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.identity_short_circuit_before_defect.identity_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_identity_short_circuit_before_defect.610001",
+    "payload_sha256": "399dc99ff6eb52119d33f9dc2c0881116ab498d39163b95ca47afcc911c21169",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.identity_short_circuit_before_defect.identity_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_identity_short_circuit_before_defect.610001",
+    "payload_sha256": "f9f36eb93c09567097f6ddc9d303ea96f901a0130823901b41e8a0887e6332ae",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.payment_vs_identity_hold.identity_hold_only.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_payment_vs_identity_hold.610001",
+    "payload_sha256": "eb66ddda90c7b8d1f0f3075bf5a764f6cb24a45d3992cd6eada1eec8b3e4dd4d",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.payment_vs_identity_hold.payment_hold_precedence.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_payment_vs_identity_hold.610001",
+    "payload_sha256": "c1bfc768c606a050cae89c21e206dec2e8848954552da4248f3e37e3a6487e56",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.seller_fault_after_return_damage_check.no_verified_seller_fault.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_seller_fault_after_return_damage_check.610001",
+    "payload_sha256": "15fe67925ee10168138d10096c854f05bea8ad6c2094298cd0760a356af1b9f5",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.compositions.refund_v2.5.policy_composition.seller_fault_after_return_damage_check.verified_wrong_item.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.compositions.hard_v25_policy_composition_seller_fault_after_return_damage_check.610001",
+    "payload_sha256": "d1f03d51d7938e5eded6f572df477d21b084bad07dce8509087fdee8d5dbb528",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_idempotency_retry.already_applied.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_idempotency.610001",
+    "payload_sha256": "b93fc24648169c0992a72bbbd0970c1263ad4f1f44663042516ab1da6c9ca30d",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_idempotency_retry.not_previously_applied.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_idempotency.610001",
+    "payload_sha256": "465ba62390b36ff127bb89e2e89ae2650c5a5ae14803c9083c32b10c7dfc6722",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_prior_refund_reconciliation.no_prior_refund.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_reconcile.610001",
+    "payload_sha256": "02e5a6f2f365b12bca9d5f233921226fa05e9d86745d48c356a4849aedeb9147",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_prior_refund_reconciliation.partial_prior_refund.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_reconcile.610001",
+    "payload_sha256": "ba0acfb8d6808e65d0326b058378dbf2a22e8e24f3c51c4e564c87e4490465d6",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_proportional_tender.card_heavy.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_tender.610001",
+    "payload_sha256": "038b24f3510fa069863356829028b5115003434ee90d7f947ee7eebce36f1467",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_proportional_tender.credit_heavy.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_tender.610001",
+    "payload_sha256": "a3e72bc49e65982d2696b8d4bc32759253702de6ae9121b8d3d938ba12a5e149",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_rail_fallback.primary_rail_closed.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_rail.610001",
+    "payload_sha256": "0db3290695302791a0d2709189f91529f08e5611d9cb1b6366a2d8fd2ba474ff",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_rail_fallback.primary_rail_open.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_rail.610001",
+    "payload_sha256": "5f2022591b18a21a001b629b17df2c7096b3d5bf99a9fe0fe2f20b40a7a07053",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_residual_waterfall.card_then_wallet.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_waterfall.610001",
+    "payload_sha256": "7d6ca34e533d81dc14809c5669eb22dfffa3d73a4b15988d851dd09d339d3dd0",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_residual_waterfall.wallet_then_credit.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_waterfall.610001",
+    "payload_sha256": "ba8275bc61cf3e77aae0f0f90da7099d0490c9031b27ada3eaf3c96ad20039cb",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_three_tender_rounding.skewed_weights.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_rounding.610001",
+    "payload_sha256": "8561ff90df81c6842776bc3842339a07490c7b3435c2b28a7a3bc0d3cebf1f31",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.operational.refund_v2.5.payments_three_tender_rounding.uneven_weights.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.operational.v25_payment_rounding.610001",
+    "payload_sha256": "b90141028141d19a5d83c0431ece1203cd2dadd030778121a97334617872ae7f",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_bundle_boundary.at_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_bundle_boundary.610001",
+    "payload_sha256": "6949e6bbf156ef8cde5acb3a993dacefa3f52129f67c83b894103025bcac60f6",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_bundle_boundary.just_below_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_bundle_boundary.610001",
+    "payload_sha256": "a2263dcb9229a5d88c82aa7ddbc60c8fd821d4debca267723bc3076f46e2e7fa",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_evidence_conflict.aligned.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_evidence_conflict.610001",
+    "payload_sha256": "7b9b4781e4c9e850fcc4cc73d026d3df3d6b0e61d5c1ee3a12e05eadbabf4160",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_evidence_conflict.conflict.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_evidence_conflict.610001",
+    "payload_sha256": "8b941dbccbc29ea951bac740c1c2d0a1b864fead7adc3d8c35961c49ffd1d162",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_evidence_inconclusive.inconclusive.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_evidence_inconclusive.610001",
+    "payload_sha256": "4bc553bcfa358ec5f5c2a24cbf3f3fa20ca089dbdda961b5b16061c85e35d741",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_evidence_inconclusive.verified.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_evidence_inconclusive.610001",
+    "payload_sha256": "c5569ab19be2b8c2a08f5e9613695346194380a1d83d808a120ca6e5484bdd6c",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_identity_followup.unverified_after_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_identity_followup.610001",
+    "payload_sha256": "94d3fbf00ab77316f2648e450a68a0adbb26df804daa093f53321eea14dc675e",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_identity_followup.verified_after_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_identity_followup.610001",
+    "payload_sha256": "1e230ff4ce51757d93e5f6ce780eee628fdf9dda64b1d661c3a82f970b3b1eb1",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_identity_override.serial_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_identity_override.610001",
+    "payload_sha256": "cad462763c911b2740070f8b933a202bd8125d04e92601a1c9950ad9d90d674f",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_identity_override.serial_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_identity_override.610001",
+    "payload_sha256": "677fda132a7449fa2711ed89c8f789ff5519fd53abc5a8f2c99fb5c963040bf9",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_payment_reconcile.no_prior_refund.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_payment_reconcile.610001",
+    "payload_sha256": "3be843e37070718ce6f6144ab7812938bd54a308a83170618c803734afdf9411",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_payment_reconcile.prior_refund_issued.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_payment_reconcile.610001",
+    "payload_sha256": "98f0716de6e95f67c2ca7fe5831ea783ca6aed6bead218f75e7f94f901f21fd0",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_seller_fault_override.ordinary_final_sale.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_seller_fault_override.610001",
+    "payload_sha256": "f49d232db875734e8c0edcf6746291851cf0b810dcb7b0462e9532fe72423d4a",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_seller_fault_override.verified_wrong_item.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_seller_fault_override.610001",
+    "payload_sha256": "e18aa299a88066f43514d2e3ff84c0e01751db22f23f48f4ad637ee5fdbb99f6",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_time_anchor.day_29.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_time_anchor.610001",
+    "payload_sha256": "7fc7929587414cccd8680f5ff3153de12d259d8b9131af749913d46ab744b015",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.customer.refund_v2.5.customer_challenge.policy_time_anchor.day_31.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_customer_v25_customer_challenge_time_anchor.610001",
+    "payload_sha256": "83ede82889365dbfa66c2b8206f25fba96c629cb6aa19765b01ec17098499d80",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_evidence_conflict.customer_document.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_evidence_conflict.610001",
+    "payload_sha256": "cd65b67b1a1c12e87fe19dfc523656f80af383538f345535d27a37e5019d63a2",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_evidence_conflict.warehouse_document.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_evidence_conflict.610001",
+    "payload_sha256": "fdfd897044e76c7d2838483b7715994c92d5127ef0669b5a3904e6262b706b0d",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_identity_override.identity_documents.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_identity_override.610001",
+    "payload_sha256": "869206ffce3cc9991818a1ad36c61cc6181e1fd4cf96e391d7aa912cd8e7d4c1",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_identity_override.product_verification.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_identity_override.610001",
+    "payload_sha256": "69ce9d6dd621b06d34cc56105a9bd360f9014675360b72d6b6df3b8dd0270904",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_payment_hold_precedence.payment_document.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_payment_hold_precedence.610001",
+    "payload_sha256": "0c41e12f6f4a5a82ab88b79a5471849abda5ca15c0b795e2caf020914d2ec015",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_payment_hold_precedence.product_verification.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_payment_hold_precedence.610001",
+    "payload_sha256": "ba6393ce6cc3b3cd4d11029c3ae5534da4d03b231a893cbb4a9a66d1031a3a0f",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_return_liability.inspection_document.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_return_liability.610001",
+    "payload_sha256": "105037388c8d220809bf55b4c828546bbc671bc95e1a4ba90912fec9e118a450",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.seat_v3.seat_v3.intake_observable.policy_return_liability.original_claim_document.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.seat_v3.seat_v3_intake_observable_policy_return_liability.610001",
+    "payload_sha256": "ab14df522e35232f5ae5c9ee051de0dff9ecd7a0493e832e88b55f789cd8376f",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.carrier_delay_request_date.request_day_29.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.time_anchor.610001",
+    "payload_sha256": "1da33d1a85107c118af2b3244b0506a02918a54066f2297d4b2117fc999319fe",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.carrier_delay_request_date.request_day_31.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.time_anchor.610001",
+    "payload_sha256": "11e78f2cab6090f650c7e2c7a1a5acd16a5db37a22e0dd316e684d1bcc257fef",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.category_exclusion_seller_fault_override.ordinary_excluded_return.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.category_override.610001",
+    "payload_sha256": "e90775481b660d1f090dbd03de4ab74f8b98415c4cae132429a2e50c828e1f3e",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.category_exclusion_seller_fault_override.wrong_item_override.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.category_override.610001",
+    "payload_sha256": "803efaf9e56ff4b664f60bf40428ef4c9a2dbcdd7747f232dd3c41cd17d5af5b",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.condition_deterioration_after_return.buyer_caused_damage.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.post_return_condition.610001",
+    "payload_sha256": "677f3cf768c8332e8d156ed8c59385e10c3f4005303728f766aa378377373f62",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.condition_deterioration_after_return.carrier_damage.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.post_return_condition.610001",
+    "payload_sha256": "500c61e323e7a576c810925b1011242d3bbf645c14b120402083b340ebf34469",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.discounted_bundle_component_value.allocated_value_above_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.bundle_allocation.610001",
+    "payload_sha256": "aba007be87887c5f0397470c0d03c1c3b8708198ed151e20d62f373988c7352f",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.discounted_bundle_component_value.allocated_value_below_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.bundle_allocation.610001",
+    "payload_sha256": "3fe85e09b0e0ec98b9eabd154b2e098ee8eb600b78808d6adce51d8343ead946",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.evidence_contradiction.aligned_sources.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.evidence_conflict.610001",
+    "payload_sha256": "712eed03bcef0d625cd48687a89403dfb38a35b0f36ff954171392cc17a7d973",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.evidence_contradiction.conflicting_sources.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.evidence_conflict.610001",
+    "payload_sha256": "a307785e123f978a8b89608d4e0956f0bfa031e40a309500aa48d340e4eccf3e",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_branch_reversal.no_prior_refund.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_reversal.610001",
+    "payload_sha256": "bd37ed6813696366b2dbbd9192f71b17855d599cf0bd491ca44b8b2aeac2a29e",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_branch_reversal.prior_refund_issued.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_reversal.610001",
+    "payload_sha256": "637fd202055a85c2b7428e54e949a6f7870d56b5b6e76b2cdd0480ffeff77844",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_evidence_provenance.corroborated.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_provenance.610001",
+    "payload_sha256": "fa203ca0f161580d54d9a4164d1a6c20db8624b934924db29fdbbe2afe45cf02",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_evidence_provenance.inconclusive.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_provenance.610001",
+    "payload_sha256": "d3507ee15fa8682ba5c14fb59b83eb98471ceb123fe081dbe7838a125c3e0a89",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_authority_flip.authoritative_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_authority.610001",
+    "payload_sha256": "34cb600e0e74a60a475b82561ec15cd25f009ef9e0488bfa9bb697bd91cac263",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_authority_flip.non_authoritative_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_authority.610001",
+    "payload_sha256": "cff4beb0e15e015aceef5c11655e2d9dbe79d54d2700567ad59c3c2c98318c22",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_evidence_reversal.current_listing.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_evidence_reversal.610001",
+    "payload_sha256": "fccc9bbd82ed328e21a8a05431efe36b73ca42c723ed346086842278a031b6f0",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_evidence_reversal.stale_listing.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_evidence_reversal.610001",
+    "payload_sha256": "4dcc926ab4ff585ca94650db95b37cb4beeb51cc6c64b84ab3d11a70383ba74a",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_evidence_stop.assertion.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_evidence_stop.610001",
+    "payload_sha256": "8e89826b2d3c8d5c779ae737d72a5b60ee1104c6f27ef4c005ecde32840a8727",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_evidence_stop.verified.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_evidence_stop.610001",
+    "payload_sha256": "91d16e27100d40efb5e94753032ff413083b636922640e88a07fc09cbf1a993a",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_override_liability.buyer_caused.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_liability.610001",
+    "payload_sha256": "b8b19548213a47d507d9e2430cafd38f37fe56563e67eb2f828b8b071152f9ab",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_override_liability.carrier_damage.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_liability.610001",
+    "payload_sha256": "581c8fa7ba36f8b04e85830a0f48d0262d89b2aa07144b9598a517a91f676bfa",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_payment_identity.serial_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_payment_identity.610001",
+    "payload_sha256": "950d1ac1fb381f292c941ebc9ba7e6f752e82297b335b70bbe9016d97596b29b",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_payment_identity.serial_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_payment_identity.610001",
+    "payload_sha256": "9d3a9ab4c552bb3e38f2326e007c420b90ae4b7250313e3bf34db54d2aab997c",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_piecewise_tax.at_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_piecewise_tax.610001",
+    "payload_sha256": "dd2e21c4a2d627bf7e51cbf0cd88c7e385d4156bc9af44b4c80703672fa44f6e",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_piecewise_tax.below_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_piecewise_tax.610001",
+    "payload_sha256": "3cb8d13a897601328b390de07f9a1a65e587ef582a7f13fd2e101cf3384139aa",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_refund_reconciliation.positive_residual.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_reconciliation.610001",
+    "payload_sha256": "5e573d24434744434de144773677a30d70f11f2b5fbdf9f455a3ba9e47951604",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_refund_reconciliation.zero_residual.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_reconciliation.610001",
+    "payload_sha256": "fa1d15e152bd6bffe0edf8b1ded4bebbc63f58263f38153aab50cc7a96b71125",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_window_override.fault_late.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_window.610001",
+    "payload_sha256": "610d327081ccf7433074afc7889e6300799eb41a4dc66eb4f06c21776efebea5",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_hard_window_override.ordinary_late.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.hard_window.610001",
+    "payload_sha256": "d641e9d31e77004c9281139af981d60fa4a0748e034a0ff35e10198e6c3cce48",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_liability_then_amount.buyer_caused.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_liability.610001",
+    "payload_sha256": "94cfeea0574567d0bd763ead89b4217bd29bdad0a90e14fa9763e4637fc59cd8",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_liability_then_amount.carrier_damage.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_liability.610001",
+    "payload_sha256": "659b7964ce9b31a24269a01be436bd92f06dbbaff6a823de30a615109449885a",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_override_window.ordinary_remorse.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_override.610001",
+    "payload_sha256": "6951ec897a5720962f3010467b3e8a39ce65fecb4258b7cd1bdc4b6c8a8c3163",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_override_window.verified_seller_fault.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_override.610001",
+    "payload_sha256": "78c63ab76cd8ae45c0a3853901f91b9d573f0147dc1cacb6f1942ee97db486d3",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_piecewise_amount.at_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_piecewise.610001",
+    "payload_sha256": "142c8139f1b0c751ee2163153562614206b72a1dfb3507a7c704403721b23179",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_piecewise_amount.below_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_piecewise.610001",
+    "payload_sha256": "e21fadd5bb15c23f805704324b66d3dd862ffe848647ebd55de7beaac32a86d5",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_precedence_ladder.serial_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_precedence.610001",
+    "payload_sha256": "1af906925b72a27929083e89c71aa10bb621a011fb77a3e43c7b1002eddd7e69",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.frontier_precedence_ladder.serial_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.frontier_precedence.610001",
+    "payload_sha256": "396216e23a42b8e2be0930aab883bb98cf3a7a5dff2e95c3d1ef25dc41f7174c",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.late_defect_identity_conflict.identity_conflict.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.identity_precedence.610001",
+    "payload_sha256": "e8e4d86439eb0d663edcce064e97a8d222408dab080043e8a9e8b8cf0c080e64",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.late_defect_identity_conflict.serial_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.identity_precedence.610001",
+    "payload_sha256": "122d82ed15a42af7211d3cded949f5a13e4e9f7cc41dd5aa5695de2ceefe00e0",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.missing_parts_partial_refund.core_component.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.missing_cap.610001",
+    "payload_sha256": "bb6af4b1f077ca1454ee2aa5a0dfd63dce0fb07e90b2b4294b804bb8dca97776",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.missing_parts_partial_refund.noncore_over_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.missing_cap.610001",
+    "payload_sha256": "5ff088497ddf1c485611dc96fba0890ae88499d73db47842172fa108d1d17723",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.multiple_missing_components.core_and_noncore.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.component_precedence.610001",
+    "payload_sha256": "e3b67bf61a1f88b628ba5f356d812e0d333c373b60cc3ab3fd60e571e94e1115",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.multiple_missing_components.only_noncore.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.component_precedence.610001",
+    "payload_sha256": "84d6af7bbe52fee4eaea2667ab0ca439db0da7935300f612f643c599145f1431",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_bundle_boundary.at_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_bundle_boundary.610001",
+    "payload_sha256": "40ccd730ce6136ac9a3378e78ec03a20d4a8be382a50a0e2975fda1146b9ef81",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_bundle_boundary.just_below_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_bundle_boundary.610001",
+    "payload_sha256": "3b40707ed6445b3484d9f33d2c29953dc503120af4d8f6c905f6248735492a0c",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_bundle_cap.above_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_bundle.610001",
+    "payload_sha256": "89358111832a8557eafc16f69e07b9277d62bc7ae7aa92d6faa74f57cc2f7381",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_bundle_cap.below_cap.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_bundle.610001",
+    "payload_sha256": "bc9555dc1de8e9cb6898dee68203ea5355680c1b56dab37b94cc5b50e0e1ad4b",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_evidence_conflict.aligned.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_evidence.610001",
+    "payload_sha256": "62bb2e3ebbc135bb16a46f0703af3f06efa90777996cb6219eb761a3bb389dfb",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_evidence_conflict.conflict.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_evidence.610001",
+    "payload_sha256": "97fcb8bb8848efde298530ce9af7989602f769d9fb4028487988fe1c5c8ec944",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_evidence_inconclusive.inconclusive.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_evidence_inconclusive.610001",
+    "payload_sha256": "2e858e023bfba6de09aa5a4fd4f87a74a4f6ddf16e94a7e7fa4da17ca6f08111",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_evidence_inconclusive.verified.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_evidence_inconclusive.610001",
+    "payload_sha256": "997b4b037d7101a9969e4f7a0b35d1be63cab5725ae5c57b10881301d5fd8187",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_identity_followup.unverified_after_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_identity_followup.610001",
+    "payload_sha256": "d6c8fdaeeb472c11e6e0a8f65df479d6d050529505e76fbb7e98a88aaced684e",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_identity_followup.verified_after_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_identity_followup.610001",
+    "payload_sha256": "c1cede4c45a41cca294d959b222b22c532347085192aa8825885ed14747939de",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_identity_override.serial_match.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_identity.610001",
+    "payload_sha256": "148752baacd578f5138126e863486c170d930a60e96abffca057fe0eb317de9e",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_identity_override.serial_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_identity.610001",
+    "payload_sha256": "c2bf8e0d26f63274bfba7ee052d35d4164b52e0f7b2d998c1303c55f67bc6987",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_payment_hold_precedence.chargeback_open.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_payment_hold.610001",
+    "payload_sha256": "0c89c9275265c25123f3cf435f86c45d9488744c4641104f1f34aef9cd0df8d2",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_payment_hold_precedence.no_chargeback.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_payment_hold.610001",
+    "payload_sha256": "d6589b15afcfe9b6033cfca1b4cdb06ca83169caa94cacfee7c859b40d0c9fae",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_payment_reconcile.no_prior_refund.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_reconcile_hold.610001",
+    "payload_sha256": "76d386c5b143eab530ea9c69c1f1c3ccbb0be0334452c2d7da29e78ff324d5e6",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_payment_reconcile.prior_refund_issued.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_reconcile_hold.610001",
+    "payload_sha256": "bf3d29aa9e7b5b7d6711bc063e157d1c2e802a51a251a164fe6a4e67325b74a4",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_perishable_verification.unverified.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_perishable.610001",
+    "payload_sha256": "88850a07c4e84728ffd3e7e14fd83ce63bdb76ca4a65384a3a3b04c1e1a888a3",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_perishable_verification.verified.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_perishable.610001",
+    "payload_sha256": "7875b102f8377e2db72989123e21c3cf444e3f882ffe640e207aa64dee14ace8",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_return_liability.buyer_damage.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_liability.610001",
+    "payload_sha256": "84ac0f11c4c344c47eca1ee6484f4a29fde30696b94e0aa9e4716092c1a5f8fa",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_return_liability.carrier_damage.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_liability.610001",
+    "payload_sha256": "e09e454b3551f126480245d5f63cb3850c20b878d823ef7feb6c7205e727a9f5",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_seller_fault_override.ordinary_final_sale.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_seller_override.610001",
+    "payload_sha256": "3222f690a0818e353cfe96938bac152724b161350a0dfa8f8897917735c8118a",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_seller_fault_override.verified_wrong_item.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_seller_override.610001",
+    "payload_sha256": "1eb56a50203c6f1266c838d5453d52996610dab47c10de2958788b4fa33239ab",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_time_anchor.day_29.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_time.610001",
+    "payload_sha256": "a01a684d1b05a98e39be891805baf3df76c90f136e766ef1393fdfe36d9ca121",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.policy_time_anchor.day_31.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.v25_policy_time.610001",
+    "payload_sha256": "5180078147de642c0a248a3cb3e4a3fa1b81c1ce5d3e8a062798036deb03192f",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.returnless_refund_high_value_exception.low_value_high_risk.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.returnless_risk.610001",
+    "payload_sha256": "557a5e24e5ce2eda2233dba17bfac846991228e19d2c74e434b39dff2ff83113",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.returnless_refund_high_value_exception.low_value_low_risk.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.returnless_risk.610001",
+    "payload_sha256": "3c49156a7cba0b9b05993aa80883e24fc7ddbbdc7809859a39e0636191dc398b",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.seller_fault_unverified_evidence.claim_only.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.seller_fault_evidence.610001",
+    "payload_sha256": "d5eee7d86ef66564f40abad63f91d4fa9bc7d44059343c00ac92d8c1e638d029",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.seller_fault_unverified_evidence.verified_defect.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.seller_fault_evidence.610001",
+    "payload_sha256": "8e870a7e42ca5caf62afb9f86b56857a473d54427e83f89a1c9050b5add43971",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.wrong_item_received.unverified_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.wrong_item_evidence.610001",
+    "payload_sha256": "eea7342b676e03d8f558a2d36d963358eb8d06f301894ae66cd68385bdbc2692",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.unified.refund_v2.5.wrong_item_received.verified_mismatch.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.unified.wrong_item_evidence.610001",
+    "payload_sha256": "0922c3b0dcdcb18b824aacf4369e6b1e48c636f2206e010e42353459fe16532d",
+    "repetition": 0,
+    "seat": "policy",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.intake.budget_tradeoff.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_intake_budget_tradeoff.610001",
+    "payload_sha256": "0c48d9067f1a2440e9c8b4e03a8dc27753bf5698b60363ab046c01b69c632a8d",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.intake.budget_tradeoff.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_intake_budget_tradeoff.610001",
+    "payload_sha256": "4577b9fb0d40594b54e910fae159e2fd907e98553a0c33cb9bbea9e9ddedaa26",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.intake.composed_collection.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_intake_composed_collection.610001",
+    "payload_sha256": "bfae16d11843071279ccf881f4f0c69aeb4240b7e087d05387dddb167236fb63",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.intake.composed_collection.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_intake_composed_collection.610001",
+    "payload_sha256": "ef582af3b497dabf18f75d096f8b158e56a1e762f8113de9e1743373def9a5fd",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.intake.source_permission.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_intake_source_permission.610001",
+    "payload_sha256": "ada990f2ca6722d66fda10938fb4bf8bea610a554a32b07ac5a0f60281661eaa",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.intake.source_permission.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_intake_source_permission.610001",
+    "payload_sha256": "a7181c53b0bb4650edf8f4019935e6692f6f5687c44985220a95953fb0fc5e23",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.capacity_shortfall.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_capacity_shortfall.610001",
+    "payload_sha256": "a0fcffab8243aa0602f708554746153af8e3d708a065d8f0c4e4002d8ce1a15e",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.capacity_shortfall.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_capacity_shortfall.610001",
+    "payload_sha256": "d33f025d690b42f25d96c0a67edd0bd3cbb7d1084ac1bb9024835aa8c13afc1c",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.composed_reversal.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_composed_reversal.610001",
+    "payload_sha256": "be8cafb239881c577e7601995df06699d57552e78ad324bcf04085dd75971b36",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.composed_reversal.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_composed_reversal.610001",
+    "payload_sha256": "61cf735f0c01098dab15cbbc95adc491458f446d54677c091fc9ed5f6a32b74f",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.pending_release.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_pending_release.610001",
+    "payload_sha256": "f8779bb1cd8e73ec793d13eba896efc965c714a1dff048c6096e2f7cbc0cd013",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.pending_release.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_pending_release.610001",
+    "payload_sha256": "7bf73bd5a0f95049c876eb3d2e7a22e565322bc9404595af5e0c9341c6e1da5b",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.rail_fallback.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_rail_fallback.610001",
+    "payload_sha256": "1cbc0267e77f31d545017f958d84587ffe10ac5f9b00991ee573891eee26f75d",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.rail_fallback.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_rail_fallback.610001",
+    "payload_sha256": "d1cb5378d01e776aa89af1810faa1a8dfd25d8645b75206d8a45b5ebc472bc76",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.revision_partial.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_revision_partial.610001",
+    "payload_sha256": "0e04dd85d0270b2a6caed759e3b32a91cf23acb418705aeecac6e697cf9fe8e9",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v5.seat_v5.payments.revision_partial.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v5.seat_v5_payments_revision_partial.610001",
+    "payload_sha256": "24f840f0514c3942ace95a659e28457c31b6f5ec866b04784e15c78fbcf6f06f",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.asof_revision.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_asof_revision.610001",
+    "payload_sha256": "1050623e25341309cc4c9e6332cd62435e66c2128b2e3501f99d28ccb6a54d11",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.asof_revision.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_asof_revision.610001",
+    "payload_sha256": "a111a164d90429c5ee284c5654723c024fe23afad7eae0c2f26e683ebcd02d62",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.authority_precedence.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_authority_precedence.610001",
+    "payload_sha256": "ba16efe66f18958724aeb4bb97469c66a5e25f219525453c31f161a8031b8d10",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.authority_precedence.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_authority_precedence.610001",
+    "payload_sha256": "3dfbb25042cd0da59a06e13dfe7b5555d5bf577c6a9ec6af68bc0891e357b18e",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.revocation_fallback.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_revocation_fallback.610001",
+    "payload_sha256": "a365dabb5be661f6205391c3a5ec32e076ab8cda7adde9144e3a81fedaea42a8",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.revocation_fallback.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_revocation_fallback.610001",
+    "payload_sha256": "22eb028ffca7c0100798e87a8c1ef529d668ac73373a9a807a6845fdcc4ec7b9",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.scope_binding.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_scope_binding.610001",
+    "payload_sha256": "9fe8c8020919b3da41d011b9e34ac50eafce0b8c119b6f2abbf84e7168e78533",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.customer.scope_binding.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_customer_scope_binding.610001",
+    "payload_sha256": "399ae19816f98848821955926d5f750f9f8eed6dbd37a602c71b4c25f3fe5571",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.intake.batch_capacity.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_intake_batch_capacity.610001",
+    "payload_sha256": "3bff4f8b40ac9ba703e54f211b35f56a4a1132ba01fff751cb7055ffc90974b0",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.intake.batch_capacity.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_intake_batch_capacity.610001",
+    "payload_sha256": "e26f1fd4b2964abc302a374e8d8d5f157f582d9a4b7f352f0f85645c5a66ebf5",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.intake.budget.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_intake_budget.610001",
+    "payload_sha256": "fc4df2a78ab4312ed47f862b2f2882f7ef0291f1e6b6dc0cb7275c7512ef02d2",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.intake.budget.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_intake_budget.610001",
+    "payload_sha256": "dc1d52ccb3ace599c241dec04b8be97882b1992aec0548e1a38ad9c0ef38e836",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.intake.permission.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_intake_permission.610001",
+    "payload_sha256": "950cd2e0485e176a62b3cff8732b9f29da9ef95ae262e37a4e8d103e4391da18",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v621.seat_v621.intake.permission.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v621.seat_v621_intake_permission.610001",
+    "payload_sha256": "2c1601faeaefd4803c0b2d7e639bc8ab150ce9718431e34534d92fdb2ff27a44",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.0.610001",
+    "payload_sha256": "b2104e473f24fcf23311f850ef738f0fbac30e6d3e1714a670d9113bde221b49",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.0.610001",
+    "payload_sha256": "18bac3898b54aa77583d7d2b73158acabf2e4edba60341d6dd56a74b5882c21f",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.1.610001",
+    "payload_sha256": "a69a0976fb74bfcb2f5f7c00f59792d584ab264e242f6bd189833fb71c826d9e",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c01.1.610001",
+    "payload_sha256": "94d1b34775e5fd987298aaaac20b21ee6c8eb4ca81e8ce9c19992110c24fc0a6",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c02.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c02.1.610001",
+    "payload_sha256": "0c4f20584ae1a71deebf67221de2f87371920f57224888b59678962b3f510b9e",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c02.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c02.1.610001",
+    "payload_sha256": "e64bab0642e2f237b80aa209cd9b29cdf8243d21c1e5605fb62de109f699da68",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.0.610001",
+    "payload_sha256": "5e2fa9510128ec1ace34a2baf0a94d1bbb81d0daec0f4ae5cccd3570220d81b1",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.0.610001",
+    "payload_sha256": "f5611b9e8fab266302ec165822f0676339ffc992a21d50b7f93b1018d8af1f03",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.1.610001",
+    "payload_sha256": "3f24333893c9e15bf5c8cece7b4ac099d027f5f80613c57d974decbb72141dd9",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c03.1.610001",
+    "payload_sha256": "573de268b771f267d7ccf3f6b01e63e960b78ced3597754c27e78c8f51b47823",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.0.610001",
+    "payload_sha256": "9632cd44ec3caa0e96a4e2f14506367d190d511395d7bf0f48a4db05f6cbc306",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.0.610001",
+    "payload_sha256": "3631026ae85ad2471ac5ea7adeb43132a040880db98049986e3dcc5b5215af77",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.1.610001",
+    "payload_sha256": "648efbbcd500299ab368a26998796fec00e7ac33d3d57c9754922b6df547e669",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c04.1.610001",
+    "payload_sha256": "95985a90b12f09a6a4e9f720d0c6c1b56cdfe73920574a983883fe57c98b86ac",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.0.610001",
+    "payload_sha256": "1c33f36b7e69e0510fe77ac6cdf4162811419af6dcd6e780f05fca75da28a3c7",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.0.610001",
+    "payload_sha256": "197ed139f6d98c7fffd9c7bcaec522f782a96f81d00ffad1c7abe38b1c0ec017",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.1.610001",
+    "payload_sha256": "12e3ead8986856906c55745741bc8212a1bf4780c3155b49715b801c4705d44f",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c05.1.610001",
+    "payload_sha256": "f75164b8b9658c3c3faf13f2bb4fc915cc199ca56903b59582887cb5251aed5d",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.0.610001",
+    "payload_sha256": "ab11253addf16a6da6e694a6d1ff0270a6412fe7d804004cb01f155b764174f4",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.0.610001",
+    "payload_sha256": "5b6b575bdeac709a6f3233c0cd4612591f2a8ee633da01376f9e6e2896333152",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.1.610001",
+    "payload_sha256": "9f78f9845f478700b17f6e99633030f4f7a6098ea9a6981f6b88dc25dab00a0e",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c06.1.610001",
+    "payload_sha256": "df733d742fd1d63918560a3a1b1ee8c083aee8ad4cc30fef33920d27da9b8b96",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.0.610001",
+    "payload_sha256": "fde69f6f280a0b6c1b3912ebf161346ddebbedc1252f833c09c85f4031f30e53",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.0.610001",
+    "payload_sha256": "84bda5b6fbbed82968f478c53bed6dbbb79a7922f4f2e19a14589ef0972763cd",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.1.610001",
+    "payload_sha256": "b8995d1aa2581fdc22fd85e2b61e2dbc00a055516c2dac5097821b954bed2f6d",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c07.1.610001",
+    "payload_sha256": "d2b6d0e75b8ecae90718c518115dc67bcbcc000a40c2b90c63f37363259bb7cf",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.0.610001",
+    "payload_sha256": "f28ad5dfc1743d7907d0c659aa0041cc34a5521131f5d4470e936c9e9e0f84c8",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.0.610001",
+    "payload_sha256": "90bb4a5c6426af012ba7697294f6f5759f3fa70ce83929b7cc68f1a6843933f9",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.1.610001",
+    "payload_sha256": "572d46c67c49bfdf5799d2e617b1f3c71400dd3320d5aa9cc0d4654fcb331209",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.customer_v7.c08.1.610001",
+    "payload_sha256": "1004d237c6ea6745e910a21dd1442e4ceda80f8f02c1d6348ea9aa8c570a449e",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.0.610001",
+    "payload_sha256": "0b4d34e19f524e89dbbeb49b6dc53fadb2707624f48df6a78c1553540b84939b",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.0.610001",
+    "payload_sha256": "939961abfa57ba420a9d18d7a1f464e9607b2cfce1b7e04af43ba492103123bf",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.1.610001",
+    "payload_sha256": "c73c97e26141a27f90c7fd20918e5126860bff665289d14739cb79f735ce7755",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i01.1.610001",
+    "payload_sha256": "c00e42d3953da468b7f861d8fa85dc24c903b966ea3b8aafcf5a83527d060099",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.0.610001",
+    "payload_sha256": "b59b0347df80d10916ca98e1dac33b553fea170cb0f77d5804a2e5ad61375ca3",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.0.610001",
+    "payload_sha256": "282fa359da55ccf4353ff0c2c876c6109fa53e81aab434fd788fc7b459b4ccf1",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.1.610001",
+    "payload_sha256": "8102f7058c7a6b5dad666961146c3b0dbf7e66ec132ef22c4f00b03cb771e7c5",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i02.1.610001",
+    "payload_sha256": "7d1a14e6aef1bacedd0427b1365f2441cd27c11c5a0c9d6109e5201ddc4d675b",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.0.610001",
+    "payload_sha256": "1d3f0077bb14d4e61787f0475d31269eded3d71318cf7a6737513bd553a50feb",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.0.610001",
+    "payload_sha256": "7ae0cf1882b1ec08ce307b4a5a41cef49f546f19a0e1fa875106bdcd99dbe809",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.1.610001",
+    "payload_sha256": "87c961c524e7c15796951cccd2d38fea4f7c710d5f1526db7e237be72566664f",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i03.1.610001",
+    "payload_sha256": "201e95e8ad699fbc9abca2392d6303c15dabad1774fbf908ee74daf18203c38b",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.0.610001",
+    "payload_sha256": "daea6ad2f091a979f01839431d02c0b04b41f5a353061f548fff80d20ab1581b",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.0.610001",
+    "payload_sha256": "e4c968ac62d31ea0af957b3df6235cd7da7af630436ad5fc21e62f0fffa42f9f",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.1.610001",
+    "payload_sha256": "d4c587e9943fbbd961858fb992cb3c03d26ea557ce2e64e45c7f1aad34039dbc",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i04.1.610001",
+    "payload_sha256": "76276c6f6b343c1375d6a250b4e1dff4eb5d254e015d8c6d1a0a92c05a54d4cd",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.0.610001",
+    "payload_sha256": "0bcc216712c84469f13e4e66c369db760d86df78b73246a44f8cb07823714105",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.0.610001",
+    "payload_sha256": "861a4c65adbe8c762794e5dcf8c04e21ceda6abed37695248ed112b851369965",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.1.610001",
+    "payload_sha256": "873b3fa0582375fd17795b5d9226a500416c917c77cdd00581667537836a7959",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i05.1.610001",
+    "payload_sha256": "ab2ec14d8c1660464923118afb8343f56fdd7a90c4e387fc2f8e62ef5672ae1e",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.0.610001",
+    "payload_sha256": "5e7836e0906f7249c5ef1248ec1624a139bfc69d482635ff81528200931fa1e2",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.0.610001",
+    "payload_sha256": "50209c59c4f93e2b67c1d920275bce07d781f4d7db59bb3e539f5612901a653f",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.1.610001",
+    "payload_sha256": "a7647563c7e837ba2c0c6933aff917e9475b7a6dbfe78883aa802a1ee231fbfd",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i06.1.610001",
+    "payload_sha256": "7a92dd648d6129469a9312640b2d558960a6695b1c217d282b3fa78d1a40364a",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.0.610001",
+    "payload_sha256": "437f9d944c5075789c6969b1bd9faab62d257eb983cb514d9772a400be6f0ac5",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.0.610001",
+    "payload_sha256": "76fe91f4be71f10afd5490c23709175984b248daf0fea3a73c53c24707ad9486",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.1.610001",
+    "payload_sha256": "c54dd39d1ec52ff2f338877598b1ba33ca93f2f78df849f381a11fd51576dd42",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i07.1.610001",
+    "payload_sha256": "2750b8abe1af5f1b908e16721cc76dcf959df4838a8c9fe0a48d6dba335bb37c",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.0.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.0.610001",
+    "payload_sha256": "01c83841721e6083640846cddf618dddad659123124f2cd778bb1dbd3f0c4cb4",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.0.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.0.610001",
+    "payload_sha256": "7664632e4ad066b4431de8f46237843e1407430eea13c6f3c3bdc1019f411f28",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.1.a.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.1.610001",
+    "payload_sha256": "a2cb219a997f09d0dd88628643aae9c59891a5441c49877942ef86ec43b4d81c",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.1.b.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.refund_v3.v71.seat_v71.intake_v7.i08.1.610001",
+    "payload_sha256": "de67cdd0670c625669c50e450c1be0538156515be70207be7498e8d7e79f1008",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.customer.consent_amount_limit.0.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.customer.consent_amount_limit.610001",
+    "payload_sha256": "06d06b4e3804533b5973406d70b97efe534d43d2ca86b24f76edcb428bb8871a",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.customer.consent_amount_limit.1.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.customer.consent_amount_limit.610001",
+    "payload_sha256": "626b2a00ccd68713b24b7e38d3fced55901dac33360136e3dcbc2d50dd4fe6c5",
+    "repetition": 0,
+    "seat": "customer",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.intake.prerequisite_value.0.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.intake.prerequisite_value.610001",
+    "payload_sha256": "c78cdb782dd3deda87357f7e03dbc414a2118972a9204c577e718f5f53cf47c5",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.intake.prerequisite_value.1.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.intake.prerequisite_value.610001",
+    "payload_sha256": "baa836fdeb6cdbf07f033b168cffb71e113e02d821dd8bad0122325d6126bddb",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.intake.source_authorization.0.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.intake.source_authorization.610001",
+    "payload_sha256": "9464c6bcf4b41b1ba0038f911784ef6075f5d5c03998de4bde366b6956f779de",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.intake.source_authorization.1.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.intake.source_authorization.610001",
+    "payload_sha256": "472368ab68c3f01e2b29e88a6378d292d7e14af005997239aff09ef4ada05801",
+    "repetition": 0,
+    "seat": "intake",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.payments.processor_correction.0.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.payments.processor_correction.610001",
+    "payload_sha256": "7cd6582ca2df06c8999785818545addfbe0cc4bb46afbfa70cf20394ddc39b3a",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.payments.processor_correction.1.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.payments.processor_correction.610001",
+    "payload_sha256": "8f54026893576bf02d2cb738c65579f4f53c0f995e7238bc0a051771cfc0316b",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.payments.uncertain_scope.0.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.payments.uncertain_scope.610001",
+    "payload_sha256": "68183bbcf5773ab55125dfea85cb1c33ad0a77e7d018cd226e633ef48b13075a",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  },
+  {
+    "case_id": "refund_v34.targeted.payments.uncertain_scope.1.610001",
+    "execution": 0,
+    "pair_id": "refund_v34.targeted.payments.uncertain_scope.610001",
+    "payload_sha256": "52811e14a6797419611253ef9bcb442e7543f225ffb0ac022cec9c8e6633f045",
+    "repetition": 0,
+    "seat": "payments",
+    "world_seed": 610001
+  }
+]

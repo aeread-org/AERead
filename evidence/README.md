@@ -22,8 +22,8 @@ complete prompts.
 
 ## Benchmark index
 
-All 82 tracked campaign and register directories are linked below, grouped by
-benchmark ownership. There are 65 directories under a benchmark folder and
+All 83 tracked campaign and register directories are linked below, grouped by
+benchmark ownership. There are 66 directories under a benchmark folder and
 17 at preserved top-level paths. A directory's presence in this index does
 not establish qualification; the campaign notes and sealed reports retain
 failed gates, exclusions, and limits on the claims.
@@ -43,7 +43,14 @@ appropriate section below when they land.
 | [Housing](#housing) | 16 | 1 |
 | [Procurement allocation](#procurement-allocation) | 19 | 16 |
 | [Procurement grounding](#procurement-grounding) | 3 | 0 |
+| [Refund development](#refund-development) | 1 | 0 |
 | [Shared runner diagnostics](#shared-runner-diagnostics) | 1 | 0 |
+
+### Refund development
+
+- [refund_v34_developmental_20261025](refund/refund_v34_developmental_20261025/):
+  five 220-case profiles, sanitized typed actions, native replay and failure taxonomy;
+  development-exposed sequential experiments, not formal QC or a model ranking.
 
 ### Why 17 paths are preserved
 

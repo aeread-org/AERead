@@ -1,0 +1,57 @@
+[
+  {
+    "cases": 220,
+    "collection_version": "3.3",
+    "complete_pairs": 110,
+    "holdout": false,
+    "model": "gemini-2.5-flash-lite",
+    "output_protocol": "legacy_bare_json",
+    "profile_id": "lite",
+    "reasoning_effort": "unspecified",
+    "scoring_version": "3.4.0"
+  },
+  {
+    "cases": 220,
+    "collection_version": "3.4",
+    "complete_pairs": 110,
+    "holdout": false,
+    "model": "gemini-2.5-pro",
+    "output_protocol": "refund_json_outer_fence/1",
+    "profile_id": "pro_low",
+    "reasoning_effort": "low",
+    "scoring_version": "3.4.0"
+  },
+  {
+    "cases": 220,
+    "collection_version": "3.4",
+    "complete_pairs": 110,
+    "holdout": false,
+    "model": "gpt-6-sol",
+    "output_protocol": "legacy_bare_json",
+    "profile_id": "gpt_none",
+    "reasoning_effort": "none",
+    "scoring_version": "3.4.0"
+  },
+  {
+    "cases": 220,
+    "collection_version": "3.4",
+    "complete_pairs": 110,
+    "holdout": false,
+    "model": "gpt-6-sol",
+    "output_protocol": "refund_json_outer_fence/1",
+    "profile_id": "gpt_low",
+    "reasoning_effort": "low",
+    "scoring_version": "3.4.0"
+  },
+  {
+    "cases": 220,
+    "collection_version": "3.4",
+    "complete_pairs": 110,
+    "holdout": false,
+    "model": "gpt-6-sol",
+    "output_protocol": "refund_json_outer_fence/1",
+    "profile_id": "gpt_medium",
+    "reasoning_effort": "medium",
+    "scoring_version": "3.4.0"
+  }
+]
