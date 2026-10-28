@@ -151,6 +151,8 @@ Directory `procurement-allocation/`, package `procurement_allocation`.
 - [Pay or test v3: flash models on the declared worlds (results)](procurement-allocation/pay_or_test_v3_flash_results.md) (neither touches a newcomer; Luna −14%)
 - [Pay or test v3: a frozen control that tests (plan)](procurement-allocation/pay_or_test_v3_control_plan.md)
 - [Pay or test v3: a frozen control that tests (results)](procurement-allocation/pay_or_test_v3_control_results.md) (tests but loses to the shortcut; 2 of 20 worlds meet the headroom ground)
+- [Mechanism study: P0 results](procurement-allocation/mechanism_p0_results.md) (Opus 5.5: planning first −$67 a world, a supplied best plan adds nothing, exact values −$13)
+- [Quoting refurbishment work from photos: external-verification assessment](procurement-allocation/aircraft_interior_quote_assessment.md) (partly verifiable; data audit first)
 
 ## Refund
 
