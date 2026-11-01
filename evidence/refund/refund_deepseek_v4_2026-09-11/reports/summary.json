@@ -1,0 +1,12 @@
+{
+  "model": "deepseek-v4-flash-0731",
+  "trajectory_count": 48,
+  "profiles": [
+    "controlled_customer",
+    "controlled_support/cooperative",
+    "controlled_support/minimal",
+    "controlled_support/resistant"
+  ],
+  "source": "Arena API",
+  "note": "Published trajectory projections retain transcript, outcome, utility, transaction, and policy scores; raw provider artifacts remain in local /tmp evidence roots."
+}
