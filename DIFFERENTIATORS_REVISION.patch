@@ -1,7 +1,7 @@
 Binary files aeread_working_draft_20261018_v14/.DS_Store and aeread_working_draft_20261018_v15/.DS_Store differ
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/HTML_CHECKS.json aeread_working_draft_20261018_v15/HTML_CHECKS.json
 --- aeread_working_draft_20261018_v14/HTML_CHECKS.json	2026-10-18 13:45:52
-+++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-11-02 15:05:21
++++ aeread_working_draft_20261018_v15/HTML_CHECKS.json	2026-11-02 15:32:55
 @@ -1,14 +1,16 @@
  {
 +  "case_figures": 1,
@@ -1778,7 +1778,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
                  png_sha256=hashlib.sha256(png.read_bytes()).hexdigest())
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/main.tex aeread_working_draft_20261018_v15/latex/main.tex
 --- aeread_working_draft_20261018_v14/latex/main.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/main.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/main.tex	2026-11-02 15:32:56
 @@ -0,0 +1,51 @@
 +\documentclass[10pt]{article}
 +\usepackage[margin=0.9in]{geometry}
@@ -1812,7 +1812,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
 +\title{AERead: Evaluating Economic Decisions in Interactive Environments}
 +\author{Chenyu Li\thanks{Organizer} \hspace{3em} Zeyu Sun \hspace{3em} Yuchen Fang \\[3pt] {\small contact@aeread.org}}
-+\date{Research working paper, version 15.52, 2 November 2026. Preliminary results; feedback and contributions welcome.}
++\date{Research working paper, version 15.53, 2 November 2026. Preliminary results; feedback and contributions welcome.}
 +
 +\begin{document}
 +\maketitle
@@ -2049,7 +2049,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/abstract.tex aeread_working_draft_20261018_v15/latex/sections/abstract.tex
 --- aeread_working_draft_20261018_v14/latex/sections/abstract.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/abstract.tex	2026-11-02 15:32:55
 @@ -0,0 +1,27 @@
 +\section*{Abstract}
 +
@@ -2080,7 +2080,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +the runtime, replay and the quality-control standard.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_case_specs.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/app_case_specs.tex	2026-11-02 15:32:56
 @@ -0,0 +1,1032 @@
 +\section{Case specifications}\label{case-specifications}
 +
@@ -3116,8 +3116,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and each procedure the paper reports, to its implementation.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_details.tex aeread_working_draft_20261018_v15/latex/sections/app_details.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_details.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-11-02 15:05:25
-@@ -0,0 +1,1899 @@
++++ aeread_working_draft_20261018_v15/latex/sections/app_details.tex	2026-11-02 15:32:56
+@@ -0,0 +1,1905 @@
 +\section{Case details}\label{case-details}
 +
 +\subsection{Every reported check}\label{every-reported-check}
@@ -3231,7 +3231,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +screen, computed before any episode: in a world with a deal, the integrator's full-information
 +ceiling against the firm population must beat the price-only rule by at least \$25k. Its seeds are
 +disjoint from those of every earlier evaluation set; of 5,436 seeds scanned, 80 were included (72
-+with a deal and 8 without).
++with a deal and 8 without). Unlike the inclusion criteria above, this screen reads the drawn hidden types, and because it
++reads the price-only rule's earnings, it also selects on the comparator of two primary contrasts. It refused 14 deal
++worlds, in which the rule earns \$145k on average against \$82k in the 72 kept. The mix of client charges does not differ
++clearly from the stated prior (30, 28 and 22 of the 80 worlds; p = 0.52), and those worlds had not been played when v2
++was reported. With assumed values for the 14, Sol's lead over the rule of \$22.6k a deal world becomes \$14.6k to \$20.6k
++and stays positive. Sol's lead over Opus becomes \$19.4k to \$21.1k, and Opus still does not differ from the rule. These
++figures are assumptions. A declared addendum plays the 14 worlds, and its results are not yet reported here.
 +
 +\subsection{What was run}\label{what-was-run}
 +
@@ -4609,7 +4615,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +The agreement's v2 confirmatory run (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves
 +headroom in every deal world by construction, the best informed integrator earns far more than either model, and the
-+evaluation set separates the models. It is \texttt{partial} at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
++evaluation set separates the models. This evidence is partly circular, because the screen selects on the rule that the contrast subtracts (Appendix E.2). It is \texttt{partial} at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
 +someone other than its author and its code is not yet on the main branch, so replay through the runtime's command line
 +has not run. Its grid reference is a lower bound, so the exact-reference route does not apply, and a frozen control played on the
 +already frozen evaluation set could only count the worlds that pass. Gate 1 can therefore pass only on a new
@@ -5019,7 +5025,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/app_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/app_runtime.tex	2026-11-02 15:32:55
 @@ -0,0 +1,175 @@
 +% Condensed paper appendix; full prior technical reference preserved in the supplement.
 +\section{Runtime contract and experimental coverage}
@@ -5198,7 +5204,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and later checks or repairs do not retroactively qualify earlier runs.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_cases.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/sec_cases.tex	2026-11-02 15:32:56
 @@ -0,0 +1,466 @@
 +\section{Case studies}\label{case-studies}\label{sec:cases}
 +
@@ -5522,7 +5528,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +nothing against the script, as shown below; using 7.5 makes the comparison conservative. The head-to-head gap is
 +therefore about three times the script gap, and the paired difference, which we computed after the runs, is 13.4
 +points {[}6.4, 20.3{]}. As
-+integrator, Sol beats the price-only rule, and Opus earns what the rule earns. As client, with its walk-away point
++integrator, Sol beats the price-only rule and Opus earns what the rule earns, on worlds included in part because the rule leaves room (Appendix E.2). As client, with its walk-away point
 +stated, neither model signs below that point, and the client seat separates nothing. After both runs we computed the
 +best informed turn-by-turn policy against the same scripted client (Appendix C.3). Sol captures about 20\% of the room
 +between the price-only rule and that policy.
@@ -5668,7 +5674,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +until a pre-registered test confirms it.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_discussion.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/sec_discussion.tex	2026-11-02 15:32:55
 @@ -0,0 +1,124 @@
 +\section{Discussion and conclusion}
 +\label{sec:discussion}
@@ -5796,7 +5802,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +needed to interpret what they measure.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_opening.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/sec_opening.tex	2026-11-02 15:32:55
 @@ -0,0 +1,251 @@
 +% Sections 1--3, drafting pass 16 October 2026.
 +% Empirical scope follows the merged Sections 4--6 review snapshot.
@@ -6051,7 +6057,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +contributors.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_qc.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/sec_qc.tex	2026-11-02 15:32:56
 @@ -0,0 +1,90 @@
 +\section{Quality control}\label{quality-control}\label{sec:qc}
 +
@@ -6145,7 +6151,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +open. The same checks corrected three of our own statements while we wrote this paper.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex
 --- aeread_working_draft_20261018_v14/latex/sections/sec_runtime.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/sec_runtime.tex	2026-11-02 15:32:55
 @@ -0,0 +1,85 @@
 +% Revision 10. Concise main text; technical contract retained in appendix.
 +% Runtime baseline: dec1a40f. Evidence review dated 2026-10-14.
@@ -6234,7 +6240,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +versions behind each reported panel.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_case_paths.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/tab_case_paths.tex	2026-11-02 15:32:55
 @@ -0,0 +1,51 @@
 +\renewcommand{\thetable}{H.2}
 +\begingroup
@@ -6289,7 +6295,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +\endgroup
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex
 --- aeread_working_draft_20261018_v14/latex/sections/tab_cli_controls.tex	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-11-02 15:05:25
++++ aeread_working_draft_20261018_v15/latex/sections/tab_cli_controls.tex	2026-11-02 15:32:55
 @@ -0,0 +1,18 @@
 +\renewcommand{\thetable}{H.1}
 +\begin{longtable}{@{}P{1.25in}P{2.6in}P{2.6in}@{}}
@@ -29510,8 +29516,8 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +and each procedure the paper reports, to its implementation.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_appendix_details.md aeread_working_draft_20261018_v15/source/paper_appendix_details.md
 --- aeread_working_draft_20261018_v14/source/paper_appendix_details.md	2026-10-18 13:45:48
-+++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-11-02 15:05:17
-@@ -21,129 +21,379 @@
++++ aeread_working_draft_20261018_v15/source/paper_appendix_details.md	2026-11-02 15:32:51
+@@ -21,129 +21,385 @@
  | Data center | joint value lost against the best of 600 agreements | value | dollars | outcome |
  | Data center | each side's surplus, by counterpart | relative | dollars | outcome |
  | Data center | signed below one's own walk-away point; disclosed a confidential item | rule | count | outcome; path |
@@ -29619,7 +29625,13 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +screen, computed before any episode: in a world with a deal, the integrator's full-information
 +ceiling against the firm population must beat the price-only rule by at least $25k. Its seeds are
 +disjoint from those of every earlier evaluation set; of 5,436 seeds scanned, 80 were included (72
-+with a deal and 8 without).
++with a deal and 8 without). Unlike the inclusion criteria above, this screen reads the drawn hidden types, and because it
++reads the price-only rule's earnings, it also selects on the comparator of two primary contrasts. It refused 14 deal
++worlds, in which the rule earns $145k on average against $82k in the 72 kept. The mix of client charges does not differ
++clearly from the stated prior (30, 28 and 22 of the 80 worlds; p = 0.52), and those worlds had not been played when v2
++was reported. With assumed values for the 14, Sol's lead over the rule of $22.6k a deal world becomes $14.6k to $20.6k
++and stays positive. Sol's lead over Opus becomes $19.4k to $21.1k, and Opus still does not differ from the rule. These
++figures are assumptions. A declared addendum plays the 14 worlds, and its results are not yet reported here.
 +
  ### E.3 What was run
  
@@ -29984,7 +29996,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Table E.3. Development results: Sol 6.1 minus Opus 5.5 in the same seat, by counterpart ($ thousands per world, 52 deal worlds).**
  
  | Counterpart | As integrator | As client |
-@@ -155,49 +405,176 @@
+@@ -155,49 +411,176 @@
  | Collapse | +88 [+51, +126] | +148 [+117, +179] |
  | Overreach | +32 [+10, +53] | +108 [+72, +144] |
  
@@ -30197,7 +30209,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  ### E.5 Failure classes: rules and full tables
  
  **Table E.4. The shared classes.**
-@@ -210,26 +587,38 @@
+@@ -210,26 +593,38 @@
  | Commitment error | signed what it should have refused or refused what it should have signed: no lease where the reference leased; deferred where an award or a test was worth more; no deal where one was available |
  | Interaction cost | the charge for moves the case prices: redline fees after the opening; inquiries, counter-offers and checks; inspection spend above the reference's on a lease of the same value. Any gain such a move brings appears in another class (a better clause set is smaller worse-terms loss), so this class prices the moves and does not judge them |
  | Procedure and format | an action the environment rejected or could not parse; a fact request the case rejects; a format the verifier rejects |
@@ -30253,7 +30265,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  **Interpreting negotiation costs.** A redline that improves the final agreement's joint value by
  $100k while costing $25k reduces total shortfall by $75k: allocation loss falls by $100k and
  interaction cost rises by $25k. The score therefore credits improvements net of their cost. The
-@@ -237,24 +626,24 @@
+@@ -237,24 +632,24 @@
  free opening move. Its advantage includes negotiation costs that agents with limited information
  may need to incur; the decomposition does not identify which costs were avoidable. It also does
  not establish robustness to the chosen $25k fee per additional redline. Appendix E.9 tests
@@ -30292,7 +30304,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Class | DC Sol int. × Opus | DC Opus int. × Sol | DC Sol × firm | DC Opus × firm | Refund DeepSeek | Refund Gemini 2.5 FL | Refund GPT-5.6 Luna | Refund Grok |
  |---|---:|---:|---:|---:|---:|---:|---:|---:|
-@@ -266,149 +655,164 @@
+@@ -266,149 +661,164 @@
  | Procedure and format | 0 | 0 | 0 | 0 | 5.8 | 98.3 | 5.8 | 17.5 |
  | Total | 81.5 | 78.6 | 121.3 | 41.5 | 50.0 | 98.3 | 20.8 | 47.5 |
  
@@ -30547,7 +30559,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **Table E.11. Fee sensitivity on the 45 deal-feasible worlds ($ thousands per world; fixed actions). Sol earnings lead is Sol minus Opus against the firm population. Lower joint loss is better; a positive earnings lead favors Sol.**
  
-@@ -421,13 +825,13 @@
+@@ -421,13 +831,13 @@
  | 50 | 210.0 | 99.1 | -1.9 |
  | 100 | 381.1 | 169.6 | -58.6 |
  
@@ -30567,7 +30579,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  | Fee per redline | Sol joint loss | Opus joint loss |
  |---|---:|---:|
-@@ -438,55 +842,152 @@
+@@ -438,55 +848,152 @@
  | 50 | 175.7 | 99.4 |
  | 100 | 320.3 | 156.5 |
  
@@ -30722,7 +30734,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +
 +The agreement's v2 confirmatory run (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves
 +headroom in every deal world by construction, the best informed integrator earns far more than either model, and the
-+evaluation set separates the models. It is `partial` at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
++evaluation set separates the models. This evidence is partly circular, because the screen selects on the rule that the contrast subtracts (Appendix E.2). It is `partial` at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
 +someone other than its author and its code is not yet on the main branch, so replay through the runtime's command line
 +has not run. Its grid reference is a lower bound, so the exact-reference route does not apply, and a frozen control played on the
 +already frozen evaluation set could only count the worlds that pass. Gate 1 can therefore pass only on a new
@@ -30755,7 +30767,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### F.2 Checks applied to the four cases
  
-@@ -494,136 +995,141 @@
+@@ -494,136 +1001,141 @@
  
  | Kind | Must be shown | How it is shown in the four cases |
  |---|---|---|
@@ -31010,7 +31022,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  **Table F.3. Incident-log entries about each case and its predecessors, by category (as of 16 October 2026).**
  
-@@ -634,8 +1140,8 @@
+@@ -634,8 +1146,8 @@
  | Data center | 37 | 22 | 22 | 9 | 90 |
  | Refund | 12 | 0 | 8 | 3 | 23 |
  
@@ -31021,7 +31033,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  
  ### F.7 What quality control found
  
-@@ -643,107 +1149,104 @@
+@@ -643,107 +1155,104 @@
  
  | Case | What was wrong | Visible in one world? | How it was found | What changed |
  |---|---|---|---|---|
@@ -31195,7 +31207,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +was edited.
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/paper_case_studies.md aeread_working_draft_20261018_v15/source/paper_case_studies.md
 --- aeread_working_draft_20261018_v14/source/paper_case_studies.md	2026-10-18 13:40:55
-+++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-11-02 15:03:36
++++ aeread_working_draft_20261018_v15/source/paper_case_studies.md	2026-11-02 15:32:51
 @@ -2,200 +2,442 @@
  
  **Author:** Chenyu Li. **Status:** working draft, 2026-10-16. The main-text section; case
@@ -31548,7 +31560,7 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
 +nothing against the script, as shown below; using 7.5 makes the comparison conservative. The head-to-head gap is
 +therefore about three times the script gap, and the paired difference, which we computed after the runs, is 13.4
 +points [6.4, 20.3]. As
-+integrator, Sol beats the price-only rule, and Opus earns what the rule earns. As client, with its walk-away point
++integrator, Sol beats the price-only rule and Opus earns what the rule earns, on worlds included in part because the rule leaves room (Appendix E.2). As client, with its walk-away point
 +stated, neither model signs below that point, and the client seat separates nothing. After both runs we computed the
 +best informed turn-by-turn policy against the same scripted client (Appendix C.3). Sol captures about 20% of the room
 +between the price-only rule and that policy.
@@ -32613,10 +32625,10 @@ diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exc
  \end{longtable}
 diff -ruN --exclude=*.pdf --exclude=*.html --exclude=*.zip --exclude=*.png --exclude=*.svg --exclude=analysis_evidence --exclude=technical_supplement --exclude=*README* --exclude=*.patch --exclude=SOURCE_MANIFEST.json --exclude=complete_main_text.md aeread_working_draft_20261018_v14/source/version.json aeread_working_draft_20261018_v15/source/version.json
 --- aeread_working_draft_20261018_v14/source/version.json	1969-12-31 16:00:00
-+++ aeread_working_draft_20261018_v15/source/version.json	2026-11-02 15:05:17
++++ aeread_working_draft_20261018_v15/source/version.json	2026-11-02 15:32:38
 @@ -0,0 +1,5 @@
 +{
-+  "version": "15.52",
++  "version": "15.53",
 +  "date": "2 November 2026",
 +  "rule": "Raise version by one on every push to paper/working-draft (sync_and_push.sh refuses a push whose version is not higher than the last pushed one); set date to the day of the change."
 +}

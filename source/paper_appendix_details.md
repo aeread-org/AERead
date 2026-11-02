@@ -91,7 +91,13 @@ separate 12-world variance pilot (Appendix F.2). v2 (Table 5.4) kept these crite
 screen, computed before any episode: in a world with a deal, the integrator's full-information
 ceiling against the firm population must beat the price-only rule by at least $25k. Its seeds are
 disjoint from those of every earlier evaluation set; of 5,436 seeds scanned, 80 were included (72
-with a deal and 8 without).
+with a deal and 8 without). Unlike the inclusion criteria above, this screen reads the drawn hidden types, and because it
+reads the price-only rule's earnings, it also selects on the comparator of two primary contrasts. It refused 14 deal
+worlds, in which the rule earns $145k on average against $82k in the 72 kept. The mix of client charges does not differ
+clearly from the stated prior (30, 28 and 22 of the 80 worlds; p = 0.52), and those worlds had not been played when v2
+was reported. With assumed values for the 14, Sol's lead over the rule of $22.6k a deal world becomes $14.6k to $20.6k
+and stays positive. Sol's lead over Opus becomes $19.4k to $21.1k, and Opus still does not differ from the rule. These
+figures are assumptions. A declared addendum plays the 14 worlds, and its results are not yet reported here.
 
 ### E.3 What was run
 
@@ -963,7 +969,7 @@ We pre-registered and ran Housing v15 after these profiles were first written. I
 
 The agreement's v2 confirmatory run (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves
 headroom in every deal world by construction, the best informed integrator earns far more than either model, and the
-evaluation set separates the models. It is `partial` at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
+evaluation set separates the models. This evidence is partly circular, because the screen selects on the rule that the contrast subtracts (Appendix E.2). It is `partial` at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
 someone other than its author and its code is not yet on the main branch, so replay through the runtime's command line
 has not run. Its grid reference is a lower bound, so the exact-reference route does not apply, and a frozen control played on the
 already frozen evaluation set could only count the worlds that pass. Gate 1 can therefore pass only on a new

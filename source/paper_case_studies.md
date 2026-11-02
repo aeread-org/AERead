@@ -252,7 +252,7 @@ this is the number we compare with the script. Against the script we use the pre
 nothing against the script, as shown below; using 7.5 makes the comparison conservative. The head-to-head gap is
 therefore about three times the script gap, and the paired difference, which we computed after the runs, is 13.4
 points [6.4, 20.3]. As
-integrator, Sol beats the price-only rule, and Opus earns what the rule earns. As client, with its walk-away point
+integrator, Sol beats the price-only rule and Opus earns what the rule earns, on worlds included in part because the rule leaves room (Appendix E.2). As client, with its walk-away point
 stated, neither model signs below that point, and the client seat separates nothing. After both runs we computed the
 best informed turn-by-turn policy against the same scripted client (Appendix C.3). Sol captures about 20% of the room
 between the price-only rule and that policy.
