@@ -1,0 +1,17 @@
+{
+  "points": 8,
+  "accepted_clarifications": [
+    "Explicit unit-level rather than public-interface validation scope",
+    "Explicit path to full-distribution certification"
+  ],
+  "already_stated": [
+    "Surrogate proof is not production full-distribution optimality",
+    "One-ask synthetic distribution scope",
+    "Precision tolerance is not approximation error bound",
+    "Synthetic rather than campaign payoff gap"
+  ],
+  "not_accepted": [
+    "Comparison harness calling production helpers does not remove the independent oracle implementation",
+    "Historical source header is not changed by the paper proof; the source explicitly acknowledges its approximation and is preserved by hash"
+  ]
+}

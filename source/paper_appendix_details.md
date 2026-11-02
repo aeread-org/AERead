@@ -46,9 +46,9 @@ and a holdout of 30 and 10 worlds from a disjoint seed range. The quotas oversam
 worlds, where the decision is hardest. This is v14's criterion. v15 (Section 5.1) applies it and then
 screens each candidate world offline:
 
-- **The screen.** The best informed tenant and `inspect_then_sign` play both landlord arms. A world is included only
-  if its full-information ceiling is above $0 in both arms and the best informed tenant beats the rule by at least
-  $25 on the corrected measure, averaged over the two arms.
+- **The screen.** The approximate planning reference and `inspect_then_sign` play both landlord arms. A world is included only
+  if its full-information ceiling is above $0 in both arms and the approximate planning reference beats the rule by at least
+  $25 on the corrected measure, averaged over the two arms. This is witnessed headroom relative to a feasible approximate policy, not an optimality certificate.
 - **What it included.** The main evaluation set of 260 worlds (200 and 60) came from 437 seeds: 119 failed the
   screen, 6 had a $0 ceiling and 7 failed the structural criterion.
 - **The other streams.** The holdout of 40 worlds runs with outside demand at 0.3 a round and comes from a disjoint
@@ -129,7 +129,7 @@ expanded release.
 #### Housing
 
 Section 5.1 and Table 5.2 report v15, the pre-registered comparison. Its inclusion screen rejected 119 of the 437
-candidate main worlds. Relative to the best informed tenant's value, the full-information ceiling is 121% and
+candidate main worlds. Relative to the approximate planning reference's value, the full-information ceiling is 121% and
 `inspect_then_sign` earns 49.5%. The A/A arm, in which Luna runs twice under two names with different seeds, differs by
 −1.6 points [−6.1, +2.9]. Run-to-run noise between identical arms is therefore well inside the $50 band; the band
 itself is our judgement of the smallest difference that matters, which the A/A arm cannot test. In the holdout, Gemini
@@ -142,11 +142,11 @@ every row of Table 5.2 in dollars.
 **The addenda.** GLM 5.3 Flash was excluded at the pre-run profile check, because its provider now serves a different
 quantization from the one v14 pinned. A pre-registered addendum ran it on another provider serving v14's quantization
 (600 of 600 episodes, verified by replay), and we report it beside v15 and outside its pre-registered contrasts. On
-the main evaluation set GLM keeps 53.9% of the best informed tenant's value. It does not beat `inspect_then_sign` at
+the main evaluation set GLM keeps 53.9% of the approximate planning reference's value. It does not beat `inspect_then_sign` at
 the pre-registered 98.3% level (+4.5 points [−4.4, +13.3]). Descriptively, it trails Luna by 8.9 points [1.6, 16.2]
 and Gemini by 24.8 [19.0, 30.5]. A second pre-registered addendum ran Sol 6.1 and Opus 5.5 through their command-line
 tools on the same 600 episodes each, all completed and verified by replay, likewise outside v15's contrasts. Sol keeps
-90.4% of the best informed tenant's value and comes closest to `inspect_lowball` (5.0 points below it); Opus keeps
+90.4% of the approximate planning reference's value and comes closest to `inspect_lowball` (5.0 points below it); Opus keeps
 80.4%. Both beat `inspect_then_sign` at the 98.3% level. Sol leads Opus by 10.0 points [7.4, 12.6], and Opus cannot be
 distinguished from Gemini (+1.6 [−0.3, +3.6]). As with the flash models, nearly all of each model's shortfall arises
 in worlds whose favourite is a lemon.
@@ -207,7 +207,7 @@ Two CLI agents played the first 20 worlds of the main evaluation set (40 episode
 difference, +23 [−19, +64], is not statistically established. Both equal the reference where the favourite is
 sound ($427) and fall short where it is a lemon ($200 and $155 against $235).
 
-This reference is reachable but not optimal. An exact best informed tenant (Appendix C) earns $307 a world on the
+This reference is reachable but not optimal. An approximate planning reference (Appendix C) earns $307 a world on the
 main evaluation set when it knows the two landlord kinds and how each prices. The v14 models were not told how
 landlords price, so part of their gap to this tenant reflects missing information rather than poor judgment. v15
 states the pricing rule in its task prompt and uses this tenant as the reference for its inclusion screen and for
@@ -1113,7 +1113,7 @@ for a quality measure, since no case is scored by string matching, unit tests or
 | T.6 Setup does not change over time | partly | environment inputs and pre-registered routes are pinned; this does not attest a stable hosted deployment, provider compliance, or the unsealed CLI environment (Appendix H.2, H.3) |
 | T.7 Ground truth verified | partly | each reference is played on every included world through the environment and reaches its stated result, initially by tests added after development; the included agreement evaluation set also had a dry run before the confirmatory run (Appendix F.2) |
 | T.8 Each task verified solvable | partly | reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound |
-| T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
+| T.9 Oracle solver | partly | exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an approximate planning reference in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built |
 | T.10 Free of exploitable shortcuts | partly | trivial agents, exact fixed-rule scores and task-prompt audits (Appendix F.4); twenty-five selected defects (Table F.4); a one-step rule reaches the best policy on Procurement's earlier evaluation set, and the reported evaluation set includes only worlds where that rule pays the premium; a wrong refund can still pass Refund's payment leaf |
 | O.i.1 Quality metric resists exploitation | partly | code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures |
 | R.1 Open source | partly | the environments, runner and evidence are public; the trajectory viewer is private |

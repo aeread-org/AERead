@@ -573,19 +573,19 @@ and signs any hold that its value if sound covers. It earns −$79.53 a world un
 −$348.76 in realised net. `pass` never acts and earns $0. The decision-value measure is the one used for the control
 comparisons in Section 5 and Appendix E.4.
 
-**Best informed tenant (development).** This tenant computes an exact optimal plan under the market's rules. Its
+**Approximate planning reference (development).** This feasible tenant policy uses backward induction with representative unseen rents; it is not certified optimal under the market's full stochastic rules. Its
 belief covers the landlord kind and the lemon pair, and it is updated by inspections and, for the `pricing` tenant,
 by the replies the tenant hears. We compute the tenant's plan by backward induction over the three rounds, using five
 functions that follow the phases of one round:
 
 - V, at the start of a round, chooses whether to inspect, and which uncertain listing;
 - U, the contact step, chooses which listing to make an offer on, or none;
-- W_ℓ averages over the replies the landlord of ℓ may give, when none has been heard yet;
+- W_ℓ averages over low and ordinary reply categories using representative unseen rents;
 - C_ℓ, the commit step, chooses whether to sign the hold on ℓ or walk;
 - E values moving to the next round, while each open listing the tenant did not bid on may be
   taken by outside demand.
 
-**Table C.1. Symbols of the best informed tenant.**
+**Table C.1. Symbols of the approximate planning reference.**
 
 | Symbol | Kind | Meaning |
 |---|---|---|
@@ -596,11 +596,11 @@ functions that follow the phases of one round:
 | h = (θ, Λ) | hypothesis | the landlord kind and the lemon pair; the belief is uniform over those consistent with q and z, and z_ℓ = L ⇔ (θ = leaky ∧ ℓ ∈ Λ) |
 | λ_ℓ | probability | P(ℓ ∈ Λ) under the belief |
 | ψ_ℓ | probability | P(θ = leaky ∧ ℓ ∈ Λ), the chance that ℓ's reply will be low |
-| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L. A sound landlord's cost is on average $50 under the ask and a lemon's $1,000 lower still, and +25 is the margin μ, so these are the average lowest rents |
+| R_ℓ | money | the rent the tenant expects on ℓ: the rent heard once heard; before that a_ℓ − 25 for N and min(a_ℓ, max(0, a_ℓ − 1050) + 25) for L. A sound landlord's cost is on average $50 under the ask and a lemon's $1,000 lower still, and +25 is the margin μ, so these are representative lowest rents computed from mean costs, not generally the means of the capped rents |
 | B, G | sets | listings protected this round (bid on); listings taken by outside demand |
 
 The `pricing` tenant puts probability ½ on each landlord kind; the `stated` tenant assumes the pooled kind, so for
-it the replies carry no information. Both always offer $0. The five functions are defined as follows:
+it the replies carry no information and its unseen rent is the ask. Both always offer $0. The actual observed rent table is an additional fixed argument to each planning call, suppressed below; it is retained across rounds and updated when an answer arrives. The five functions are defined as follows:
 
 [[eq C.2]] V(r, O, q, z) = 0 if r ≥ 3 or O = ∅;
 
@@ -621,7 +621,66 @@ Before a landlord has answered, the tenant cannot know its listing's lowest rent
 lies anywhere from $20 to $80 under the ask. The tenant therefore plans with the average ($50 under the ask, plus the
 $25 margin) and replans with the true rent once an answer arrives. On the main evaluation set the `pricing` tenant
 earns $307.32 a world and the `stated` tenant $266.89, which is below the reachable reference, so `stated` is not a
-best policy for the v14 task prompt.
+best policy for the v14 task prompt. The $307.32 is the measured payoff of this approximate policy, not a certified optimal value. Averaging unseen rents before optimizing can omit the value of conditioning later decisions on the actual offer; replanning after an answer does not establish optimality of earlier choices.
+
+
+**Bellman justification and its scope.** For the fully specified stochastic model, let x record the round, phase,
+open listings and current hold, and let b be the posterior over landlord kind, the lemon pair and all persistent
+rent floors, conditional on the public inputs and observations. Observed rents remain in this state, including
+after a walk. With known inspection cost, landlord policy and independent outside-demand probabilities, (x, b)
+is a sufficient state under these assumptions. At a phase with legal actions A(x), the finite-horizon recursion is
+
+J<sub>t</sub>(x, b) = max over a ∈ A(x) of { g(x, b, a) + Σ<sub>y</sub> P(y | x, b, a)·J<sub>t+1</sub>(x′, b′) },
+
+where g is the expected immediate payoff (an inspection fee or signing payoff where applicable), y is the next
+observation, and (x′, b′) is the corresponding state with a Bayesian posterior update. A signed lease or exhausted
+horizon is terminal with no further payoff. For a contact, y includes the actual offered rent: the conditional
+expectation must be outside the later sign-or-walk maximization. A known rent has a point-mass distribution;
+an unknown rent requires its conditional distribution, not just its mean. Cent-rounded rents have finite support.
+
+The proof is backward induction over the remaining phases. Terminal continuation is zero. If the continuation
+value is optimal at each successor state, conditional expectation gives the value of each current action, and
+maximization selects the best one. Thus the recursion is optimal for the specified information and action model.
+Under the fixed cost-plus landlord rule, an offer of $0 elicits the lowest acceptable rent and protects the listing
+from outside demand; raising the offer cannot improve either outcome or reveal more information. This justifies
+the contact action reduction used here. An inspection of already-determined quality adds no information and,
+with a nonnegative fee, can be omitted. These arguments assume the declared stochastic model and do not certify
+the distribution induced by selecting a finite evaluation pack.
+
+Equations (C.2)–(C.7) implement a different, representative-rent planning model at each observed state. Replacing
+future unknown rents by category representatives gives a finite surrogate to which the same induction applies,
+with actual rents already heard held fixed. Replanning when a new rent arrives does not make that surrogate an
+optimal policy for the original uncertain-rent model. The approximate-reference label therefore remains.
+
+**Independent implementation checks and precision.** A separately written finite hidden-world enumerator uses
+exact rational arithmetic, partitions worlds by inspection outcomes and actual offer observations, and does not
+call the production belief, price or recursion helpers. Against the production planner it checks 900 inspection
+and contact action values across 168 fixture states: two or four listings, one to three remaining rounds,
+inspection fees of $0, $25 or $500, outside-demand probabilities of 0.5 and 0.3, and selected inspection/reply
+histories and open-listing subsets. These are bounded fixtures, not exhaustive coverage of the admitted worlds.
+The largest absolute discrepancy is below $1.5 × 10⁻¹³, within the declared $10⁻⁹ comparison tolerance; selected
+actions attain the rational oracle's maximum within that tolerance. The checks validate representative-rent
+planning on those inputs, not full-distribution optimality. They compare planner helpers directly; they do not
+validate public observation parsing, the separate holdout wrapper, or end-to-end market execution.
+
+A separate final-round regression integrates all 6,001 cent bins of an idealized uniform $20–$80 cost discount,
+with half-weight endpoint bins, and checks every induced target against the actual landlord function. At ask
+$2,000 and known-sound value $1,975, contacting yields exactly $7.50, while the representative-rent planner assigns
+$0. Adding a known alternative worth $5 makes the two policies choose different listings, with a $2.50 expected
+payoff gap. These are synthetic states, not measured campaign losses. A two-round fixture also checks persistence
+of an observed quote. The bin calculation models continuous uniform sampling followed by cent rounding; it does
+not enumerate the finite pseudorandom generator's output space.
+
+The independent oracle retains exact fractions without intermediate rounding. The production planner uses
+binary64 arithmetic; its stored plan value and realized net are rounded to cents at output. The $10⁻⁹ tolerance
+is an implementation-comparison threshold, not a bound on the representative-rent approximation or on all
+reachable-state floating-point errors. Reproduction commands, fixture results and source SHA-256 digests are
+included in the paper's analysis evidence under `housing_reference_validation`. No campaign results or admission
+decisions were recomputed by these checks. To certify a full-distribution reference, implement conditional rent
+integration and retain hypothetical observed rents throughout the recursion, validate observation parsing and
+market transitions through the public interface, and establish numerical error or exact-arithmetic guarantees
+for the intended state space. Then evaluate the new policy on the same frozen worlds and separately re-screen
+the candidate seeds to distinguish changed normalization from changed admission. That work remains outstanding.
 
 ### C.2 Procurement
 

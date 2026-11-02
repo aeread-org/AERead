@@ -11,7 +11,7 @@ Housing (`src/aeread_families/housing/`): world `environment.py`:108–241,
 `environment.py`:41–54, 797–823; history `runner.py`:1136–1360; prompt `runner.py`:249–267 and
 `price_outside_demand.py`:64–70, 163–168, 343–357; landlord `price_bargaining.py`:21–40; outside
 demand `price_outside_demand.py`:54–122; references `price_reference.py`:39–147, `lemons.py`:245–316;
-best-informed tenant `price_best_informed.py`:51–226; measure `price_endpoint.py`:42–109,
+approximate planning reference `price_best_informed.py`:51–226; measure `price_endpoint.py`:42–109,
 `price_publication.py`:42–185; pack `lemons_design.py`:231–305.
 
 ## Procurement

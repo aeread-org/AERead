@@ -78,28 +78,30 @@ which is lower than a sound listing's by exactly the amount the lemon costs the 
 a lemon at that price is as good a lease as the same listing sound, to within $5. We score a blind signing at its expected value given what the
 tenant knew, so that the score follows the decision rather than the draw, with the odds conditioned on every
 informative landlord reply. This paper introduces the corrected measure. The comparison reported here, v15, was pre-registered before any of
-its artifacts. Each included world is screened so that the best informed tenant beats a simple inspect-then-sign rule
+its artifacts. Each included world is screened so that the approximate planning reference beats a simple inspect-then-sign rule
 by at least $25, and the tenant's task prompt states how landlords price. A holdout of 40 worlds changes one
 mechanism, outside demand at 0.3 a round, and its task prompt says so.
 
-**Table 5.2. Housing v15, main evaluation set (260 worlds; 200 with the favourite a lemon, 60 sound): each model's mean net payoff under the corrected measure, averaged over the two landlord arms, divided by the best informed tenant's mean ($307 a world; each stratum and the holdout by their own). Differences are mean dollar contrasts over worlds on the same scale, in percentage points, with 95% intervals. ‡ Agent configuration (command-line tool, low reasoning effort, no seed).**
+The planning reference uses representative rents for unseen offers and replans after observing actual rents (Appendix C.1). It is feasible but not certified optimal; shares below are relative to this policy's measured payoff, not shares of an established optimum.
+
+**Table 5.2. Housing v15, main evaluation set (260 worlds; 200 with the favourite a lemon, 60 sound): each model's mean net payoff under the corrected measure, averaged over the two landlord arms, divided by the approximate planning reference's mean ($307 a world; each stratum and the holdout by their own). Differences are mean dollar contrasts over worlds on the same scale, in percentage points, with 95% intervals. ‡ Agent configuration (command-line tool, low reasoning effort, no seed).**
 
 | | Gemini 3.8 Flash | GPT-6 Luna | Sol 6.1 (Codex)‡, addendum | Opus 5.5 (Claude Code)‡, addendum |
 |---|---:|---:|---:|---:|
-| Share of the best informed tenant's value | 78.7% | 62.9% | 90.4% | 80.4% |
+| Share of the approximate planning reference's value | 78.7% | 62.9% | 90.4% | 80.4% |
 | Favourite is a lemon / sound | 68.8% / 100.0% | 46.8% / 97.3% | 85.9% / 100.0% | 71.2% / 100.0% |
 | Minus `inspect_then_sign` (the pre-registered beatability baseline), points | +29.3 [+24.7, +33.8] | +13.4 [+8.2, +18.6] | +40.9 [+36.2, +45.6] | +30.9 [+26.3, +35.5] |
 | Minus `inspect_lowball` (v14's reachable reference), points | −16.6 [−20.8, −12.5] | −32.5 [−37.8, −27.3] | −5.0 [−8.0, −2.0] | −15.0 [−18.9, −11.0] |
 | Holdout (40 worlds, outside demand at 0.3) | 79.3% | 61.1% | 88.0% | 80.1% |
 
-Both pre-registered models beat the pre-registered baseline and stay below the best informed tenant, and almost all
+Both pre-registered models beat the pre-registered baseline and stay below the approximate planning reference, and almost all
 of their shortfall arises in worlds whose favourite listing is a lemon. Gemini leads Luna by 15.9 points [11.3, 20.4]
-of the best informed tenant's value. This lead is significant under the pre-registered analysis. Its lower end,
+of the approximate planning reference's value. This lead is significant under the pre-registered analysis. Its lower end,
 however, falls below 16.3 points, the share that corresponds to the $50 we pre-registered as the smallest meaningful
 difference, so the lead is not shown to exceed that band. Where the favourite is a lemon, Gemini keeps 69% and Luna
-47% of the best informed tenant's value; where it is sound, they keep 100% and 97%. Both models also stay below
+47% of the approximate planning reference's value; where it is sound, they keep 100% and 97%. Both models also stay below
 `inspect_lowball`, a simple rule that inspects the favourite and opens with the lowest possible offer, which earns
-95.4% of the best informed tenant's value. Most of the shortfall in lemon worlds comes from one choice: declining a
+95.4% of the approximate planning reference's value. Most of the shortfall in lemon worlds comes from one choice: declining a
 known lemon that the leaky landlord prices to be exactly as good as the same listing sound (Section 5.2). Declining
 such a lease is an error under the stated rules, which the task prompt gives. The size of this shortfall, however,
 depends on one design choice: the leaky landlord's discount exactly offsets a lemon's loss, and with a smaller
@@ -396,7 +398,7 @@ until a pre-registered test confirms it.
 | HL-D-07 recomputation | the sealed v14 run roots; script and results `tools/paper/hl_d_07/` on this branch | derived |
 | Housing pack, ceiling by arm, outside-demand share | the case contract's "confirmatory pack" paragraph; the code reading for Appendix A (`lemons_design.py`, `price_outside_demand.py`, `price_reference.py`) | |
 | Housing CLI rows | run roots `housing_lemons_price_cli_v1_{claude_code_opus55,codex_cli_sol61}_outside_w20`; page 2 of the same one-pager | development, unadjusted |
-| Best informed tenant ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
+| Approximate planning reference ($307) | branch `codex/housing-best-informed`, `price_best_informed.py`; recomputed 2026-10-13 from its 600 cells per knowledge level | development |
 | Pay-or-test, earlier pack (Appendix E.4, Table E.14) | run roots `pay_or_test_v1_{accounting,finalquotes}_*` (branch `codex/procurement-pay-or-test`); recomputed 2026-10-13 with `pay_or_test_report.py`; one-pager `procurement_pay_or_test_first_result.pdf`; incident rows P-D-19 to P-D-22, P-J-05 | development |
 | Procurement flash panels, earlier pack (Table E.14) | run roots `procurement_allocation_pay_or_test_v1_finalquotes_openrouter_{gemini38_flash,gpt6_luna}_v2` in the pay-or-test worktree; driver `tools/cli_subjects/pay_or_test_openrouter.py` (d91fbde8), report fix eecdaffe; incident rows P-D-23, P-O-05, P-O-06, P-T-14, P-T-15 | development |
 | Record pack (18 worlds) | branch `codex/procurement-inference-v2`, draft PR #263; incident row P-D-16 | development |

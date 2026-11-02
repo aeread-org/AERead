@@ -1,0 +1,3156 @@
+{
+  "schema": "housing_reference_bounded_checks/1",
+  "status": "passed",
+  "scope": "Exact-rational representative-price fixtures plus synthetic full-price regressions; not campaign-wide optimality certification",
+  "precision": {
+    "oracle": "fractions.Fraction; exact rational arithmetic",
+    "production": "Python float (binary64)",
+    "absolute_tolerance_usd": 1e-09,
+    "rounding": "No rounding inside oracle; exact fraction strings retained; actual landlord target cents checked"
+  },
+  "source_root": "/Users/chenyusu/AERead-worktrees/housing-best-informed",
+  "sha256": {
+    "/Users/chenyusu/AERead/output/pdf/aeread_working_draft_20261018_v15/analysis_evidence/housing_reference_validation/check_reference.py": "9517bd2cadde2c51f699c5387fd9ae9352e4eb3865e6a15d4e424b38c6cf26c5",
+    "/Users/chenyusu/AERead-worktrees/housing-best-informed/src/aeread_families/housing/price_best_informed.py": "e4cfb4fece2259d3f91b975c6fb16f7ab0b15749e82a91a433f9e023acf3fb69",
+    "/Users/chenyusu/AERead-worktrees/housing-best-informed/src/aeread_families/housing/price_bargaining.py": "96e87d25e9038e7594edd5bc1ec48e4fe7d17f9fa1522a044bb23896b3c70a43",
+    "/Users/chenyusu/AERead-worktrees/housing-best-informed/src/aeread_families/housing/environment.py": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+    "/Users/chenyusu/AERead-worktrees/housing-best-informed/src/aeread_families/housing/price_outside_demand.py": "24387cbed6704fe8aaad6e92fd80ee1cdebcdca5e10eec7fd6c0ced765e80b78"
+  },
+  "surrogate_state_count": 168,
+  "action_value_count": 900,
+  "max_abs_error_usd": 1.4210854715202004e-13,
+  "distribution_checks": {
+    "scope": "synthetic states, not admitted evaluation worlds",
+    "rounded_cost_bins": 6001,
+    "landlord_targets_checked": 6001,
+    "distribution_mass": "1",
+    "exact_contact_usd": "15/2",
+    "approximate_contact_usd": 0.0,
+    "two_listing_exact_action": 0,
+    "two_listing_approximate_action": 1,
+    "two_listing_action_gap_usd": "5/2",
+    "two_round_persistent_quote_value_usd": "15"
+  },
+  "surrogate_checks": [
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "190"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "190"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "190"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "580/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "580/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "580/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "125"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "125"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "125"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "190"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "190"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "190"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "580/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "580/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "580/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "125"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "125"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "125"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2200,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "225"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "45/4"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.7763568394002505e-15,
+      "exact_start_value": "45/4"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.7763568394002505e-15,
+      "exact_start_value": "45/4"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "10"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "10"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "10"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "45/4"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.7763568394002505e-15,
+      "exact_start_value": "45/4"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.7763568394002505e-15,
+      "exact_start_value": "45/4"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "10"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "10"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "10"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 8.881784197001252e-16,
+      "exact_start_value": "15/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 8.881784197001252e-16,
+      "exact_start_value": "15/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "0"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "15"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.7763568394002505e-15,
+      "exact_start_value": "15"
+    },
+    {
+      "listings": 2,
+      "values": [
+        1975,
+        2090
+      ],
+      "fee": 0,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.7763568394002505e-15,
+      "exact_start_value": "15"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "275"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "275"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "275"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "275"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "275"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "275"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 6,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 3,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525/2"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 1.4210854715202004e-13,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 2,
+      "values": [
+        2500,
+        2400
+      ],
+      "fee": 500,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1
+      ],
+      "action_values_compared": 4,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "525"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 1.4210854715202004e-14,
+      "exact_start_value": "875/4"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "12755/48"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "12755/48"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "1475/6"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "1025/4"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "1025/4"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "9355/36"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "9355/36"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "235"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "495/2"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "495/2"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 2.220446049250313e-16,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 8,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 8,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "4675/18"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 8,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "4675/18"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "1/2",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 1.4210854715202004e-14,
+      "exact_start_value": "875/4"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "21357/80"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 0,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 8.526512829121202e-14,
+      "exact_start_value": "21357/80"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "1475/6"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "1035/4"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 1,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "1035/4"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "47071/180"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 2,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 10,
+      "max_abs_error_usd": 8.526512829121202e-14,
+      "exact_start_value": "47071/180"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "235"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "501/2"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 3,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 7,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "501/2"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 2.220446049250313e-16,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 4,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 8,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "575/3"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 8,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "4705/18"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 5,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2
+      ],
+      "action_values_compared": 8,
+      "max_abs_error_usd": 2.842170943040401e-14,
+      "exact_start_value": "4705/18"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 1,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 0.0,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 2,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 5.684341886080802e-14,
+      "exact_start_value": "325"
+    },
+    {
+      "listings": 4,
+      "values": [
+        2300,
+        2150,
+        2500,
+        2280
+      ],
+      "fee": 25,
+      "rate": "3/10",
+      "observation": 6,
+      "remaining_rounds": 3,
+      "open": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "action_values_compared": 9,
+      "max_abs_error_usd": 1.1368683772161603e-13,
+      "exact_start_value": "325"
+    }
+  ]
+}
