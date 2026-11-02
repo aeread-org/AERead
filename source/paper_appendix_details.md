@@ -300,7 +300,7 @@ its value against buying now. Arm P receives the best plan the restricted format
 PV receives that plan with its exact values. No arm is told a plan is optimal, and any legal action remains open. The
 outcome is the sum of each action's loss against the best policy at the public belief state s reached,
 
-[[eq E.4]] L = Σ<sub>t</sub> [ V<sup>∗</sup>(s<sub>t</sub>) − Q<sup>∗</sup>(s<sub>t</sub>, a<sub>t</sub>) ],
+[[eq E.4]] L = Σ_t [ V∗(s_t) − Q∗(s_t, a_t) ],
 
 and the unit of analysis is the world.
 
