@@ -4,7 +4,7 @@
 details are in [Appendix E](paper_appendix_details.md), formal specifications in
 [Appendices A–D](paper_appendix_case_specs.md). Six reported analyses were declared before their runs: Housing v14 and v15, Procurement's test on
 its harder pack, the data-center signalling test and the two data-center agreement confirmatories.
-Other results are development probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
+Procurement's mechanism study was frozen before its calls and is reported separately (Appendix E.4). Other results are development probes; Procurement v2 stopped after its pilot. The companion section is [Quality control](paper_qc_design.md).
 
 ---
 
@@ -184,6 +184,22 @@ with no play, how a sample of one newcomer changes the odds of another of its ki
 within 0.05 of the exact value, as Sol did. Opus therefore applies the sharing rule when asked, but does not plan with
 it. On an earlier evaluation set, in which quotes always arrive and newcomers never share a source, a rule that looks
 one test ahead comes within 0.01% of the best policy, so that set cannot separate the models (Appendix E.4).
+
+**Where the value is lost.** The test above shows that Opus does not investigate, but not at which step it loses the
+value. We therefore ran an intervention study with Opus 5.5 at low reasoning effort on 100 held-out worlds from the same
+generator (Appendix E.4, Table E.20). Every episode starts after the recorded supplier's quote and sample, and four
+arms differ only in what precedes the first action: acting directly, first writing and valuing a plan of its own,
+receiving the best plan a restricted format can express, or receiving that plan with its exact values. Acting directly,
+Opus lost $84.72 an episode, which equals 78% of what investigating is worth on these worlds. With a plan of its own it
+lost $18.34, a within-world difference of −$67.14 over 98 complete pairs (95% bootstrap interval −92.3 to −46.7).
+Supplying the best expressible plan instead added nothing detectable (−$0.66 [−8.3, +6.8], equivalent within the
+declared ±$25); Opus's own plan already was that plan in 66 of its 99 plans. Supplying the exact values removed a
+further $13.31 in a secondary comparison. On these worlds, then, most of the loss arises when Opus commits without
+deliberating, and the contrast bundles attention with computation, so it locates the loss without identifying a
+cognitive cause. The result depends on the worlds, a selected 3.9% of the seeds scanned, in which the restricted format
+comes within $5 of the best policy. On 12 unscreened worlds in the development pilot, the supplied plan did beat Opus's
+own (−$21.6 [−46.5, −2.9]), so plan construction may matter more elsewhere. None of the 20 worlds of Table 5.3 passes
+the screen, so this study does not explain Opus's result there. Sol has not played these worlds.
 
 **Data center.** The structure follows a real AI-infrastructure engagement in which a system integrator bundles
 hardware, data-center space, staffing and software into a working system for a client. Hardware can arrive late or
@@ -421,5 +437,7 @@ until a pre-registered test confirms it.
 | Procurement harder version: Gemini 3.8 Flash and GPT-6 Luna (Table 5.3, Figures 5.1 and 5.2, Tables E.5, E.9, E.10) | plan `docs/families/procurement-allocation/pay_or_test_v3_flash_plan.md` declared in f3daae61 before any play; results 47594ab8 (`evidence/procurement_allocation/pay_or_test_v3_flash/`, 80 of 80 plays, OpenRouter charged $0.43); failure classes for all four subjects from `tools/paper/failure_taxonomy/procurement_pay_or_test_v3.py` (rules fixed in 51e9bfd3 before the flash plays; output ea9dcfdc), copied with `derive_panels.py` checking every world against the replayed read-outs; run from the tree carrying the registry row awaiting kernel review | declared, descriptive |
 | Procurement harder version: Sol on the odds twins (Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v3_twins_sol_plan.md` declared in 2fb0140a before any play; results 87e67702 (`pay_or_test_v3_twins_sol_results.md`, `evidence/procurement_allocation/pay_or_test_v3_twins_sol/`, 20 of 20 plays replayed); exact rule shares from the twin pack's rule values; on `codex/procurement-pay-or-test`, run from the tree carrying the registry row awaiting kernel review | diagnostic, declared |
 | Procurement corrected brief and comprehension check (§5.1, Table E.15) | plan `docs/families/procurement-allocation/pay_or_test_v31_brief_plan.md` declared in e7b94f91 before any play, amendments 5abf28f3 and 16421dce before any answer was seen (a refused ask is typed missingness; probability asked alone after Opus's safeguards refused a schema asking for working, incident P-O-04); results acd0c706 (`pay_or_test_v31_brief_results.md`, `evidence/procurement_allocation/pay_or_test_v31_brief/`: 80 of 80 plays, paired by world with the confirmatory runs; 18 of 18 answered per subject), branch `codex/procurement-v3-brief-v31`; ran from a tree carrying the same registry row awaiting kernel review | diagnostic, no claim |
+| Procurement mechanism study (§5.1, Appendix E.4, Table E.20) | `analysis_evidence/procurement_mechanism_p0/`: frozen protocol `f35aece8…`, screen, per-episode table, report, and `recompute.py`, whose output `CHECKS.json` the build asserts against the text; raw calls are in the untracked `notebooks/procurement_v3/mechanism_study/p0/` of the working checkout, backed up privately; incident rows PM-O-01, PM-O-02, PM-D-01, PM-D-02, PM-T-01 on branch `docs/procurement-quote-case-and-p0` | frozen by digest, not committed before the run; outside the runtime |
+| Table 5.3 worlds against the mechanism study's screen (§5.1) | `analysis_evidence/procurement_mechanism_p0/table_5_3_worlds_screen.py`, computed 2026-11-02 with no model called: 0 of 20 pass | derived |
 | Procurement against the 1688 record (§5.1) | `~/analysis/aeread-paper/procurement_calibration/` (script, inputs hashed, results at four mismatch cut-offs): a listing with a sales count was dearer than one without in 50% of 56 comparable parts (48–51% across cut-offs); 9 of 28 suppliers quoted | analysis of the authors' own record, 2026-10-18 |
 | Housing CLI cost ($4.72) | list prices of the two CLI runs, $1.78 (Sol) and $2.94 (Opus), from the CLI probe's run reports | development |

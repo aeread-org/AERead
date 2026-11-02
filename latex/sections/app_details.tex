@@ -62,9 +62,9 @@ screens each candidate world offline:
 \begin{itemize}
 \tightlist
 \item
-  \textbf{The screen.} The best informed tenant and \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} play both landlord arms. A world is included only
-  if its full-information ceiling is above \$0 in both arms and the best informed tenant beats the rule by at least
-  \$25 on the corrected measure, averaged over the two arms.
+  \textbf{The screen.} The approximate planning reference and \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} play both landlord arms. A world is included only
+  if its full-information ceiling is above \$0 in both arms and the approximate planning reference beats the rule by at least
+  \$25 on the corrected measure, averaged over the two arms. This is witnessed headroom relative to a feasible approximate policy, not an optimality certificate.
 \item
   \textbf{What it included.} The main evaluation set of 260 worlds (200 and 60) came from 437 seeds: 119 failed the
   screen, 6 had a \$0 ceiling and 7 failed the structural criterion.
@@ -152,6 +152,8 @@ Housing, CLI agents & first 20 of the main evaluation set & 10 and 10 & Opus 5.5
 Procurement, pay or test & 24 & six kinds × four & Opus 5.5, Sol 6.1 & 96 episodes over two task prompts & \$9.10 & development \\
 Procurement, pay or test, flash models & 24 & six kinds × four & Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused) & 24 episodes each, second task prompt & \$0.21 & development \\
 Procurement, record evaluation set & 18 & which listing the record favours & Opus 5.5, Sol 6.1 & one episode a world each & & development \\
+Procurement mechanism study & 100 held-out worlds; pilot 12 + 12 & four assistance arms & Opus 5.5 (Claude Code), low effort & 393 of 400 episodes; pilot 192 & \$88.95 and \$32.82, as reported by the tool & frozen by digest, outside the runtime (Appendix E.4) \\
+Procurement mechanism study, Sol comparison & 4 development worlds and their dependence twins & four assistance arms & Sol 6.1 (Codex), Opus 5.5 & 32 episodes each & Opus \$4.48 as reported by the tool; Sol unreported & development \\
 Data center development and signalling & 58 development + 58 fresh & deal or no deal; outside-option kind; counterpart style & Opus 5.5, Sol 6.1 & 2,456 negotiations, 2,417 valid & \$119.30 & development; one pre-registered test \\
 Procurement v2 gate and pilot & 12 pilot worlds, two plays per model; one gate each & shared-source information value & Gemini 3.8 Flash, GPT-6 Luna & 50 episodes & \$0.2193 charged & stopped at sizing; no confirmatory run \\
 Data center confirmatory v2 & 80 included + 12 pilot & 72 deal / 8 no-deal; both tools isolated & Opus 5.5, Sol 6.1 & 640 negotiations, all valid and replayed & \$55.41 & pre-registered; Gate 3 passed, the others partial \\
@@ -176,7 +178,7 @@ expanded release.
 \subsubsection{Housing}\label{housing}
 
 Section 5.1 and Table 5.2 report v15, the pre-registered comparison. Its inclusion screen rejected 119 of the 437
-candidate main worlds. Relative to the best informed tenant's value, the full-information ceiling is 121\% and
+candidate main worlds. Relative to the approximate planning reference's value, the full-information ceiling is 121\% and
 \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} earns 49.5\%. The A/A arm, in which Luna runs twice under two names with different seeds, differs by
 −1.6 points {[}−6.1, +2.9{]}. Run-to-run noise between identical arms is therefore well inside the \$50 band; the band
 itself is our judgement of the smallest difference that matters, which the A/A arm cannot test. In the holdout, Gemini
@@ -189,11 +191,11 @@ every row of Table 5.2 in dollars.
 \textbf{The addenda.} GLM 5.3 Flash was excluded at the pre-run profile check, because its provider now serves a different
 quantization from the one v14 pinned. A pre-registered addendum ran it on another provider serving v14's quantization
 (600 of 600 episodes, verified by replay), and we report it beside v15 and outside its pre-registered contrasts. On
-the main evaluation set GLM keeps 53.9\% of the best informed tenant's value. It does not beat \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} at
+the main evaluation set GLM keeps 53.9\% of the approximate planning reference's value. It does not beat \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} at
 the pre-registered 98.3\% level (+4.5 points {[}−4.4, +13.3{]}). Descriptively, it trails Luna by 8.9 points {[}1.6, 16.2{]}
 and Gemini by 24.8 {[}19.0, 30.5{]}. A second pre-registered addendum ran Sol 6.1 and Opus 5.5 through their command-line
 tools on the same 600 episodes each, all completed and verified by replay, likewise outside v15's contrasts. Sol keeps
-90.4\% of the best informed tenant's value and comes closest to \texttt{inspect\_\allowbreak{}lowball} (5.0 points below it); Opus keeps
+90.4\% of the approximate planning reference's value and comes closest to \texttt{inspect\_\allowbreak{}lowball} (5.0 points below it); Opus keeps
 80.4\%. Both beat \texttt{inspect\_\allowbreak{}then\_\allowbreak{}sign} at the 98.3\% level. Sol leads Opus by 10.0 points {[}7.4, 12.6{]}, and Opus cannot be
 distinguished from Gemini (+1.6 {[}−0.3, +3.6{]}). As with the flash models, nearly all of each model's shortfall arises
 in worlds whose favourite is a lemon.
@@ -271,7 +273,7 @@ Two CLI agents played the first 20 worlds of the main evaluation set (40 episode
 difference, +23 {[}−19, +64{]}, is not statistically established. Both equal the reference where the favourite is
 sound (\$427) and fall short where it is a lemon (\$200 and \$155 against \$235).
 
-This reference is reachable but not optimal. An exact best informed tenant (Appendix C) earns \$307 a world on the
+This reference is reachable but not optimal. An approximate planning reference (Appendix C) earns \$307 a world on the
 main evaluation set when it knows the two landlord kinds and how each prices. The v14 models were not told how
 landlords price, so part of their gap to this tenant reflects missing information rather than poor judgment. v15
 states the pricing rule in its task prompt and uses this tenant as the reference for its inclusion screen and for
@@ -393,6 +395,136 @@ Of the flash models, Gemini never tested a newcomer and Luna tested in two world
 distinguished (+\$0.8 {[}−3.7, +6.3{]}); their loss is \$112.8 and \$111.0 a world where a test is the best plan, against
 \$0.0 and \$1.0 where paying is, and all 48 episodes are valid and replayed (\$0.21). GLM 5.3 Flash did not play,
 because its provider route changed price before any call.
+
+\textbf{The mechanism study.} Section 5.1 gives its main contrasts. The study asks at which step value is lost when a model
+could investigate: deliberation, plan construction, valuation or action. Every episode resets to one public checkpoint,
+after the recorded supplier's quote and sample, with sunk costs and elapsed days kept, and then continues to the end
+of the episode under the ordinary action interface. Assistance is given once, before the first action. Within a
+world, every arm uses the same private draw. Arm D acts directly. Arm E first writes a contingent plan and estimates
+its value against buying now. Arm P receives the best plan the restricted format expresses and values it itself. Arm
+PV receives that plan with its exact values. No arm is told a plan is optimal, and any legal action remains open. The
+outcome is the sum of each action's loss against the best policy at the public belief state s reached,
+
+\[ \parbox{0.86\linewidth}{\raggedright L = Σ<sub>t</sub> [ V<sup>∗</sup>(s<sub>t</sub>) − Q<sup>∗</sup>(s<sub>t</sub>, a<sub>t</sub>) ],} \tag{E.4} \]
+
+and the unit of analysis is the world.
+
+The restricted format samples one newcomer and then acts on the result. It usually cannot express the best policy. At
+the checkpoint let B be the value of the best immediate award, V that of the unrestricted best policy, and S that of
+the best plan in the format over every newcomer as first sample. In 300 fresh structures, V − B is at least \$5 in 206;
+among those 206, S is within \$5 of V in only 20, the cheapest sample is the wrong first move in 68, and the median
+V − S is \$19.4. Loss under assistance can therefore measure the format and not the agent, so we include a world only
+if V − B ≥ \$5, S − B ≥ \$5 and V − S ≤ \$5. In the same 300 structures, shared sources change the value of investigating
+in only 7, so the study has no power on dependence and we dropped the planned interaction. The primary claim is the
+ladder of arms.
+
+A development pilot of 24 worlds and 192 episodes sized the test. On its 12 included worlds E − D was −\$76.0
+{[}−118, −39{]}, P − E was +\$1.3 {[}−16, +18{]} and PV − P was +\$27.8 {[}−24, +117{]}, the last driven by one episode in which Opus
+awarded 55 units to a supplier its quote had shown to deliver on time 55\% of the time and lost \$981. We therefore set a
+minimum effect of \$25 on two primary hypotheses: H1, E − D differs from zero; H2, P − E lies within ±\$25 by two
+one-sided tests, with Holm's correction over both. Resampling the pilot gave 81\% power for H1 at 100 worlds and over
+99\% for H2. On the pilot's 12 unscreened worlds, which are development evidence only, E − D was −\$42 with an interval
+spanning zero and P − E was −\$21.6 {[}−46.5, −2.9{]}: there the supplied plan beat Opus's own, so the ladder may not
+transfer to worlds outside the screen.
+
+The held-out test used 100 worlds included from 2,539 seeds scanned from 11,000,000, disjoint from every development
+range, with one private draw a world.
+
+\renewcommand{\thetable}{E.20}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1304}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1739}}@{}}
+\caption{\textbf{Procurement mechanism study, 100 held-out worlds, Opus 5.5 at low reasoning effort. Episodes are completed episodes. Bought at once: the first action was an award, which ended the episode. Despite its own estimate: Opus had valued the plan more than \$5 above buying now, then bought at once. An action over \$100: episodes with one action losing more than \$100. ‡ Agent configuration (command-line tool, low reasoning effort, no seed).}}\label{tab:E.20}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Arm‡
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Episodes
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Mean loss
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Bought at once
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Despite its own estimate
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+An action over \$100
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+D: acts directly & 99 & \$84.72 & 63 & not applicable & 32 \\
+E: writes and values its own plan & 98 & \$18.34 & 28 & 25 & 2 \\
+P: receives the best plan in the format & 98 & \$17.16 & 34 & 34 & 2 \\
+PV: receives that plan with exact values & 98 & \$3.93 & 2 & 2 & 0 \\
+\end{longtable}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1364}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1818}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1818}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1818}}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1818}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1364}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Contrast (within world, complete pairs)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Worlds
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Mean difference
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+95\% bootstrap interval
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
+Holm-adjusted p
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Status
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+H1: E − D & 98 & −\$67.14 & {[}−92.3, −46.7{]} & \textless{} 0.0001 & primary, supported \\
+H2: P − E, equivalence within ±\$25 & 97 & −\$0.66 & {[}−8.3, +6.8{]} & \textless{} 0.0001 & primary, supported \\
+PV − P & 97 & −\$13.31 & {[}−18.9, −8.3{]} & & secondary \\
+PV − D & 98 & −\$81.55 & {[}−104.9, −62.8{]} & & secondary \\
+\end{longtable}
+
+The equivalence margin is wider than arm E's whole mean loss, so the interval is more informative than the verdict.
+Opus's own plan was the best expressible one in 66 of the 99 plans it wrote in arm E (one of those episodes failed after
+its plan, so the arm has 98 completed episodes), so the P − E contrast is decided by the remaining third. With exact
+values Opus almost always follows the plan. When it had to value the plan itself, it bought at once despite putting the
+plan more than \$5 above buying now in 25 episodes of arm E and 34 of arm P. Its largest error in estimating a plan's
+advantage was \$62.63 in arm E, \$44.46 in arm P and \$0.03 in arm PV. This pattern is consistent with discounting
+self-generated estimates, but authority, salience, accuracy and risk attitude remain confounded.
+
+Seven of the 400 cells are missing. One call reached the frozen \$0.20 per-call cap, and a defect in our runner's halt
+rule read that as the campaign budget and stopped the run, costing six more. None was rerun. Both hypotheses still
+pass if each missing cell is filled with the loss of buying now or with the largest loss observed in its arm. Under the
+most adverse fill the worlds allow, about \$1,150 a cell, a value never observed, H1 falls to p = 0.031 before correction
+and H2 fails.
+
+Three limits apply. The study concerns one model at one effort level through one tool. Arm E adds attention and
+computation together, and no neutral deliberation arm separates them. The worlds are 3.9\% of the seeds scanned and say
+nothing about how common such decisions are, and none of the 20 worlds of Table 5.3 passes the screen: 17 meet the
+first condition, 12 the second and 3 the third, with a median V − S of \$14.34 (computed after the run, with no model
+called). The study does not test the sharing rule. It also differs from the
+reported cases in provenance. It ran on a purpose-built runner, so it has no receipts and no gate status; the runner
+was audited offline over all 1,290 calls, and we recomputed every figure above from the per-episode table. Its
+protocol was frozen by digest before the first call and pinned the case's source commit, but it was not committed to
+the repository first, so we do not count it as pre-registered.
+
+A development comparison preceded this test, on four worlds and their dependence twins, with the candidate chosen by
+cheapest sample and without the screen. Acting directly, Opus lost \$46.81 and Sol \$0.00 on the two unscreened worlds,
+and \$11.37 and \$0.49 on the two selected worlds. Sol wrote the best expressible plan in all eight arm E episodes and
+Opus in five, although some of these conditions have simple fallback plans. Sol never bought at once after valuing a
+plan more than \$5 above buying now; Opus did so three times. In one world, where the format falls about \$80 short of the best policy, Sol lost \$0 acting directly,
+\$34.03 with the supplied plan and \$56.48 with its exact values, in the last case following the supplied plan.
+Four worlds do not support a comparison of the two models.
 
 \subsubsection{Data center}\label{data-center}
 
@@ -1553,7 +1685,7 @@ efficient than adding repeats: detecting a \$50k gap needs 83 to 91 negotiations
 to 162 at three plays a world. We name the counterparts and report results per counterpart type; in the agreement case
 the counterpart accounts for 25\% to 33\% of the spread in what a model earns. The reported analyses that were
 pre-registered before their runs are Housing v14 and v15, the agreement signalling test, both agreement confirmatory
-runs, and Procurement's test and its diagnostics. We tested a harness setting rather than assuming its effect: asking
+runs, and Procurement's test and its diagnostics. Procurement's mechanism study was frozen by digest before its first call but not committed first (Appendix E.4). We tested a harness setting rather than assuming its effect: asking
 the CLIs for reasoning summaries changed nothing detectable in Housing (Opus +17 {[}−28, +62{]}, Sol +3.5 {[}−46, +53{]}; five
 selected worlds and 120 episodes, with the summary-off plays always run first).
 
@@ -1701,7 +1833,7 @@ T.5 Agent isolated from ground truth & partly & named hidden fields are tested a
 T.6 Setup does not change over time & partly & environment inputs and pre-registered routes are pinned; this does not attest a stable hosted deployment, provider compliance, or the unsealed CLI environment (Appendix H.2, H.3) \\
 T.7 Ground truth verified & partly & each reference is played on every included world through the environment and reaches its stated result, initially by tests added after development; the included agreement evaluation set also had a dry run before the confirmatory run (Appendix F.2) \\
 T.8 Each task verified solvable & partly & reference policies are played through the environment, but full-information references can use information unavailable to the evaluated seat; this does not establish that every seat can attain the reported bound \\
-T.9 Oracle solver & partly & exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an exact best informed tenant in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built \\
+T.9 Oracle solver & partly & exact for Procurement; an independent reference resolution and a scripted policy that resolves every case for Refund; a reachable reference for Housing, with an approximate planning reference in development; a full-information stand-in for Data center, whose per-turn best informed policy is not built \\
 T.10 Free of exploitable shortcuts & partly & trivial agents, exact fixed-rule scores and task-prompt audits (Appendix F.4); twenty-five selected defects (Table F.4); a one-step rule reaches the best policy on Procurement's earlier evaluation set, and the reported evaluation set includes only worlds where that rule pays the premium; a wrong refund can still pass Refund's payment leaf \\
 O.i.1 Quality metric resists exploitation & partly & code computes the measures and controls are tested, but the Housing measure needed correction and Refund has open payment and lower-control failures \\
 R.1 Open source & partly & the environments, runner and evidence are public; the trajectory viewer is private \\
@@ -1734,6 +1866,9 @@ Everything on which the numbers in Sections 5 and 6 rest is in the public AERead
   5.3) as twelve bundles, all 432 of whose receipts replay through the runtime's command line, and Housing v15 with
   its two addenda and v14, all 3,520 of whose v15 receipts replay there. On case branches: the data-center agreement
   bundles, awaiting the review of their registry entry, and the Refund V2.1 bundles with their gap decomposition.
+\item
+  \textbf{Procurement mechanism study.} Not in the repository. Its protocol, screen, per-episode table and analysis ship
+  with the paper's source package; its raw calls are held privately.
 \item
   \textbf{Quality control.} Each family's quality-control profile and incident log, kept with its code, and the
   reference-run tests named in §6.

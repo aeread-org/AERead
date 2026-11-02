@@ -106,6 +106,8 @@ with a deal and 8 without).
 | Procurement, pay or test | 24 | six kinds × four | Opus 5.5, Sol 6.1 | 96 episodes over two task prompts | $9.10 | development |
 | Procurement, pay or test, flash models | 24 | six kinds × four | Gemini 3.8 Flash, GPT-6 Luna (GLM's route refused) | 24 episodes each, second task prompt | $0.21 | development |
 | Procurement, record evaluation set | 18 | which listing the record favours | Opus 5.5, Sol 6.1 | one episode a world each | | development |
+| Procurement mechanism study | 100 held-out worlds; pilot 12 + 12 | four assistance arms | Opus 5.5 (Claude Code), low effort | 393 of 400 episodes; pilot 192 | $88.95 and $32.82, as reported by the tool | frozen by digest, outside the runtime (Appendix E.4) |
+| Procurement mechanism study, Sol comparison | 4 development worlds and their dependence twins | four assistance arms | Sol 6.1 (Codex), Opus 5.5 | 32 episodes each | Opus $4.48 as reported by the tool; Sol unreported | development |
 | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one pre-registered test |
 | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 episodes | $0.2193 charged | stopped at sizing; no confirmatory run |
 | Data center confirmatory v2 | 80 included + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | pre-registered; Gate 3 passed, the others partial |
@@ -288,6 +290,88 @@ Of the flash models, Gemini never tested a newcomer and Luna tested in two world
 distinguished (+$0.8 [−3.7, +6.3]); their loss is $112.8 and $111.0 a world where a test is the best plan, against
 $0.0 and $1.0 where paying is, and all 48 episodes are valid and replayed ($0.21). GLM 5.3 Flash did not play,
 because its provider route changed price before any call.
+
+**The mechanism study.** Section 5.1 gives its main contrasts. The study asks at which step value is lost when a model
+could investigate: deliberation, plan construction, valuation or action. Every episode resets to one public checkpoint,
+after the recorded supplier's quote and sample, with sunk costs and elapsed days kept, and then continues to the end
+of the episode under the ordinary action interface. Assistance is given once, before the first action. Within a
+world, every arm uses the same private draw. Arm D acts directly. Arm E first writes a contingent plan and estimates
+its value against buying now. Arm P receives the best plan the restricted format expresses and values it itself. Arm
+PV receives that plan with its exact values. No arm is told a plan is optimal, and any legal action remains open. The
+outcome is the sum of each action's loss against the best policy at the public belief state s reached,
+
+[[eq E.4]] L = Σ<sub>t</sub> [ V<sup>∗</sup>(s<sub>t</sub>) − Q<sup>∗</sup>(s<sub>t</sub>, a<sub>t</sub>) ],
+
+and the unit of analysis is the world.
+
+The restricted format samples one newcomer and then acts on the result. It usually cannot express the best policy. At
+the checkpoint let B be the value of the best immediate award, V that of the unrestricted best policy, and S that of
+the best plan in the format over every newcomer as first sample. In 300 fresh structures, V − B is at least $5 in 206;
+among those 206, S is within $5 of V in only 20, the cheapest sample is the wrong first move in 68, and the median
+V − S is $19.4. Loss under assistance can therefore measure the format and not the agent, so we include a world only
+if V − B ≥ $5, S − B ≥ $5 and V − S ≤ $5. In the same 300 structures, shared sources change the value of investigating
+in only 7, so the study has no power on dependence and we dropped the planned interaction. The primary claim is the
+ladder of arms.
+
+A development pilot of 24 worlds and 192 episodes sized the test. On its 12 included worlds E − D was −$76.0
+[−118, −39], P − E was +$1.3 [−16, +18] and PV − P was +$27.8 [−24, +117], the last driven by one episode in which Opus
+awarded 55 units to a supplier its quote had shown to deliver on time 55% of the time and lost $981. We therefore set a
+minimum effect of $25 on two primary hypotheses: H1, E − D differs from zero; H2, P − E lies within ±$25 by two
+one-sided tests, with Holm's correction over both. Resampling the pilot gave 81% power for H1 at 100 worlds and over
+99% for H2. On the pilot's 12 unscreened worlds, which are development evidence only, E − D was −$42 with an interval
+spanning zero and P − E was −$21.6 [−46.5, −2.9]: there the supplied plan beat Opus's own, so the ladder may not
+transfer to worlds outside the screen.
+
+The held-out test used 100 worlds included from 2,539 seeds scanned from 11,000,000, disjoint from every development
+range, with one private draw a world.
+
+**Table E.20. Procurement mechanism study, 100 held-out worlds, Opus 5.5 at low reasoning effort. Episodes are completed episodes. Bought at once: the first action was an award, which ended the episode. Despite its own estimate: Opus had valued the plan more than $5 above buying now, then bought at once. An action over $100: episodes with one action losing more than $100. ‡ Agent configuration (command-line tool, low reasoning effort, no seed).**
+
+| Arm‡ | Episodes | Mean loss | Bought at once | Despite its own estimate | An action over $100 |
+|---|---:|---:|---:|---:|---:|
+| D: acts directly | 99 | $84.72 | 63 | not applicable | 32 |
+| E: writes and values its own plan | 98 | $18.34 | 28 | 25 | 2 |
+| P: receives the best plan in the format | 98 | $17.16 | 34 | 34 | 2 |
+| PV: receives that plan with exact values | 98 | $3.93 | 2 | 2 | 0 |
+
+| Contrast (within world, complete pairs) | Worlds | Mean difference | 95% bootstrap interval | Holm-adjusted p | Status |
+|---|---:|---:|---:|---:|---|
+| H1: E − D | 98 | −$67.14 | [−92.3, −46.7] | < 0.0001 | primary, supported |
+| H2: P − E, equivalence within ±$25 | 97 | −$0.66 | [−8.3, +6.8] | < 0.0001 | primary, supported |
+| PV − P | 97 | −$13.31 | [−18.9, −8.3] | | secondary |
+| PV − D | 98 | −$81.55 | [−104.9, −62.8] | | secondary |
+
+The equivalence margin is wider than arm E's whole mean loss, so the interval is more informative than the verdict.
+Opus's own plan was the best expressible one in 66 of the 99 plans it wrote in arm E (one of those episodes failed after
+its plan, so the arm has 98 completed episodes), so the P − E contrast is decided by the remaining third. With exact
+values Opus almost always follows the plan. When it had to value the plan itself, it bought at once despite putting the
+plan more than $5 above buying now in 25 episodes of arm E and 34 of arm P. Its largest error in estimating a plan's
+advantage was $62.63 in arm E, $44.46 in arm P and $0.03 in arm PV. This pattern is consistent with discounting
+self-generated estimates, but authority, salience, accuracy and risk attitude remain confounded.
+
+Seven of the 400 cells are missing. One call reached the frozen $0.20 per-call cap, and a defect in our runner's halt
+rule read that as the campaign budget and stopped the run, costing six more. None was rerun. Both hypotheses still
+pass if each missing cell is filled with the loss of buying now or with the largest loss observed in its arm. Under the
+most adverse fill the worlds allow, about $1,150 a cell, a value never observed, H1 falls to p = 0.031 before correction
+and H2 fails.
+
+Three limits apply. The study concerns one model at one effort level through one tool. Arm E adds attention and
+computation together, and no neutral deliberation arm separates them. The worlds are 3.9% of the seeds scanned and say
+nothing about how common such decisions are, and none of the 20 worlds of Table 5.3 passes the screen: 17 meet the
+first condition, 12 the second and 3 the third, with a median V − S of $14.34 (computed after the run, with no model
+called). The study does not test the sharing rule. It also differs from the
+reported cases in provenance. It ran on a purpose-built runner, so it has no receipts and no gate status; the runner
+was audited offline over all 1,290 calls, and we recomputed every figure above from the per-episode table. Its
+protocol was frozen by digest before the first call and pinned the case's source commit, but it was not committed to
+the repository first, so we do not count it as pre-registered.
+
+A development comparison preceded this test, on four worlds and their dependence twins, with the candidate chosen by
+cheapest sample and without the screen. Acting directly, Opus lost $46.81 and Sol $0.00 on the two unscreened worlds,
+and $11.37 and $0.49 on the two selected worlds. Sol wrote the best expressible plan in all eight arm E episodes and
+Opus in five, although some of these conditions have simple fallback plans. Sol never bought at once after valuing a
+plan more than $5 above buying now; Opus did so three times. In one world, where the format falls about $80 short of the best policy, Sol lost $0 acting directly,
+$34.03 with the supplied plan and $56.48 with its exact values, in the last case following the supplied plan.
+Four worlds do not support a comparison of the two models.
 
 #### Data center
 
@@ -1024,7 +1108,7 @@ efficient than adding repeats: detecting a $50k gap needs 83 to 91 negotiations 
 to 162 at three plays a world. We name the counterparts and report results per counterpart type; in the agreement case
 the counterpart accounts for 25% to 33% of the spread in what a model earns. The reported analyses that were
 pre-registered before their runs are Housing v14 and v15, the agreement signalling test, both agreement confirmatory
-runs, and Procurement's test and its diagnostics. We tested a harness setting rather than assuming its effect: asking
+runs, and Procurement's test and its diagnostics. Procurement's mechanism study was frozen by digest before its first call but not committed first (Appendix E.4). We tested a harness setting rather than assuming its effect: asking
 the CLIs for reasoning summaries changed nothing detectable in Housing (Opus +17 [−28, +62], Sol +3.5 [−46, +53]; five
 selected worlds and 120 episodes, with the summary-off plays always run first).
 
@@ -1141,6 +1225,8 @@ Everything on which the numbers in Sections 5 and 6 rest is in the public AERead
   5.3) as twelve bundles, all 432 of whose receipts replay through the runtime's command line, and Housing v15 with
   its two addenda and v14, all 3,520 of whose v15 receipts replay there. On case branches: the data-center agreement
   bundles, awaiting the review of their registry entry, and the Refund V2.1 bundles with their gap decomposition.
+- **Procurement mechanism study.** Not in the repository. Its protocol, screen, per-episode table and analysis ship
+  with the paper's source package; its raw calls are held privately.
 - **Quality control.** Each family's quality-control profile and incident log, kept with its code, and the
   reference-run tests named in §6.
 - **Sources for every number.** The source files of Sections 5 and 6 end with tables that map each table and claim to

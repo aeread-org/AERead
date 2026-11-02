@@ -305,6 +305,18 @@ def main():
     for name, meta in v3_checks['sources']['files'].items():
         assert hashlib.sha256((ROOT/'analysis_evidence/procurement_v3'/name).read_bytes()).hexdigest() == meta['sha256']
     assert [round(r['mean'], 2) for r in v3_checks['rows'][:2]] == [0.35, 0.0]
+    # The mechanism study's prose and Table E.20 follow its recomputed checks.
+    p0 = json.loads((ROOT/'analysis_evidence/procurement_mechanism_p0/CHECKS.json').read_text())
+    p0_text = soup.get_text()
+    for key, label in (('direct', 'D: acts directly'), ('elicitation', 'E: writes and values its own plan'), ('supplied_policy', 'P: receives the best plan in the format'), ('supplied_policy_values', 'PV: receives that plan with exact values')):
+        arm = p0['arms'][key]
+        row = next(r for r in soup.find_all('tr') if r.get_text(' ', strip=True).startswith(label))
+        cells = [c.get_text(strip=True) for c in row.find_all('td')]
+        assert cells[1] == str(arm['completed']) and cells[2] == f"${arm['mean_loss']:.2f}" and cells[3] == str(arm['bought_at_once']), (label, cells)
+    assert '78%' in p0_text and round(p0['direct_loss_share_of_gain'] * 100) == 78
+    for name, shown in (('E_minus_D', '−$67.14'), ('P_minus_E', '−$0.66'), ('PV_minus_P', '−$13.31'), ('PV_minus_D', '−$81.55')):
+        assert shown.replace('−$', '') == f"{abs(p0['contrasts'][name]['mean']):.2f}" and shown in p0_text, name
+    assert p0['missing_cells'] == 7
     # A source-bound figure leads the main results; exact values stay in E.10.
     source_image = soup.find('img', src='figures/shortfall_by_case.svg')
     assert source_image is not None

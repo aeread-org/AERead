@@ -1,0 +1,237 @@
+{
+ "run": "pilot",
+ "status": "completed",
+ "episodes": 192,
+ "verified_calls": 555,
+ "cost_usd": 32.8162,
+ "cost_per_episode": 0.1707,
+ "status_counts": {
+  "completed": 192
+ },
+ "gap_bounded": {
+  "worlds": 12,
+  "arm_means": {
+   "direct": {
+    "loss": 92.761,
+    "bought_now": 0.667,
+    "mismatch": 0,
+    "n": 24
+   },
+   "elicitation": {
+    "loss": 16.732,
+    "bought_now": 0.292,
+    "mismatch": 6,
+    "n": 24
+   },
+   "supplied_policy": {
+    "loss": 18.005,
+    "bought_now": 0.25,
+    "mismatch": 5,
+    "n": 24
+   },
+   "supplied_policy_values": {
+    "loss": 45.786,
+    "bought_now": 0.0,
+    "mismatch": 0,
+    "n": 24
+   }
+  },
+  "contrasts": {
+   "supplied_policy - elicitation": {
+    "mean": 1.273,
+    "sd": 31.826,
+    "ci95": [
+     -15.595,
+     18.49
+    ],
+    "p_signflip": 0.8153,
+    "worlds": 12,
+    "p_holm": 1,
+    "within_var_per_draw": 1057.75,
+    "var_of_world_means": 1012.91
+   },
+   "supplied_policy_values - supplied_policy": {
+    "mean": 27.782,
+    "sd": 147.292,
+    "ci95": [
+     -23.56,
+     116.612
+    ],
+    "p_signflip": 1.0,
+    "worlds": 12,
+    "p_holm": 1,
+    "within_var_per_draw": 40466.43,
+    "var_of_world_means": 21694.83
+   },
+   "supplied_policy_values - direct": {
+    "mean": -46.975,
+    "sd": 170.224,
+    "ci95": [
+     -121.592,
+     57.54
+    ],
+    "p_signflip": 0.3825,
+    "worlds": 12,
+    "p_holm": 1,
+    "within_var_per_draw": 41467.09,
+    "var_of_world_means": 28976.1
+   },
+   "elicitation - direct": {
+    "mean": -76.029,
+    "sd": 73.483,
+    "ci95": [
+     -118.444,
+     -39.386
+    ],
+    "p_signflip": 0.0018,
+    "worlds": 12,
+    "p_holm": 0.0073,
+    "within_var_per_draw": 2283.94,
+    "var_of_world_means": 5399.69
+   }
+  },
+  "planning": {
+   "E_best_policy": "17/24",
+   "E_median_planning_gap": 0.0,
+   "max_abs_adv_error_by_arm": {
+    "elicitation": 9.513,
+    "supplied_policy": 9.097,
+    "supplied_policy_values": 0.005
+   },
+   "mismatches_by_arm": {
+    "direct": 0,
+    "elicitation": 6,
+    "supplied_policy": 5,
+    "supplied_policy_values": 0
+   },
+   "catastrophic_commitments_by_arm": {
+    "direct": 10,
+    "elicitation": 1,
+    "supplied_policy": 1,
+    "supplied_policy_values": 1
+   }
+  },
+  "sizing": {
+   "rule": "N=((z_{1-.05/6}+z_.8)*SD/5)^2 on the largest world-level contrast SD, then checked by resampling",
+   "largest_sd_contrast": "supplied_policy_values - direct",
+   "sd": 170.224,
+   "N_normal": 12135,
+   "sim_power_at_N": {
+    "supplied_policy - elicitation": 1.0,
+    "supplied_policy_values - supplied_policy": 0.937,
+    "supplied_policy_values - direct": 0.823,
+    "elicitation - direct": 1.0
+   },
+   "per_contrast_N": {
+    "supplied_policy - elicitation": 425,
+    "supplied_policy_values - supplied_policy": 9086,
+    "supplied_policy_values - direct": 12135,
+    "elicitation - direct": 2262
+   }
+  }
+ },
+ "unscreened": {
+  "worlds": 12,
+  "arm_means": {
+   "direct": {
+    "loss": 96.112,
+    "bought_now": 0.458,
+    "mismatch": 0,
+    "n": 24
+   },
+   "elicitation": {
+    "loss": 54.063,
+    "bought_now": 0.625,
+    "mismatch": 5,
+    "n": 24
+   },
+   "supplied_policy": {
+    "loss": 32.419,
+    "bought_now": 0.542,
+    "mismatch": 3,
+    "n": 24
+   },
+   "supplied_policy_values": {
+    "loss": 31.577,
+    "bought_now": 0.458,
+    "mismatch": 1,
+    "n": 24
+   }
+  },
+  "contrasts": {
+   "supplied_policy - elicitation": {
+    "mean": -21.643,
+    "sd": 40.743,
+    "ci95": [
+     -46.511,
+     -2.925
+    ],
+    "p_signflip": 0.062,
+    "worlds": 12,
+    "p_holm": 0.2478,
+    "within_var_per_draw": 414.36,
+    "var_of_world_means": 1660.02
+   },
+   "supplied_policy_values - supplied_policy": {
+    "mean": -0.843,
+    "sd": 10.511,
+    "ci95": [
+     -6.117,
+     5.195
+    ],
+    "p_signflip": 0.814,
+    "worlds": 12,
+    "p_holm": 1,
+    "within_var_per_draw": 203.96,
+    "var_of_world_means": 110.48
+   },
+   "supplied_policy_values - direct": {
+    "mean": -64.535,
+    "sd": 145.518,
+    "ci95": [
+     -153.781,
+     -5.641
+    ],
+    "p_signflip": 0.0628,
+    "worlds": 12,
+    "p_holm": 0.2478,
+    "within_var_per_draw": 53219.89,
+    "var_of_world_means": 21175.54
+   },
+   "elicitation - direct": {
+    "mean": -42.049,
+    "sd": 149.927,
+    "ci95": [
+     -133.401,
+     15.427
+    ],
+    "p_signflip": 0.5155,
+    "worlds": 12,
+    "p_holm": 1,
+    "within_var_per_draw": 51808.63,
+    "var_of_world_means": 22478.08
+   }
+  },
+  "planning": {
+   "E_best_policy": "18/24",
+   "E_median_planning_gap": 0.0,
+   "max_abs_adv_error_by_arm": {
+    "elicitation": 44.548,
+    "supplied_policy": 11.568,
+    "supplied_policy_values": 0.005
+   },
+   "mismatches_by_arm": {
+    "direct": 0,
+    "elicitation": 5,
+    "supplied_policy": 3,
+    "supplied_policy_values": 1
+   },
+   "catastrophic_commitments_by_arm": {
+    "direct": 7,
+    "elicitation": 3,
+    "supplied_policy": 1,
+    "supplied_policy_values": 1
+   }
+  }
+ }
+}

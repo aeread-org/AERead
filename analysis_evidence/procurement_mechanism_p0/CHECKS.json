@@ -1,0 +1,103 @@
+{
+ "arms": {
+  "direct": {
+   "completed": 99,
+   "mean_loss": 84.72,
+   "median_loss": 59.36,
+   "bought_at_once": 63,
+   "bought_despite_own_gain": 0
+  },
+  "elicitation": {
+   "completed": 98,
+   "mean_loss": 18.34,
+   "median_loss": 4.32,
+   "bought_at_once": 28,
+   "bought_despite_own_gain": 25
+  },
+  "supplied_policy": {
+   "completed": 98,
+   "mean_loss": 17.16,
+   "median_loss": 4.41,
+   "bought_at_once": 34,
+   "bought_despite_own_gain": 34
+  },
+  "supplied_policy_values": {
+   "completed": 98,
+   "mean_loss": 3.93,
+   "median_loss": 3.39,
+   "bought_at_once": 2,
+   "bought_despite_own_gain": 2
+  }
+ },
+ "contrasts": {
+  "E_minus_D": {
+   "worlds": 98,
+   "mean": -67.14,
+   "ci95": [
+    -92.7,
+    -46.7
+   ],
+   "sd": 117.3
+  },
+  "P_minus_E": {
+   "worlds": 97,
+   "mean": -0.66,
+   "ci95": [
+    -8.2,
+    6.7
+   ],
+   "sd": 38.0
+  },
+  "PV_minus_P": {
+   "worlds": 97,
+   "mean": -13.31,
+   "ci95": [
+    -19.0,
+    -8.3
+   ],
+   "sd": 26.8
+  },
+  "PV_minus_D": {
+   "worlds": 98,
+   "mean": -81.55,
+   "ci95": [
+    -104.9,
+    -62.7
+   ],
+   "sd": 108.7
+  }
+ },
+ "investigation_gain_mean_direct": 108.16,
+ "direct_loss_share_of_gain": 0.783,
+ "tests_complete_pairs": {
+  "H1_mean": -67.14,
+  "H1_p": 5e-05,
+  "H2_mean": -0.66,
+  "H2_p_tost": 5e-05,
+  "both_pass_holm": true
+ },
+ "missing_cells": 7,
+ "fills": {
+  "buy_now_loss": {
+   "H1_mean": -65.79,
+   "H1_p": 5e-05,
+   "H2_mean": 0.5,
+   "H2_p_tost": 5e-05,
+   "both_pass_holm": true
+  },
+  "arm_worst_observed": {
+   "H1_mean": -72.85,
+   "H1_p": 5e-05,
+   "H2_mean": -0.5,
+   "H2_p_tost": 5e-05,
+   "both_pass_holm": true
+  },
+  "adversarial_1150": {
+   "H1_mean": -42.89,
+   "H1_p": 0.03125,
+   "H2_mean": -1.16,
+   "H2_p_tost": 0.09395,
+   "both_pass_holm": false
+  }
+ }
+}

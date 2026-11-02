@@ -1,0 +1,126 @@
+{
+ "run": "confirm",
+ "status": "halted",
+ "episodes": 397,
+ "verified_calls": 1290,
+ "cost_usd": 88.9485,
+ "cost_per_episode": 0.224,
+ "status_counts": {
+  "completed": 393,
+  "failed": 4
+ },
+ "gap_bounded": {
+  "worlds": 100,
+  "arm_means": {
+   "direct": {
+    "loss": 84.715,
+    "bought_now": 0.636,
+    "mismatch": 0,
+    "n": 99
+   },
+   "elicitation": {
+    "loss": 18.344,
+    "bought_now": 0.283,
+    "mismatch": 25,
+    "n": 99
+   },
+   "supplied_policy": {
+    "loss": 17.156,
+    "bought_now": 0.343,
+    "mismatch": 34,
+    "n": 99
+   },
+   "supplied_policy_values": {
+    "loss": 3.933,
+    "bought_now": 0.02,
+    "mismatch": 2,
+    "n": 100
+   }
+  },
+  "contrasts": {
+   "elicitation - direct": {
+    "mean": -67.138,
+    "sd": 117.311,
+    "ci95": [
+     -92.283,
+     -46.713
+    ],
+    "p_signflip": 0.0,
+    "worlds": 98,
+    "p_holm": 0.0001
+   },
+   "supplied_policy - elicitation": {
+    "mean": -0.656,
+    "sd": 38.022,
+    "ci95": [
+     -8.265,
+     6.839
+    ],
+    "p_signflip": 0.8686,
+    "worlds": 97,
+    "p_holm": 0.8686
+   },
+   "supplied_policy_values - supplied_policy": {
+    "mean": -13.309,
+    "sd": 26.804,
+    "ci95": [
+     -18.948,
+     -8.344
+    ],
+    "p_signflip": 0.0,
+    "worlds": 97,
+    "p_holm": 0.0001
+   },
+   "supplied_policy_values - direct": {
+    "mean": -81.548,
+    "sd": 108.712,
+    "ci95": [
+     -104.865,
+     -62.806
+    ],
+    "p_signflip": 0.0,
+    "worlds": 98,
+    "p_holm": 0.0001
+   }
+  },
+  "planning": {
+   "E_best_policy": "66/99",
+   "E_median_planning_gap": 0.0,
+   "max_abs_adv_error_by_arm": {
+    "elicitation": 62.627,
+    "supplied_policy": 44.455,
+    "supplied_policy_values": 0.025
+   },
+   "mismatches_by_arm": {
+    "direct": 0,
+    "elicitation": 25,
+    "supplied_policy": 34,
+    "supplied_policy_values": 2
+   },
+   "catastrophic_commitments_by_arm": {
+    "direct": 32,
+    "elicitation": 2,
+    "supplied_policy": 2,
+    "supplied_policy_values": 0
+   }
+  },
+  "primary_tests": {
+   "H1": {
+    "p_raw": 2e-05,
+    "p_holm": 4e-05,
+    "reject_null": true,
+    "worlds": 98
+   },
+   "H2": {
+    "p_raw": 2e-05,
+    "p_holm": 4e-05,
+    "reject_null": true,
+    "worlds": 97
+   }
+  },
+  "coverage": {
+   "scheduled_worlds": 100,
+   "complete_worlds": 97
+  }
+ }
+}

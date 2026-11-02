@@ -1,0 +1,162 @@
+[
+{
+"file": "myopic_pays__1.json",
+"inv_gain": 41.87381677995501,
+"S_minus_B": 25.993282701137502,
+"V_minus_S": 15.880534078817504,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__10.json",
+"inv_gain": 39.22075628866651,
+"S_minus_B": 25.41551876628057,
+"V_minus_S": 13.805237522385937,
+"passes": false,
+"sec": 0.0
+},
+{
+"file": "myopic_pays__11.json",
+"inv_gain": 26.349857992952366,
+"S_minus_B": 2.0969231627153135,
+"V_minus_S": 24.252934830237052,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__12.json",
+"inv_gain": 34.81499932773295,
+"S_minus_B": 18.989058399375267,
+"V_minus_S": 15.825940928357682,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__13.json",
+"inv_gain": 63.3859079184017,
+"S_minus_B": 48.81708071163723,
+"V_minus_S": 14.568827206764468,
+"passes": false,
+"sec": 0.0
+},
+{
+"file": "myopic_pays__14.json",
+"inv_gain": 0.0,
+"S_minus_B": 0.0,
+"V_minus_S": 0.0,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__15.json",
+"inv_gain": 15.547608452373993,
+"S_minus_B": 1.8818302431473057,
+"V_minus_S": 13.665778209226687,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__16.json",
+"inv_gain": 51.27592604764004,
+"S_minus_B": 43.74441818741457,
+"V_minus_S": 7.531507860225474,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__17.json",
+"inv_gain": 34.6748205702591,
+"S_minus_B": 23.68543808089555,
+"V_minus_S": 10.98938248936355,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__18.json",
+"inv_gain": 0.0,
+"S_minus_B": 0.0,
+"V_minus_S": 0.0,
+"passes": false,
+"sec": 0.0
+},
+{
+"file": "myopic_pays__19.json",
+"inv_gain": 41.60447536608018,
+"S_minus_B": 21.655522700484937,
+"V_minus_S": 19.948952665595243,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__2.json",
+"inv_gain": 19.951051382259948,
+"S_minus_B": 2.3159309007078264,
+"V_minus_S": 17.63512048155212,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__20.json",
+"inv_gain": 41.56747183181636,
+"S_minus_B": 26.666113677065198,
+"V_minus_S": 14.901358154751165,
+"passes": false,
+"sec": 0.0
+},
+{
+"file": "myopic_pays__3.json",
+"inv_gain": 49.44331018443302,
+"S_minus_B": 39.138540919310685,
+"V_minus_S": 10.304769265122331,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__4.json",
+"inv_gain": 30.749224064479904,
+"S_minus_B": 11.300359386760022,
+"V_minus_S": 19.448864677719882,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__5.json",
+"inv_gain": 0.0,
+"S_minus_B": 0.0,
+"V_minus_S": 0.0,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__6.json",
+"inv_gain": 14.106693893290014,
+"S_minus_B": 0.0,
+"V_minus_S": 14.106693893290014,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__7.json",
+"inv_gain": 33.74811093332784,
+"S_minus_B": 16.76420968591526,
+"V_minus_S": 16.983901247412575,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__8.json",
+"inv_gain": 24.830308794664347,
+"S_minus_B": 1.3534895818949622,
+"V_minus_S": 23.476819212769385,
+"passes": false,
+"sec": 0.1
+},
+{
+"file": "myopic_pays__9.json",
+"inv_gain": 49.86851999799012,
+"S_minus_B": 39.957930295239294,
+"V_minus_S": 9.910589702750826,
+"passes": false,
+"sec": 0.1
+}
+]

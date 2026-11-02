@@ -39,3 +39,5 @@ Recommended inspection: the new module's extract() (sealed evidence and
 coverage), derive() (reference and intervals), reports/headline.json (six
 panels), and source_pins.json (exact code and case bytes).
 No paid model calls, remote writes, or publication occurred.
+
+procurement_mechanism_p0/: the Procurement mechanism study (Appendix E.4, Table E.20); see its README.txt.

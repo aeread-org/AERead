@@ -129,3 +129,11 @@ the AERead repository (https://github.com/aeread-org/AERead) unless stated.
   `refund_v2_5_release.md` and `refund_v2_5_v71_port.md` in the Refund family's documentation on that branch; panels `v71_intake` and `v71_customer`;
   `python -m aeread_families.refund.v2_5_release --panel all --seed 301`.
 - Payment-unit contract version 5.1: `src/aeread_families/refund/v2_5_payment_units_v51.py`.
+
+## Procurement mechanism study
+
+Protocol 0.2, `PROTOCOL.md`; held-out run frozen as `f35aece8…` (source commit 1e2ae367, model `claude-opus-5-5`, low
+effort, Claude Code 2.1.312); pilot `5ebdda6b…`. Screen and bound `p0/assistance_gap.py`; pilot runner `p0/pilot.py`;
+held-out driver `p0/confirm.py`; analysis `p0/analyze.py`, 20,000-draw world bootstrap and sign-flip tests. All under
+`notebooks/procurement_v3/mechanism_study/` in the working checkout, which is not tracked; copies in the source package at
+`analysis_evidence/procurement_mechanism_p0/`.
