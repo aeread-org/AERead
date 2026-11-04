@@ -47,7 +47,8 @@ separate from the worlds.
 
 Sol's play is comparable: the same output and reasoning per call, with slower responses. Opus's is not shown to be:
 its output per call rose 2.9 times with the same model identifier and effort, and the v2 worlds do not explain it
-(DC-O-24). A2 and A3 carry this confound; A1, which the reading turns on, does not.
+(DC-O-24). A2 and A3 carry this confound. A1, which the reading turns on, is free of it, but not of the later date and
+newer Codex version, which no run here separates from the worlds.
 
 ## What this changes
 
