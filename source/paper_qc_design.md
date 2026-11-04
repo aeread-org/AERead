@@ -31,14 +31,15 @@ the profiles after the initial runs. The confirmatory run of the agreement case 
 Procurement pass four of Gates 1 to 5, all except Gate 4, and no case yet passes all five (Table 6.1).
 
 **Table 6.1. Gate status of each reported comparison** on 21 October: ● passed, ◐ partial, ✗ failed, – not run.
-Procurement's Gate 1 changed that day, when the exact-reference route was added. Appendix F.1 gives the reasons and
+Procurement's Gate 1 changed that day, when the exact-reference route was added. The data-center row's Gate 3 changed
+on 3 November, when a declared addendum played the worlds its screen had dropped. Appendix F.1 gives the reasons and
 the flags each check raised.
 
 | Comparison | 0 | 1 | 2 | 3 | 4 | 5 | Main open item |
 |---|:-:|:-:|:-:|:-:|:-:|:-:|---|
 | Housing v15 | ● | ● | ● | ● | ◐ | ● | profile probe ran after the freeze |
 | Procurement, pre-registered evaluation set | ● | ● | ● | ● | ◐ | ● | the agents take no seed |
-| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ● | ◐ | ◐ | needs a new evaluation set |
+| Data-center agreement v2, integrator seat | ◐ | ◐ | ◐ | ◐ | ◐ | ◐ | needs a new evaluation set |
 | Refund V2.5, developmental | ● | ◐ | ◐ | ✗ | ◐ | – | a constant full refund passes 38 of 180 cases |
 
 **Headroom (Gate 1).** When a case computes its reference exactly, as Housing and Procurement do, every shortcut named

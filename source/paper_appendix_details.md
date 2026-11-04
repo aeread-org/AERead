@@ -95,9 +95,18 @@ with a deal and 8 without). Unlike the inclusion criteria above, this screen rea
 reads the price-only rule's earnings, it also selects on the comparator of two primary contrasts. It refused 14 deal
 worlds, in which the rule earns $145k on average against $82k in the 72 kept. The mix of client charges does not differ
 clearly from the stated prior (30, 28 and 22 of the 80 worlds; p = 0.52), and those worlds had not been played when v2
-was reported. With assumed values for the 14, Sol's lead over the rule of $22.6k a deal world becomes $14.6k to $20.6k
-and stays positive. Sol's lead over Opus becomes $19.4k to $21.1k, and Opus still does not differ from the rule. These
-figures are assumptions. A declared addendum plays the 14 worlds, and its results are not yet reported here.
+was reported. A declared addendum, committed before any call, then played the 14 worlds in the integrator arm, two plays
+of each world by each model (56 negotiations, all valid and replayed). On them the rule earns $145.2k a deal world, Sol
+$110.5k and Opus $91.0k. Over all 86 deal worlds, with Holm correction across the three re-estimated contrasts and the
+head-to-head contrast, Sol's lead over the rule falls from $22.6k to $13.3k [0.0, 26.6] a deal world (p = 0.050 against
+a Holm threshold of 0.025), below the $14.6k to $20.6k we had assumed for these worlds, and it is not found. The finding
+that Sol beats the price-only rule therefore depends on the screen. Opus minus the rule is −$9.2k [−24.7, 6.3], not
+found, and Sol's lead over Opus is $22.5k [7.1, 38.0] (p = 0.005), found. The 14 worlds were played two weeks after
+the 72, under newer versions of both command-line tools. Sol's output per call did not change (662 tokens against 678),
+but Opus's nearly tripled (2,538 against 874) at the same model identifier and effort, so the two contrasts that use
+Opus's new play carry that change as well as the worlds' difference. The contrast that decides the reading uses Sol
+only; it is free of Opus's change, but not of the later date and newer tool version, which no run here separates from
+the worlds.
 
 ### E.3 What was run
 
@@ -116,7 +125,8 @@ figures are assumptions. A declared addendum plays the 14 worlds, and its result
 | Procurement mechanism study, Sol comparison | 4 development worlds and their dependence twins | four assistance arms | Sol 6.1 (Codex), Opus 5.5 | 32 episodes each | Opus $4.48 as reported by the tool; Sol unreported | development |
 | Data center development and signalling | 58 development + 58 fresh | deal or no deal; outside-option kind; counterpart style | Opus 5.5, Sol 6.1 | 2,456 negotiations, 2,417 valid | $119.30 | development; one pre-registered test |
 | Procurement v2 gate and pilot | 12 pilot worlds, two plays per model; one gate each | shared-source information value | Gemini 3.8 Flash, GPT-6 Luna | 50 episodes | $0.2193 charged | stopped at sizing; no confirmatory run |
-| Data center confirmatory v2 | 80 included + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | pre-registered; Gate 3 passed, the others partial |
+| Data center confirmatory v2 | 80 included + 12 pilot | 72 deal / 8 no-deal; both tools isolated | Opus 5.5, Sol 6.1 | 640 negotiations, all valid and replayed | $55.41 | pre-registered; partial at every gate after the addendum (Appendix F.1) |
+| Data center v2 addendum | the 14 deal worlds v2's screen dropped (Appendix E.2) | as v2, integrator arm only | Opus 5.5, Sol 6.1 | 56 negotiations and 28 scripted, all valid and replayed | $6.64 | declared before any call |
 | Data center confirmatory v1 | 60 included + 12 pilot | 45 deal / 15 no-deal in the confirmatory run | Opus 5.5, Sol 6.1 | 1,176 model negotiations, 1,175 valid; 120 additional scripted dry runs | $74.41 | pre-registered primary contrasts; eight departures |
 | Refund V2.5 release | 244 distinct cases, 268 placements (seed 301) | thirteen cohorts × four seats | deterministic reference profiles only | 1,072 trajectories | none | developmental release |
 | Refund V2.5 calibration | 66 seat-specific pairs, 132 placements | four seats, two repeats | Gemini 2.5 Flash Lite, Gemini 2.5 Pro, GPT-6-sol | 792 episodes | not reported | exploratory calibration |
@@ -967,9 +977,13 @@ We pre-registered and ran Housing v15 after these profiles were first written. I
   structured output working and both reasoning tiers in effect: every sealed call's raw response carries the
   provider's count of reasoning tokens, which the kernel's OpenRouter client does not copy into its own field.
 
-The agreement's v2 confirmatory run (Table 5.4) passes Gate 3 for its integrator seat: the price-only rule leaves
-headroom in every deal world by construction, the best informed integrator earns far more than either model, and the
-evaluation set separates the models. This evidence is partly circular, because the screen selects on the rule that the contrast subtracts (Appendix E.2). It is `partial` at Gates 0, 1, 2, 4 and 5. Its registry entry awaits a review by
+The agreement's v2 confirmatory run (Table 5.4) is `partial` at Gate 3 for its integrator seat. We first recorded it
+as passed: the price-only rule left headroom in every deal world, the best informed integrator earns far more than
+either model, and the evaluation set separates the models. The first reason holds by construction, because the screen
+selects on the rule that the contrast subtracts (Appendix E.2). The declared addendum on the 14 deal worlds the screen
+dropped kept the second and third reasons (Sol's lead over Opus is found over all 86) but not the first: over the 86
+deal worlds neither model is shown to beat the price-only rule, and on the 14 the rule beats both. It is `partial` at
+every gate. Its registry entry awaits a review by
 someone other than its author and its code is not yet on the main branch, so replay through the runtime's command line
 has not run. Its grid reference is a lower bound, so the exact-reference route does not apply, and a frozen control played on the
 already frozen evaluation set could only count the worlds that pass. Gate 1 can therefore pass only on a new

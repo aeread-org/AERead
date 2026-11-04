@@ -317,6 +317,16 @@ def main():
     for name, shown in (('E_minus_D', '−$67.14'), ('P_minus_E', '−$0.66'), ('PV_minus_P', '−$13.31'), ('PV_minus_D', '−$81.55')):
         assert shown.replace('−$', '') == f"{abs(p0['contrasts'][name]['mean']):.2f}" and shown in p0_text, name
     assert p0['missing_cells'] == 7
+    # The data-center addendum's prose follows its published analysis (evidence agreement_v2_screened_out_analysis).
+    dca = json.loads((ROOT/'analysis_evidence/datacenter_v2_addendum/analysis.json').read_text())
+    dc = {r['contrast']: r for r in dca['contrasts']}
+    k = lambda v: f"{v:.1f}".replace('-', '−')
+    for name in ('A1', 'A2', 'A3'):
+        lo, hi = dc[name]['ci_0.9500']
+        assert f"{k(abs(dc[name]['mean']))}k [{k(lo) if abs(lo) >= 0.05 else '0.0'}, {k(hi)}]" in p0_text, name
+    assert not dc['A1']['rejected'] and not dc['A2']['rejected'] and dc['A3']['rejected']
+    assert f"p = {dc['A1']['p']:.3f}" in p0_text and f"p = {dc['A3']['p']:.3f}" in p0_text
+    assert all(f"${v:.1f}k" in p0_text for v in (dca['rule_mean_14'], dca['subject_mean_earnings_14']['codex'], dca['subject_mean_earnings_14']['claude']))
     # A source-bound figure leads the main results; exact values stay in E.10.
     source_image = soup.find('img', src='figures/shortfall_by_case.svg')
     assert source_image is not None
