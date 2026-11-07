@@ -1,0 +1,39 @@
+{
+ "arms": {
+  "CF": {
+   "list_usd": 8.47,
+   "measured_on": "datacenter_agreement_v2_pilot_client_firm",
+   "median_negotiation_seconds": 53.765,
+   "negotiations": 160,
+   "parallel": 4,
+   "pilot_list_usd": 1.2705,
+   "pilot_negotiations": 24,
+   "pilot_wall_minutes": 5.87,
+   "wall_minutes": 39.1
+  },
+  "HH": {
+   "list_usd": 22.77,
+   "measured_on": "datacenter_agreement_v2_pilot_head_to_head",
+   "median_negotiation_seconds": 105.49000000000001,
+   "negotiations": 160,
+   "parallel": 3,
+   "pilot_list_usd": 3.4152,
+   "pilot_negotiations": 24,
+   "pilot_wall_minutes": 14.2,
+   "wall_minutes": 94.7
+  },
+  "IF": {
+   "list_usd": 22.27,
+   "measured_on": "datacenter_agreement_v2_pilot_integrator_firm",
+   "median_negotiation_seconds": 58.22,
+   "negotiations": 320,
+   "parallel": 4,
+   "pilot_list_usd": 3.3408,
+   "pilot_negotiations": 48,
+   "pilot_wall_minutes": 11.99,
+   "wall_minutes": 79.9
+  }
+ },
+ "plan": "docs/families/datacenter/agreement_confirmatory_v2_plan.md",
+ "rule": "an arm's ceilings are twice these estimates (amendment 3)"
+}

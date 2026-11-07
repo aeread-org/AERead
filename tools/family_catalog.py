@@ -77,6 +77,11 @@ SHARED_DOCUMENT_DIRECTORIES: dict[str, tuple[str, ...]] = {
 # Packages that live outside src/aeread_families/.
 EXTRA_PACKAGES: dict[str, str] = {"exchange_v1": "src/aeread/exchange_v1"}
 
+# cases/<directory> -> the package that reads it, for a directory that holds another case's source worlds and has no
+# registered identity of its own. The agreement case draws its development packs from the risk-allocation
+# full-terms worlds (agreement_pack.SOURCE_ROOT); that case's own identity is not trusted on this tree.
+SOURCE_CASE_DIRECTORIES: dict[str, str] = {"datacenter_risk_allocation_contracts_v1": "datacenter_development"}
+
 # evidence/ directories that belong to the kernel, not to a family. The errata
 # records and their register (#117) span every family.
 KERNEL_EVIDENCE_DIRECTORIES = frozenset({"shared_runner", "errata", "errata_register"})
@@ -173,7 +178,7 @@ def collect(root: Path = ROOT) -> tuple[list[Family], list[str]]:
 
     for directory in _directories(root / "cases"):
         candidates = {directory, _VERSION_SUFFIX.sub("", directory)} & set(families)
-        owner = next(iter(candidates), None) or owner_of_family_id.get(directory)
+        owner = next(iter(candidates), None) or owner_of_family_id.get(directory) or SOURCE_CASE_DIRECTORIES.get(directory)
         if owner is None:
             raise CatalogError(
                 f"cases/{directory} matches no family package by name or registered family id"

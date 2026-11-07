@@ -1,0 +1,5311 @@
+{
+ "claim_status": "admitted on its structure, then screened for the integrator's headroom over the price_only rule on the drawn types; no model has played it. For the plan docs/families/datacenter/agreement_confirmatory_v2_plan.md",
+ "family_id": "datacenter_agreement_v1",
+ "family_version": "0.1.0",
+ "generator": {
+  "base_seed": 8000000,
+  "brief_version": "walkaway_stated_v1",
+  "every_protection": {
+   "client": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit, burn-in",
+   "integrator": "none, cap 500, readiness client, consequential excluded, deposit 50%"
+  },
+  "give_up_share_at_least": 0.333333,
+  "headroom_screen": {
+   "ceiling": "agreement_negotiator_check.best_plan, integrator seat, against the client's public firm style, both types known",
+   "margin": 25.0,
+   "on": "deal worlds after the hidden types are drawn",
+   "rule": "price_only"
+  },
+  "hidden_type_stream": "random.Random(int(sha256('agreement_admitted_v2/hidden_types/v1:{seed}'))): the client's charge, then the integrator's type, at the declared priors",
+  "id": "datacenter_agreement_admitted_generator_v2",
+  "margins": {
+   "draft": 75.0,
+   "information": 25.0,
+   "shortcut": 75.0,
+   "walk": 150.0
+  },
+  "max_scan": 40000,
+  "min_deal_worlds": 56,
+  "plan": "docs/families/datacenter/agreement_confirmatory_v2_plan.md",
+  "public_stream": "random.Random(seed): a regime of risk_allocation_contracts.CELLS (its ranges; its client charge ignored), a playbook it allows, then each public range in risk_allocation_contracts.draw_world's order and rounding",
+  "quotas": {
+   "hand_risk_over": 26,
+   "move_the_price": 0,
+   "take_risk_on": 0,
+   "trade": 27,
+   "walk": 27
+  },
+  "shortcuts": [
+   "sign_the_draft",
+   "haggle_the_price",
+   "every_protection_client",
+   "every_protection_integrator",
+   "walk"
+  ],
+  "split": "admitted_v2",
+  "statuses": [
+   "rejected",
+   "cell_full",
+   "headroom_under_margin",
+   "admitted",
+   "admitted_extension"
+  ],
+  "style_population": "agreement_negotiator_population_public_v1",
+  "turnkey_price": "round to $10k of (the prior-weighted least joint cost over the 600 agreements + floor margin + the drawn turnkey offset)",
+  "version": "2.0.0"
+ },
+ "pack": "agreement_admitted_v2",
+ "scan": {
+  "admissible_by_cell": {
+   "hand_risk_over": 31,
+   "move_the_price": 0,
+   "take_risk_on": 8,
+   "trade": 66,
+   "walk": 91
+  },
+  "admissible_by_playbook": {
+   "coordination": 60,
+   "managed": 61,
+   "turnkey": 75
+  },
+  "admitted_by_cell": {
+   "hand_risk_over": 26,
+   "move_the_price": 0,
+   "take_risk_on": 0,
+   "trade": 27,
+   "walk": 27
+  },
+  "client_seat_information_value": {
+   "0.5": 0.0,
+   "0.9": 5.89,
+   "0.99": 11.11,
+   "max": 18.92
+  },
+  "headroom_screen": {
+   "below_margin": 14,
+   "headroom_quantiles_screened": {
+    "0.5": 84.653,
+    "0.9": 172.038,
+    "0.99": 310.424,
+    "max": 310.424
+   },
+   "margin": 25.0,
+   "no_deal_worlds_reaching_the_screen": 8,
+   "rule": "price_only",
+   "screened_deal_worlds": 86
+  },
+  "integrator_seat_information_value_admitted": {
+   "0.5": 32.39,
+   "0.9": 54.77,
+   "0.99": 69.59,
+   "max": 69.59
+  },
+  "rejected_for": {
+   "draft_near_best": 2,
+   "every_protection_client_loses_under_margin": 4051,
+   "every_protection_integrator_loses_under_margin": 1377,
+   "haggle_the_price_loses_under_margin": 1399,
+   "integrator_reads_best_off_its_brief": 2369,
+   "sign_the_draft_loses_under_margin": 0,
+   "walk_loses_under_margin": 2719
+  },
+  "rejected_for_this_alone": {
+   "draft_near_best": 0,
+   "every_protection_client_loses_under_margin": 926,
+   "every_protection_integrator_loses_under_margin": 0,
+   "haggle_the_price_loses_under_margin": 1,
+   "integrator_reads_best_off_its_brief": 1115,
+   "sign_the_draft_loses_under_margin": 0,
+   "walk_loses_under_margin": 39
+  },
+  "seeds": {
+   "first": 8000000,
+   "last": 8005435,
+   "scanned": 5436
+  },
+  "status": {
+   "admitted": 80,
+   "cell_full": 102,
+   "headroom_under_margin": 14,
+   "rejected": 5240
+  },
+  "type_pair_share_by_requirement": {
+   "hand_risk_over": 0.3636,
+   "move_the_price": 0.0,
+   "take_risk_on": 0.0319,
+   "trade": 0.2357,
+   "walk": 0.3688
+  },
+  "worlds_where_the_draft_is_best_for_some_type_pair": 0
+ },
+ "scan_log_fields": [
+  "seed",
+  "regime",
+  "playbook",
+  "cell",
+  "reasons",
+  "status",
+  "mass",
+  "information_client",
+  "information_integrator",
+  "draft_best_somewhere",
+  "deal",
+  "headroom"
+ ],
+ "worlds": [
+  {
+   "admission": {
+    "expected_available": 226.928,
+    "expected_draft_left": 380.223,
+    "expected_loss": {
+     "every_protection_client": 75.08,
+     "every_protection_integrator": 226.928,
+     "haggle_the_price": 226.928,
+     "sign_the_draft": 414.379,
+     "walk": 226.928
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 44.127,
+    "information_integrator_seat_by_own_type": [
+     30.794,
+     57.46
+    ]
+   },
+   "available_surplus": 463.024,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.824226ce",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "17381e5169bb1cd2e67e0d94cde981d168fcd34f52e7f4ccbf4f6c4474e7454f",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 320.419,
+    "headroom": 166.235,
+    "rule": 154.184
+   },
+   "left_on_the_table_by_the_draft": 659.739,
+   "playbook": "managed",
+   "public_sha256": "18e20ca86a44a3378a8053af2446c29ac20678f81c00746b101800dee7eb1d6b",
+   "regime": "raise_the_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000030
+  },
+  {
+   "admission": {
+    "expected_available": 245.279,
+    "expected_draft_left": 283.158,
+    "expected_loss": {
+     "every_protection_client": 113.798,
+     "every_protection_integrator": 245.279,
+     "haggle_the_price": 245.279,
+     "sign_the_draft": 303.716,
+     "walk": 245.279
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 32.395,
+    "information_integrator_seat_by_own_type": [
+     19.062,
+     45.729
+    ]
+   },
+   "available_surplus": 145.366,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.e7094fe8",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "89625cb49910f29b1e9f2a920a7d8f9319d6f7fc765267c3597111975ec3e683",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 76.756,
+    "headroom": 126.756,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 205.046,
+   "playbook": "managed",
+   "public_sha256": "58310afca81a8a74498b2770870c39762661249db3b4a9ca3a2ff45fe49aa0f7",
+   "regime": "cheapest_is_not_best",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000075
+  },
+  {
+   "admission": {
+    "expected_available": 272.307,
+    "expected_draft_left": 484.867,
+    "expected_loss": {
+     "every_protection_client": 86.03,
+     "every_protection_integrator": 272.307,
+     "haggle_the_price": 272.307,
+     "sign_the_draft": 507.062,
+     "walk": 272.307
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 30.37,
+    "information_integrator_seat_by_own_type": [
+     30.37
+    ]
+   },
+   "available_surplus": 254.159,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a38d64b0",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "8c59c98e4e53a50823e664ae8f2495ce9f35538f0684455ddc3624e8f4bd6aa4",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 127.912,
+    "headroom": 177.912,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 452.012,
+   "playbook": "turnkey",
+   "public_sha256": "7a08c4c9b214a6e4c9d35e6d8c820ba00f3ae485f1d2b883a43eaf8600308338",
+   "regime": "hand_over_readiness",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000139
+  },
+  {
+   "admission": {
+    "expected_available": 357.749,
+    "expected_draft_left": 253.892,
+    "expected_loss": {
+     "every_protection_client": 75.834,
+     "every_protection_integrator": 198.215,
+     "haggle_the_price": 192.235,
+     "sign_the_draft": 253.892,
+     "walk": 357.749
+    },
+    "information_client_seat": 3.12,
+    "information_client_seat_by_own_charge": [
+     9.36,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 38.034,
+    "information_integrator_seat_by_own_type": [
+     31.964,
+     44.104
+    ]
+   },
+   "available_surplus": 317.968,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.ebc17f8f",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7d7e4f71f01ba78a445d715a3d7bb51676e7b7609d90b01f871cdd01e718b43c",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 165.781,
+    "headroom": 32.393,
+    "rule": 133.388
+   },
+   "left_on_the_table_by_the_draft": 502.938,
+   "playbook": "managed",
+   "public_sha256": "5ef7050bfca8900af074090ec87a41a26701d2756535c996e4f7b7b19b3e23e1",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8000208
+  },
+  {
+   "admission": {
+    "expected_available": 195.622,
+    "expected_draft_left": 485.453,
+    "expected_loss": {
+     "every_protection_client": 100.317,
+     "every_protection_integrator": 195.622,
+     "haggle_the_price": 195.622,
+     "sign_the_draft": 513.217,
+     "walk": 195.622
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 36.79,
+    "information_integrator_seat_by_own_type": [
+     36.79
+    ]
+   },
+   "available_surplus": 228.403,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.ec8e21e8",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "b6eda7bf9d395f030e7ce7885f3b4b394c7f67facbb2dacb3fb3902b82eac2f2",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 137.042,
+    "headroom": 35.724,
+    "rule": 101.318
+   },
+   "left_on_the_table_by_the_draft": 450.693,
+   "playbook": "turnkey",
+   "public_sha256": "b61e651dee3c2da2aaeb4a5220d1df770f76ac8120aa4e73ac6f067b57611bc9",
+   "regime": "hand_over_readiness",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000212
+  },
+  {
+   "admission": {
+    "expected_available": 168.551,
+    "expected_draft_left": 450.639,
+    "expected_loss": {
+     "every_protection_client": 91.78,
+     "every_protection_integrator": 168.551,
+     "haggle_the_price": 168.551,
+     "sign_the_draft": 475.365,
+     "walk": 168.551
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 33.376,
+    "information_integrator_seat_by_own_type": [
+     33.376
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.07c8ba04",
+   "cell": "walk",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "c7646e361b5154670a335ffed90d17617b437d191c5eb271b4d778959944f833",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 230.472,
+   "playbook": "turnkey",
+   "public_sha256": "1fc02c7a21a2555eb6dfcc0ea537677437b6f9cc2c17b082d31d1f28f6812323",
+   "regime": "hand_over_readiness",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000225
+  },
+  {
+   "admission": {
+    "expected_available": 360.296,
+    "expected_draft_left": 224.421,
+    "expected_loss": {
+     "every_protection_client": 89.309,
+     "every_protection_integrator": 163.039,
+     "haggle_the_price": 154.359,
+     "sign_the_draft": 224.421,
+     "walk": 360.296
+    },
+    "information_client_seat": 3.333,
+    "information_client_seat_by_own_charge": [
+     9.998,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 28.329,
+    "information_integrator_seat_by_own_type": [
+     23.58,
+     33.078
+    ]
+   },
+   "available_surplus": 515.0,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.4077595b",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "e9abcc7a36c2c101d39a4748daa7d0c17c555c0b62936ff9b2d09822b9d1bcf9",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 284.0,
+    "headroom": 118.84,
+    "rule": 165.16
+   },
+   "left_on_the_table_by_the_draft": 64.525,
+   "playbook": "managed",
+   "public_sha256": "ba4a727884c60be2500a8d4f5c8fd8f7b137f64f14ba6c4fa47de2b03b61aa8c",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8000245
+  },
+  {
+   "admission": {
+    "expected_available": 190.449,
+    "expected_draft_left": 257.955,
+    "expected_loss": {
+     "every_protection_client": 101.82,
+     "every_protection_integrator": 190.449,
+     "haggle_the_price": 190.449,
+     "sign_the_draft": 288.099,
+     "walk": 190.449
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 39.794,
+    "information_integrator_seat_by_own_type": [
+     39.794
+    ]
+   },
+   "available_surplus": 208.914,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.1364f3f3",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "9ad20c25bf64e4e236980e1a0a532cbfb04e8112ff45746ee913c9bb6444e0e8",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 121.24,
+    "headroom": 42.856,
+    "rule": 78.384
+   },
+   "left_on_the_table_by_the_draft": 230.414,
+   "playbook": "turnkey",
+   "public_sha256": "06cb9e9300dd6f40b16d7a0ab4219e53e1a617f712e232a5ebb8c9f0fdd60127",
+   "regime": "raise_the_damages",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000249
+  },
+  {
+   "admission": {
+    "expected_available": 192.367,
+    "expected_draft_left": 308.258,
+    "expected_loss": {
+     "every_protection_client": 79.353,
+     "every_protection_integrator": 192.367,
+     "haggle_the_price": 192.367,
+     "sign_the_draft": 359.707,
+     "walk": 192.367
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 62.95,
+    "information_integrator_seat_by_own_type": [
+     49.617,
+     76.283
+    ]
+   },
+   "available_surplus": 137.59,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.1b1a7d96",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "6c4b3eb4b2a600a26cb65c506c26df4175a2fba44bc4475c64b5bdab57554d86",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 110.072,
+    "headroom": 160.072,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 308.69,
+   "playbook": "managed",
+   "public_sha256": "fe412db88555d8872744099af005d5dd34fe9a31a06385f81866fa96191d83e1",
+   "regime": "raise_the_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000329
+  },
+  {
+   "admission": {
+    "expected_available": 195.628,
+    "expected_draft_left": 319.619,
+    "expected_loss": {
+     "every_protection_client": 77.801,
+     "every_protection_integrator": 195.628,
+     "haggle_the_price": 195.628,
+     "sign_the_draft": 365.075,
+     "walk": 195.628
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 55.106,
+    "information_integrator_seat_by_own_type": [
+     41.773,
+     68.439
+    ]
+   },
+   "available_surplus": 436.946,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.533f6b64",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "b71a78db31faeb5de7045e971de00b4f5e67ed35bd7b1dcf445ac51755dfb146",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 299.557,
+    "headroom": 65.449,
+    "rule": 234.108
+   },
+   "left_on_the_table_by_the_draft": 562.686,
+   "playbook": "managed",
+   "public_sha256": "e1461f57860536fc6de526e311000f3f49f60046888f1916a20ba58231c7c73b",
+   "regime": "raise_the_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000487
+  },
+  {
+   "admission": {
+    "expected_available": 202.388,
+    "expected_draft_left": 212.97,
+    "expected_loss": {
+     "every_protection_client": 79.087,
+     "every_protection_integrator": 202.388,
+     "haggle_the_price": 164.226,
+     "sign_the_draft": 252.976,
+     "walk": 202.388
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 48.206,
+    "information_integrator_seat_by_own_type": [
+     48.206
+    ]
+   },
+   "available_surplus": 124.302,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.924dbb57",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "0e6e464e0a97b3c3ec671c20351c149a58ea2812d7bafd4d6f74688e6be77368",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 62.151,
+    "headroom": 112.151,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 189.897,
+   "playbook": "turnkey",
+   "public_sha256": "edfb1aba0007393715a072a3b6e64d2ed25ee5ca7dc01af93e0a5f637b3d92f6",
+   "regime": "cheapest_is_not_best",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000526
+  },
+  {
+   "admission": {
+    "expected_available": 241.756,
+    "expected_draft_left": 498.482,
+    "expected_loss": {
+     "every_protection_client": 85.358,
+     "every_protection_integrator": 241.756,
+     "haggle_the_price": 241.756,
+     "sign_the_draft": 528.476,
+     "walk": 241.756
+    },
+    "information_client_seat": 0.888,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     2.664,
+     0.0
+    ],
+    "information_integrator_seat": 47.966,
+    "information_integrator_seat_by_own_type": [
+     20.608,
+     47.275,
+     76.014
+    ]
+   },
+   "available_surplus": 166.745,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.19925759",
+   "cell": "walk",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "b273c36ab47199033a7e852c7ae56ad10bcf9467e1da4eb2a727895743cc0609",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 33.349,
+    "headroom": 83.349,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 453.145,
+   "playbook": "coordination",
+   "public_sha256": "e8c39be808e29f7bbc7a5f4200033d468b016059f0695650ee3bb0bfd26e8977",
+   "regime": "hand_over_readiness",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.333333,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000539
+  },
+  {
+   "admission": {
+    "expected_available": 250.014,
+    "expected_draft_left": 343.83,
+    "expected_loss": {
+     "every_protection_client": 76.158,
+     "every_protection_integrator": 167.694,
+     "haggle_the_price": 171.464,
+     "sign_the_draft": 343.83,
+     "walk": 250.014
+    },
+    "information_client_seat": 3.797,
+    "information_client_seat_by_own_charge": [
+     9.555,
+     1.835,
+     0.0
+    ],
+    "information_integrator_seat": 25.61,
+    "information_integrator_seat_by_own_type": [
+     18.04,
+     33.18
+    ]
+   },
+   "available_surplus": 297.222,
+   "best_agreement": "none, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.082fd45f",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "ae36efb28801e5cb8d5d6befc35e00a2977bb3fec6fae1dc10b24b6f35031e1d",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 187.778,
+    "headroom": 49.902,
+    "rule": 137.876
+   },
+   "left_on_the_table_by_the_draft": 61.572,
+   "playbook": "managed",
+   "public_sha256": "74ff9a18f53f0131b719f4f64509979d7901f99dfad8e4af5dada037d85b3bc2",
+   "regime": "take_the_cap",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.166667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8000615
+  },
+  {
+   "admission": {
+    "expected_available": 344.305,
+    "expected_draft_left": 517.772,
+    "expected_loss": {
+     "every_protection_client": 164.925,
+     "every_protection_integrator": 344.305,
+     "haggle_the_price": 344.305,
+     "sign_the_draft": 517.772,
+     "walk": 344.305
+    },
+    "information_client_seat": 5.167,
+    "information_client_seat_by_own_charge": [
+     12.717,
+     2.784,
+     0.0
+    ],
+    "information_integrator_seat": 47.337,
+    "information_integrator_seat_by_own_type": [
+     45.877,
+     45.877,
+     50.259
+    ]
+   },
+   "available_surplus": 337.51,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.83ffe920",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "b1d30cb5a3d294254f8a5349f86471615d42413805487404309452b6de81d776",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 220.008,
+    "headroom": 101.928,
+    "rule": 118.08
+   },
+   "left_on_the_table_by_the_draft": 849.91,
+   "playbook": "coordination",
+   "public_sha256": "38624942fb4ecd0eed5e8dbd7de60b4a3f7b3e38ed8e809d171734d33b961f61",
+   "regime": "buy_the_burn_in",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8000618
+  },
+  {
+   "admission": {
+    "expected_available": 231.65,
+    "expected_draft_left": 344.84,
+    "expected_loss": {
+     "every_protection_client": 77.973,
+     "every_protection_integrator": 231.65,
+     "haggle_the_price": 231.65,
+     "sign_the_draft": 395.848,
+     "walk": 231.65
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 61.408,
+    "information_integrator_seat_by_own_type": [
+     61.408
+    ]
+   },
+   "available_surplus": 134.795,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.6ed00b65",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "41ad56dee65e030045cf5406a42896f6cd42ae1160eb751a4696097b1148842e",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 67.397,
+    "headroom": 117.397,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 313.0,
+   "playbook": "turnkey",
+   "public_sha256": "0bc03290e142c1abc463f297124f319a06924e88ed00c53acc443dcf29b12b75",
+   "regime": "sign_now",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000624
+  },
+  {
+   "admission": {
+    "expected_available": 166.585,
+    "expected_draft_left": 177.0,
+    "expected_loss": {
+     "every_protection_client": 104.294,
+     "every_protection_integrator": 166.585,
+     "haggle_the_price": 124.086,
+     "sign_the_draft": 199.724,
+     "walk": 166.585
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 29.724,
+    "information_integrator_seat_by_own_type": [
+     29.724
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.f79c7759",
+   "cell": "walk",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "ee60f0572d769496ce2c3f0613c0da5f911e8cadd77102cee25bf27c6d6a8cd7",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 111.0,
+   "playbook": "turnkey",
+   "public_sha256": "650928a6e33b9875bda0857a6d322a00ab6441539b3ce75009453819e7f4f799",
+   "regime": "sign_now",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000791
+  },
+  {
+   "admission": {
+    "expected_available": 259.401,
+    "expected_draft_left": 466.221,
+    "expected_loss": {
+     "every_protection_client": 126.338,
+     "every_protection_integrator": 259.401,
+     "haggle_the_price": 259.401,
+     "sign_the_draft": 466.221,
+     "walk": 259.401
+    },
+    "information_client_seat": 2.432,
+    "information_client_seat_by_own_charge": [
+     5.107,
+     2.189,
+     0.0
+    ],
+    "information_integrator_seat": 29.32,
+    "information_integrator_seat_by_own_type": [
+     29.604,
+     29.604,
+     28.753
+    ]
+   },
+   "available_surplus": 382.22,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.7e4460d3",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "8d96824562e4cec835f613ad9b4dae71169d2899d73d13e83293054cf75a517b",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 255.776,
+    "headroom": 94.428,
+    "rule": 161.348
+   },
+   "left_on_the_table_by_the_draft": 926.68,
+   "playbook": "coordination",
+   "public_sha256": "e6cd3b540741a43712e1837cf343ae251c41d273e57b3b0ed68e8d03fc4d7d6b",
+   "regime": "keep_the_liability",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8000794
+  },
+  {
+   "admission": {
+    "expected_available": 151.436,
+    "expected_draft_left": 261.741,
+    "expected_loss": {
+     "every_protection_client": 83.403,
+     "every_protection_integrator": 151.436,
+     "haggle_the_price": 151.436,
+     "sign_the_draft": 307.313,
+     "walk": 151.436
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 54.772,
+    "information_integrator_seat_by_own_type": [
+     54.772
+    ]
+   },
+   "available_surplus": 94.548,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.0e213148",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "565772d5c0e2b122e6271c156794e1a5164d7661259864c08b8414672a6a859b",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 66.184,
+    "headroom": 116.184,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 235.098,
+   "playbook": "turnkey",
+   "public_sha256": "529535765a59573258b26d0937c6bc347420a9603a1e7ee4a9ec28ecfdd66514",
+   "regime": "buy_the_cover",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000813
+  },
+  {
+   "admission": {
+    "expected_available": 252.528,
+    "expected_draft_left": 408.328,
+    "expected_loss": {
+     "every_protection_client": 83.921,
+     "every_protection_integrator": 252.528,
+     "haggle_the_price": 252.528,
+     "sign_the_draft": 419.115,
+     "walk": 252.528
+    },
+    "information_client_seat": 7.304,
+    "information_client_seat_by_own_charge": [
+     19.867,
+     2.046,
+     0.0
+    ],
+    "information_integrator_seat": 45.319,
+    "information_integrator_seat_by_own_type": [
+     31.367,
+     38.167,
+     66.425
+    ]
+   },
+   "available_surplus": 538.58,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a2ccd688",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "788ab6597c13e1e456d2c00649c86c10d6f4f407c24d8c789a329971317a994d",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 380.864,
+    "headroom": 296.804,
+    "rule": 84.06
+   },
+   "left_on_the_table_by_the_draft": 738.34,
+   "playbook": "coordination",
+   "public_sha256": "c76e74d71aa99ed3c75cae78479d7e2731b4ae09bf56d01cf946986650f483ea",
+   "regime": "hand_over_readiness",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.444444,
+    "walk": 0.222222
+   },
+   "status": "admitted",
+   "world_seed": 8000832
+  },
+  {
+   "admission": {
+    "expected_available": 245.736,
+    "expected_draft_left": 301.176,
+    "expected_loss": {
+     "every_protection_client": 81.237,
+     "every_protection_integrator": 245.736,
+     "haggle_the_price": 244.475,
+     "sign_the_draft": 323.036,
+     "walk": 245.736
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 32.386,
+    "information_integrator_seat_by_own_type": [
+     32.386
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.13283073",
+   "cell": "walk",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "d414fce76d57f91505ab3efc6c8ada0c885d4d44c550c3c989747a793413193d",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 127.306,
+   "playbook": "turnkey",
+   "public_sha256": "9db3f0ffff28378eaf5ea19970eeec5f8f06ec7af5463d75a3baba8df3cdf9b4",
+   "regime": "buy_the_cover",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8000848
+  },
+  {
+   "admission": {
+    "expected_available": 510.289,
+    "expected_draft_left": 297.571,
+    "expected_loss": {
+     "every_protection_client": 84.64,
+     "every_protection_integrator": 314.022,
+     "haggle_the_price": 297.571,
+     "sign_the_draft": 297.571,
+     "walk": 510.289
+    },
+    "information_client_seat": 0.25,
+    "information_client_seat_by_own_charge": [
+     0.75,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 30.39,
+    "information_integrator_seat_by_own_type": [
+     30.64,
+     30.14
+    ]
+   },
+   "available_surplus": 313.31,
+   "best_agreement": "fix_and_delay @100/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.d5953991",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "warranty"
+   ],
+   "content_sha256": "5351f210ccd4986361cf0c06dc356bc2f0cb61872ba38573cefc45264dc50a83",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 137.986,
+    "headroom": 118.086,
+    "rule": 19.9
+   },
+   "left_on_the_table_by_the_draft": 17.56,
+   "playbook": "managed",
+   "public_sha256": "75446ca0349f28f6d12154c7547f297b46f3a7f67ef313f276006cee389a783c",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.166667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8000926
+  },
+  {
+   "admission": {
+    "expected_available": 232.929,
+    "expected_draft_left": 292.308,
+    "expected_loss": {
+     "every_protection_client": 83.966,
+     "every_protection_integrator": 232.929,
+     "haggle_the_price": 232.929,
+     "sign_the_draft": 293.612,
+     "walk": 232.929
+    },
+    "information_client_seat": 7.823,
+    "information_client_seat_by_own_charge": [
+     21.765,
+     1.705,
+     0.0
+    ],
+    "information_integrator_seat": 30.861,
+    "information_integrator_seat_by_own_type": [
+     25.264,
+     25.264,
+     42.055
+    ]
+   },
+   "available_surplus": 216.049,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.84ecb7ed",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "8589858dc133350e04ede969dc1e7810dba526b08a1a46b9208717903823b9f8",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 86.42,
+    "headroom": 136.42,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 239.249,
+   "playbook": "coordination",
+   "public_sha256": "3c6b13d4f68864d12aec3005df777ffcd259bbe85ee88a59ebbe184aa13d0d9d",
+   "regime": "keep_the_liability",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001029
+  },
+  {
+   "admission": {
+    "expected_available": 275.184,
+    "expected_draft_left": 542.441,
+    "expected_loss": {
+     "every_protection_client": 132.667,
+     "every_protection_integrator": 275.184,
+     "haggle_the_price": 275.184,
+     "sign_the_draft": 542.441,
+     "walk": 275.184
+    },
+    "information_client_seat": 9.294,
+    "information_client_seat_by_own_charge": [
+     24.06,
+     3.822,
+     0.0
+    ],
+    "information_integrator_seat": 37.394,
+    "information_integrator_seat_by_own_type": [
+     32.842,
+     32.842,
+     46.498
+    ]
+   },
+   "available_surplus": 191.835,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.5ce9f222",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "88e2615158fdcffe1bc86df2257097736f70e2b58eac0b6bc9f344eefe5ffb17",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 115.101,
+    "headroom": 165.101,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 246.875,
+   "playbook": "coordination",
+   "public_sha256": "ba0f043451c0f94cb813a5a07ab9562e31bd25c6a31af58b4f3c20ca0e2db4b1",
+   "regime": "buy_the_burn_in",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001032
+  },
+  {
+   "admission": {
+    "expected_available": 249.552,
+    "expected_draft_left": 566.86,
+    "expected_loss": {
+     "every_protection_client": 75.605,
+     "every_protection_integrator": 249.552,
+     "haggle_the_price": 249.552,
+     "sign_the_draft": 572.55,
+     "walk": 249.552
+    },
+    "information_client_seat": 9.172,
+    "information_client_seat_by_own_charge": [
+     24.383,
+     3.133,
+     0.0
+    ],
+    "information_integrator_seat": 41.626,
+    "information_integrator_seat_by_own_type": [
+     36.342,
+     36.342,
+     52.195
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @100/wk, cap 500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.d78a027b",
+   "cell": "trade",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "246eed1213d9ecf50c1a8dc1e13b93e7dedca18f22500668c42451f5bd50b367",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 144.865,
+   "playbook": "coordination",
+   "public_sha256": "41fd7ca367ca2e7df7ea34e2784e02a67b6c362f51d75c5e099615714d674116",
+   "regime": "hand_over_readiness",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001091
+  },
+  {
+   "admission": {
+    "expected_available": 201.41,
+    "expected_draft_left": 278.181,
+    "expected_loss": {
+     "every_protection_client": 77.976,
+     "every_protection_integrator": 201.41,
+     "haggle_the_price": 201.41,
+     "sign_the_draft": 324.535,
+     "walk": 201.41
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 69.595,
+    "information_integrator_seat_by_own_type": [
+     56.262,
+     82.928
+    ]
+   },
+   "available_surplus": 57.755,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.889b1693",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7678ca06003e2ae5bb0850dea2ed375547e1f73e7631a43d285ff8ea721fe747",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 34.653,
+    "headroom": 84.653,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 185.38,
+   "playbook": "managed",
+   "public_sha256": "e28616d694feff0274309858af6132b4968403e19c2ce5b69371d09b3ae460dc",
+   "regime": "raise_the_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001100
+  },
+  {
+   "admission": {
+    "expected_available": 268.066,
+    "expected_draft_left": 485.571,
+    "expected_loss": {
+     "every_protection_client": 94.338,
+     "every_protection_integrator": 268.066,
+     "haggle_the_price": 268.066,
+     "sign_the_draft": 485.571,
+     "walk": 268.066
+    },
+    "information_client_seat": 8.726,
+    "information_client_seat_by_own_charge": [
+     22.172,
+     4.006,
+     0.0
+    ],
+    "information_integrator_seat": 39.429,
+    "information_integrator_seat_by_own_type": [
+     35.899,
+     35.899,
+     46.487
+    ]
+   },
+   "available_surplus": 0.458,
+   "best_agreement": "none, cap 1500, readiness client, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.5c319eb5",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap"
+   ],
+   "content_sha256": "ac4bc6d2e0cbcf67c5172ee715b344c120acf9cb7b5948536a9fc4325cd9fe93",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 0.0,
+    "headroom": 25.0,
+    "rule": -25.0
+   },
+   "left_on_the_table_by_the_draft": 92.538,
+   "playbook": "coordination",
+   "public_sha256": "92192729813170d742dc343183dd4b5e99cecd5ec5114a9d1e9e61d9774ea3a9",
+   "regime": "buy_the_burn_in",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001115
+  },
+  {
+   "admission": {
+    "expected_available": 292.887,
+    "expected_draft_left": 576.16,
+    "expected_loss": {
+     "every_protection_client": 116.36,
+     "every_protection_integrator": 292.887,
+     "haggle_the_price": 292.887,
+     "sign_the_draft": 576.16,
+     "walk": 292.887
+    },
+    "information_client_seat": 2.853,
+    "information_client_seat_by_own_charge": [
+     5.992,
+     2.568,
+     0.0
+    ],
+    "information_integrator_seat": 38.05,
+    "information_integrator_seat_by_own_type": [
+     38.383,
+     38.383,
+     37.385
+    ]
+   },
+   "available_surplus": 466.39,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.4f603de8",
+   "cell": "trade",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "33890f6777c3a81f1bc957d06fd040c03778ab5659bd28abf1aad5b43110cfbc",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 269.608,
+    "headroom": 45.0,
+    "rule": 224.608
+   },
+   "left_on_the_table_by_the_draft": 588.79,
+   "playbook": "coordination",
+   "public_sha256": "bb49eedb3a570713a003c8d8ff1b7e920d082339cf88bbbc0ab65b6cd4b34593",
+   "regime": "hand_over_readiness",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001165
+  },
+  {
+   "admission": {
+    "expected_available": 262.37,
+    "expected_draft_left": 384.622,
+    "expected_loss": {
+     "every_protection_client": 81.292,
+     "every_protection_integrator": 262.37,
+     "haggle_the_price": 262.37,
+     "sign_the_draft": 392.53,
+     "walk": 262.37
+    },
+    "information_client_seat": 11.062,
+    "information_client_seat_by_own_charge": [
+     30.348,
+     2.838,
+     0.0
+    ],
+    "information_integrator_seat": 27.957,
+    "information_integrator_seat_by_own_type": [
+     20.417,
+     20.417,
+     43.039
+    ]
+   },
+   "available_surplus": 213.935,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.28e6010c",
+   "cell": "trade",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "0212913573d29d7c541c37853ddb88b4712f809d5d55bddd6d977779f66aae9f",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 80.848,
+    "headroom": 130.848,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 343.135,
+   "playbook": "coordination",
+   "public_sha256": "dba783991c4c0edf02e6c986d569970bd7d7fe86301ff4594454ed1d5dbb681a",
+   "regime": "sign_now",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001174
+  },
+  {
+   "admission": {
+    "expected_available": 475.986,
+    "expected_draft_left": 238.069,
+    "expected_loss": {
+     "every_protection_client": 92.882,
+     "every_protection_integrator": 259.613,
+     "haggle_the_price": 238.069,
+     "sign_the_draft": 238.069,
+     "walk": 475.986
+    },
+    "information_client_seat": 4.165,
+    "information_client_seat_by_own_charge": [
+     10.2,
+     2.294,
+     0.0
+    ],
+    "information_integrator_seat": 29.278,
+    "information_integrator_seat_by_own_type": [
+     23.895,
+     34.661
+    ]
+   },
+   "available_surplus": 386.638,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.7c518ecb",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "1794b9303049f35a4f3bd7a613bc9bd72325f87e787a616e2a3f44cd01ba87cd",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 220.646,
+    "headroom": 183.146,
+    "rule": 37.5
+   },
+   "left_on_the_table_by_the_draft": 54.667,
+   "playbook": "managed",
+   "public_sha256": "50702a8404e3ae2e435f0b394a1d0e122630c914dfd95ed4d30bc85958a7ad96",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001232
+  },
+  {
+   "admission": {
+    "expected_available": 234.363,
+    "expected_draft_left": 317.196,
+    "expected_loss": {
+     "every_protection_client": 93.153,
+     "every_protection_integrator": 234.363,
+     "haggle_the_price": 234.363,
+     "sign_the_draft": 347.637,
+     "walk": 234.363
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 42.252,
+    "information_integrator_seat_by_own_type": [
+     28.918,
+     55.585
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "none, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.be254cac",
+   "cell": "walk",
+   "clauses_to_change": [
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7124372da3b33b9482afb5ccc869f0a62c492829666895f35eacda2a99980619",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 26.775,
+   "playbook": "managed",
+   "public_sha256": "b8b83c9420e7b3ffae03822f9be212aba87b788024beebb8ebb7cc1cf3ea00b3",
+   "regime": "buy_the_cover",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001270
+  },
+  {
+   "admission": {
+    "expected_available": 282.513,
+    "expected_draft_left": 368.231,
+    "expected_loss": {
+     "every_protection_client": 102.64,
+     "every_protection_integrator": 282.513,
+     "haggle_the_price": 274.676,
+     "sign_the_draft": 385.823,
+     "walk": 282.513
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 25.392,
+    "information_integrator_seat_by_own_type": [
+     25.392
+    ]
+   },
+   "available_surplus": 245.064,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.9a068464",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "1b098e1896bef001558955e5137412fc8b755b08d2126230226ea7f8673c9e9a",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 122.038,
+    "headroom": 172.038,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 340.564,
+   "playbook": "turnkey",
+   "public_sha256": "8e7037ab703865495b8d6639874ff3d75be158273aadcf4b001530c03e85a715",
+   "regime": "hand_over_readiness",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001275
+  },
+  {
+   "admission": {
+    "expected_available": 181.319,
+    "expected_draft_left": 316.694,
+    "expected_loss": {
+     "every_protection_client": 87.653,
+     "every_protection_integrator": 181.319,
+     "haggle_the_price": 181.319,
+     "sign_the_draft": 369.986,
+     "walk": 181.319
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 61.107,
+    "information_integrator_seat_by_own_type": [
+     47.774,
+     74.44
+    ]
+   },
+   "available_surplus": 49.859,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.c5799bad",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "1aa468b8d61dd246dab8298384b69f5dc530166a288c186b40c2277f9d30b607",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 29.915,
+    "headroom": 79.915,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 243.859,
+   "playbook": "managed",
+   "public_sha256": "44640fd32fd9a106a9052fc4be09253085d7994c23823d10dace91c2116e651c",
+   "regime": "sign_now",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001280
+  },
+  {
+   "admission": {
+    "expected_available": 187.904,
+    "expected_draft_left": 435.108,
+    "expected_loss": {
+     "every_protection_client": 88.436,
+     "every_protection_integrator": 187.904,
+     "haggle_the_price": 187.904,
+     "sign_the_draft": 439.349,
+     "walk": 187.904
+    },
+    "information_client_seat": 7.7,
+    "information_client_seat_by_own_charge": [
+     21.356,
+     1.744,
+     0.0
+    ],
+    "information_integrator_seat": 50.0,
+    "information_integrator_seat_by_own_type": [
+     44.529,
+     44.529,
+     60.942
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "none, cap 1500, readiness client, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.d15ab436",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap"
+   ],
+   "content_sha256": "e19b42dc959f9bb754c33cc2ff10775ccdd1cf1c905ee0a346d7d533444f29dd",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 58.388,
+   "playbook": "coordination",
+   "public_sha256": "277e8fbbbd682cb5dcf5e03fd97964babdc25e0c11fcd1b0cae75c275707ea7b",
+   "regime": "buy_the_burn_in",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001339
+  },
+  {
+   "admission": {
+    "expected_available": 177.705,
+    "expected_draft_left": 283.724,
+    "expected_loss": {
+     "every_protection_client": 83.017,
+     "every_protection_integrator": 177.705,
+     "haggle_the_price": 177.705,
+     "sign_the_draft": 333.189,
+     "walk": 177.705
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 60.121,
+    "information_integrator_seat_by_own_type": [
+     46.787,
+     73.454
+    ]
+   },
+   "available_surplus": 47.79,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.15add624",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "80e01fbb0a6995de24fd956af9aced6aa190bc26398f507a58e4b50c31d9bfc1",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 33.453,
+    "headroom": 83.453,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 207.5,
+   "playbook": "managed",
+   "public_sha256": "b27deefa1db2093d49a1dbdda3e180836a4306e5d560450ae7ba2afecdd50363",
+   "regime": "cheapest_is_not_best",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001386
+  },
+  {
+   "admission": {
+    "expected_available": 150.583,
+    "expected_draft_left": 355.622,
+    "expected_loss": {
+     "every_protection_client": 91.453,
+     "every_protection_integrator": 150.583,
+     "haggle_the_price": 150.583,
+     "sign_the_draft": 373.522,
+     "walk": 150.583
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 26.6,
+    "information_integrator_seat_by_own_type": [
+     26.6
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.05728e57",
+   "cell": "walk",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "59819861a3c1de920607f6ea8dce5c0ab3b236dc076e271d65bb372ef3752a6a",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 164.155,
+   "playbook": "turnkey",
+   "public_sha256": "a747524fbf26464f22a21ec26e0e9fae46c2a98591cc0cbc5da2913973ac3942",
+   "regime": "hand_over_readiness",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001413
+  },
+  {
+   "admission": {
+    "expected_available": 244.842,
+    "expected_draft_left": 259.483,
+    "expected_loss": {
+     "every_protection_client": 82.627,
+     "every_protection_integrator": 244.842,
+     "haggle_the_price": 208.271,
+     "sign_the_draft": 291.146,
+     "walk": 244.842
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 43.363,
+    "information_integrator_seat_by_own_type": [
+     43.363
+    ]
+   },
+   "available_surplus": 168.322,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.dfc273fd",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "2fd5f8b5577acfa796e910bc37b674d597045eecc09bd6122f3399811f44b115",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 75.993,
+    "headroom": 125.993,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 228.81,
+   "playbook": "turnkey",
+   "public_sha256": "b829ecfc296538c1dd7fd7a620a5eff2da20ed60a3aee7520e437419130cb4ea",
+   "regime": "sign_now",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001424
+  },
+  {
+   "admission": {
+    "expected_available": 168.846,
+    "expected_draft_left": 401.489,
+    "expected_loss": {
+     "every_protection_client": 82.544,
+     "every_protection_integrator": 168.846,
+     "haggle_the_price": 168.846,
+     "sign_the_draft": 403.018,
+     "walk": 168.846
+    },
+    "information_client_seat": 8.593,
+    "information_client_seat_by_own_charge": [
+     23.992,
+     1.786,
+     0.0
+    ],
+    "information_integrator_seat": 30.807,
+    "information_integrator_seat_by_own_type": [
+     25.333,
+     23.736,
+     43.353
+    ]
+   },
+   "available_surplus": 112.199,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a7e2ef96",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7ae15bc7c542668dbc1c352086706a05af09236eaae8652b547533045d529e97",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 44.88,
+    "headroom": 43.766,
+    "rule": 1.114
+   },
+   "left_on_the_table_by_the_draft": 681.114,
+   "playbook": "coordination",
+   "public_sha256": "89dd66478a45d18f9c3042437221232aa234915603a670e1097ef7f5f774ac63",
+   "regime": "buy_the_burn_in",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001432
+  },
+  {
+   "admission": {
+    "expected_available": 505.344,
+    "expected_draft_left": 274.847,
+    "expected_loss": {
+     "every_protection_client": 75.924,
+     "every_protection_integrator": 248.469,
+     "haggle_the_price": 240.909,
+     "sign_the_draft": 274.847,
+     "walk": 505.344
+    },
+    "information_client_seat": 3.123,
+    "information_client_seat_by_own_charge": [
+     9.37,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.449,
+    "information_integrator_seat_by_own_type": [
+     21.597,
+     33.302
+    ]
+   },
+   "available_surplus": 519.843,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.1f16c257",
+   "cell": "trade",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "2ba747918a8947f7345fa56e3e4c8dc4a120ba6d540ac53177e97b87ef8dbb24",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 313.89,
+    "headroom": 137.612,
+    "rule": 176.278
+   },
+   "left_on_the_table_by_the_draft": 259.136,
+   "playbook": "managed",
+   "public_sha256": "cb74ec84aca51dfa00d6578e665f7f8c108a2f24286253cc18fa4ead009ff57a",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.333333,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001475
+  },
+  {
+   "admission": {
+    "expected_available": 185.082,
+    "expected_draft_left": 301.988,
+    "expected_loss": {
+     "every_protection_client": 98.135,
+     "every_protection_integrator": 185.082,
+     "haggle_the_price": 185.082,
+     "sign_the_draft": 303.437,
+     "walk": 185.082
+    },
+    "information_client_seat": 9.036,
+    "information_client_seat_by_own_charge": [
+     23.66,
+     3.449,
+     0.0
+    ],
+    "information_integrator_seat": 36.088,
+    "information_integrator_seat_by_own_type": [
+     31.508,
+     31.508,
+     45.25
+    ]
+   },
+   "available_surplus": 139.816,
+   "best_agreement": "fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.cb8732a1",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "eebbf50cd181d89285afef8ed14df27e961efa0f37f434d17d8729218146edfd",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 47.871,
+    "headroom": 59.627,
+    "rule": -11.756
+   },
+   "left_on_the_table_by_the_draft": 158.616,
+   "playbook": "coordination",
+   "public_sha256": "53428f57d5f5cc21cfb028d77822c63592ce0373425941c095e1d9bcff5803e4",
+   "regime": "buy_the_cover",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001487
+  },
+  {
+   "admission": {
+    "expected_available": 223.699,
+    "expected_draft_left": 348.351,
+    "expected_loss": {
+     "every_protection_client": 85.155,
+     "every_protection_integrator": 223.699,
+     "haggle_the_price": 223.699,
+     "sign_the_draft": 359.346,
+     "walk": 223.699
+    },
+    "information_client_seat": 8.349,
+    "information_client_seat_by_own_charge": [
+     21.792,
+     3.254,
+     0.0
+    ],
+    "information_integrator_seat": 37.916,
+    "information_integrator_seat_by_own_type": [
+     24.933,
+     29.808,
+     59.006
+    ]
+   },
+   "available_surplus": 65.375,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.c3d87daf",
+   "cell": "trade",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "5e8f550cd9ce118046611d7d20cdb1733ca1dd5f38957f37983d1e00d3612a42",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 45.763,
+    "headroom": 45.763,
+    "rule": 0.0
+   },
+   "left_on_the_table_by_the_draft": 158.895,
+   "playbook": "coordination",
+   "public_sha256": "afaf48dd0a301337bec9fa5185e042a856b682e971ed70c69560fc3e5ec17e21",
+   "regime": "buy_the_cover",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.444444,
+    "walk": 0.222222
+   },
+   "status": "admitted",
+   "world_seed": 8001495
+  },
+  {
+   "admission": {
+    "expected_available": 250.398,
+    "expected_draft_left": 139.023,
+    "expected_loss": {
+     "every_protection_client": 80.387,
+     "every_protection_integrator": 205.28,
+     "haggle_the_price": 115.648,
+     "sign_the_draft": 139.023,
+     "walk": 250.398
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 33.982,
+    "information_integrator_seat_by_own_type": [
+     33.982
+    ]
+   },
+   "available_surplus": 314.655,
+   "best_agreement": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.0fb33902",
+   "cell": "trade",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "a9d0df1ca44b7b78daa7a658406bf0ce83724fe42828ec8e3a970e0d10335a90",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 201.724,
+    "headroom": 106.724,
+    "rule": 95.0
+   },
+   "left_on_the_table_by_the_draft": 38.28,
+   "playbook": "turnkey",
+   "public_sha256": "971d115f325544e494e47597cff16e8e1b1ae5d9b8fac11ece8c2e9ae1358dac",
+   "regime": "just_enough_damages",
+   "requirement": "take_risk_on",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.333333,
+    "trade": 0.333333,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001499
+  },
+  {
+   "admission": {
+    "expected_available": 512.338,
+    "expected_draft_left": 230.175,
+    "expected_loss": {
+     "every_protection_client": 112.263,
+     "every_protection_integrator": 258.738,
+     "haggle_the_price": 230.175,
+     "sign_the_draft": 230.175,
+     "walk": 512.338
+    },
+    "information_client_seat": 3.375,
+    "information_client_seat_by_own_charge": [
+     10.125,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.088,
+    "information_integrator_seat_by_own_type": [
+     21.95,
+     32.227
+    ]
+   },
+   "available_surplus": 628.2,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.9253d2d5",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "0eddcccc47336715aac57a14ec9b2fafe3c3803eb5f22f31ec22d993bb3c6d86",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 452.56,
+    "headroom": 166.26,
+    "rule": 286.3
+   },
+   "left_on_the_table_by_the_draft": 221.7,
+   "playbook": "managed",
+   "public_sha256": "05c5c811e7243d5f65ff21bda679a954a5dfef3f6d68b29bee7693cf3ffae4c2",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001525
+  },
+  {
+   "admission": {
+    "expected_available": 228.237,
+    "expected_draft_left": 187.044,
+    "expected_loss": {
+     "every_protection_client": 96.66,
+     "every_protection_integrator": 228.237,
+     "haggle_the_price": 156.964,
+     "sign_the_draft": 192.861,
+     "walk": 228.237
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 26.628,
+    "information_integrator_seat_by_own_type": [
+     26.628
+    ]
+   },
+   "available_surplus": 173.46,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.f8a7b406",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "7881f0d95c568b6382f02e9bd54680789f1fb971f29d37a8c8bdccfb76530e57",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 104.076,
+    "headroom": 154.076,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 152.39,
+   "playbook": "turnkey",
+   "public_sha256": "d6a5c3b5ab068f7172ce73aabdec24689a574466b098affddd9ea33846194793",
+   "regime": "raise_the_damages",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001594
+  },
+  {
+   "admission": {
+    "expected_available": 226.97,
+    "expected_draft_left": 414.401,
+    "expected_loss": {
+     "every_protection_client": 94.841,
+     "every_protection_integrator": 226.97,
+     "haggle_the_price": 226.97,
+     "sign_the_draft": 414.401,
+     "walk": 226.97
+    },
+    "information_client_seat": 6.231,
+    "information_client_seat_by_own_charge": [
+     16.588,
+     2.106,
+     0.0
+    ],
+    "information_integrator_seat": 27.202,
+    "information_integrator_seat_by_own_type": [
+     23.583,
+     23.583,
+     34.438
+    ]
+   },
+   "available_surplus": 56.39,
+   "best_agreement": "fix, cap 1500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.0bacb2bc",
+   "cell": "trade",
+   "clauses_to_change": [
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "bec03b8416c5770a848f791cc68ce6d0797f91503ed639bed2ba4dc795a79471",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 11.278,
+    "headroom": 61.278,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 131.43,
+   "playbook": "coordination",
+   "public_sha256": "fff5e9e91fe382ce87d2c1416224c561a770471bfd363f1269912a40c4b37a20",
+   "regime": "hand_over_readiness",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001610
+  },
+  {
+   "admission": {
+    "expected_available": 171.605,
+    "expected_draft_left": 271.872,
+    "expected_loss": {
+     "every_protection_client": 77.674,
+     "every_protection_integrator": 171.605,
+     "haggle_the_price": 171.605,
+     "sign_the_draft": 292.697,
+     "walk": 171.605
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 39.618,
+    "information_integrator_seat_by_own_type": [
+     26.285,
+     52.952
+    ]
+   },
+   "available_surplus": 0.0,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.36e0c1d4",
+   "cell": "walk",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "73cd4ba3fb7fa837489f6d00bbd716683ab308c3a3d74a30a7f183fc161bdd07",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": null,
+   "left_on_the_table_by_the_draft": 64.17,
+   "playbook": "managed",
+   "public_sha256": "df2c20d1dc7b0d79c90ebaf7bc411868d1270d923f50e1e9819730af6d35f274",
+   "regime": "keep_the_liability",
+   "requirement": "walk",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001617
+  },
+  {
+   "admission": {
+    "expected_available": 219.383,
+    "expected_draft_left": 292.221,
+    "expected_loss": {
+     "every_protection_client": 86.3,
+     "every_protection_integrator": 219.383,
+     "haggle_the_price": 219.383,
+     "sign_the_draft": 308.075,
+     "walk": 219.383
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 28.204,
+    "information_integrator_seat_by_own_type": [
+     28.204
+    ]
+   },
+   "available_surplus": 419.679,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.cc564090",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "bbf156b4590876009b822b48fc95ca5f7c7c2ae5c3c2865d9208a55593280afe",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 285.743,
+    "headroom": 117.595,
+    "rule": 168.148
+   },
+   "left_on_the_table_by_the_draft": 508.979,
+   "playbook": "turnkey",
+   "public_sha256": "da8ab66ae13c3b5c559d3a252234189db62f554911d67e7197cc62532fa78860",
+   "regime": "raise_the_damages",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001630
+  },
+  {
+   "admission": {
+    "expected_available": 260.837,
+    "expected_draft_left": 275.322,
+    "expected_loss": {
+     "every_protection_client": 101.587,
+     "every_protection_integrator": 260.837,
+     "haggle_the_price": 223.023,
+     "sign_the_draft": 290.103,
+     "walk": 260.837
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 25.682,
+    "information_integrator_seat_by_own_type": [
+     25.682
+    ]
+   },
+   "available_surplus": 578.575,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.ee0b7fa0",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "6340a2f0a6d2dbbfdd21848a1884c178a81bac3937d09ad4427c6207e5ebb841",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 355.002,
+    "headroom": 35.592,
+    "rule": 319.41
+   },
+   "left_on_the_table_by_the_draft": 465.135,
+   "playbook": "turnkey",
+   "public_sha256": "9258803cf80e102a12c8084bb5474ab1301a0496e1fbef9939d994d50f15b6b5",
+   "regime": "buy_the_cover",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001709
+  },
+  {
+   "admission": {
+    "expected_available": 174.325,
+    "expected_draft_left": 265.223,
+    "expected_loss": {
+     "every_protection_client": 82.387,
+     "every_protection_integrator": 174.325,
+     "haggle_the_price": 174.325,
+     "sign_the_draft": 285.056,
+     "walk": 174.325
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 36.65,
+    "information_integrator_seat_by_own_type": [
+     36.65
+    ]
+   },
+   "available_surplus": 314.483,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a435360b",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "c63f1d430b532061a8b12541b3649d216264af250b352fa8755b91c3e743e354",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 201.586,
+    "headroom": 110.888,
+    "rule": 90.698
+   },
+   "left_on_the_table_by_the_draft": 466.895,
+   "playbook": "turnkey",
+   "public_sha256": "1866f33b5bd8791b6a39433f1783c18a12555f950c21ab2dd935599f2966658f",
+   "regime": "raise_the_damages",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001742
+  },
+  {
+   "admission": {
+    "expected_available": 252.685,
+    "expected_draft_left": 313.321,
+    "expected_loss": {
+     "every_protection_client": 87.62,
+     "every_protection_integrator": 252.685,
+     "haggle_the_price": 252.685,
+     "sign_the_draft": 329.879,
+     "walk": 252.685
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.211,
+    "information_integrator_seat_by_own_type": [
+     27.211
+    ]
+   },
+   "available_surplus": 234.448,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a74766d0",
+   "cell": "walk",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "5f05830e23643df1461b912094a6fb4a84fb61ce6f2c944cba69a7dc7a0b2867",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 137.558,
+    "headroom": 187.558,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 281.548,
+   "playbook": "turnkey",
+   "public_sha256": "e1d4ef1a4e9ff3e53d016a5fe1867c6af7e75c06ce21667259fa6709fe061601",
+   "regime": "raise_the_damages",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.333333
+   },
+   "status": "admitted",
+   "world_seed": 8001800
+  },
+  {
+   "admission": {
+    "expected_available": 266.803,
+    "expected_draft_left": 374.262,
+    "expected_loss": {
+     "every_protection_client": 102.579,
+     "every_protection_integrator": 266.803,
+     "haggle_the_price": 266.803,
+     "sign_the_draft": 378.599,
+     "walk": 266.803
+    },
+    "information_client_seat": 9.151,
+    "information_client_seat_by_own_charge": [
+     23.943,
+     3.511,
+     0.0
+    ],
+    "information_integrator_seat": 33.851,
+    "information_integrator_seat_by_own_type": [
+     29.37,
+     29.37,
+     42.814
+    ]
+   },
+   "available_surplus": 127.86,
+   "best_agreement": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.ac22e3d4",
+   "cell": "trade",
+   "clauses_to_change": [
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "dc16074bf87b446623c80e81657a172b99d9418e8a90c681f251705e405cecd2",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 89.502,
+    "headroom": 89.502,
+    "rule": 0.0
+   },
+   "left_on_the_table_by_the_draft": 166.9,
+   "playbook": "coordination",
+   "public_sha256": "76b56a041e65032f83b27c5b132106c1433a5f76f7d2748cf349e285f5ccba3e",
+   "regime": "keep_the_liability",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001833
+  },
+  {
+   "admission": {
+    "expected_available": 256.115,
+    "expected_draft_left": 342.641,
+    "expected_loss": {
+     "every_protection_client": 79.541,
+     "every_protection_integrator": 256.115,
+     "haggle_the_price": 256.115,
+     "sign_the_draft": 347.715,
+     "walk": 256.115
+    },
+    "information_client_seat": 9.167,
+    "information_client_seat_by_own_charge": [
+     23.972,
+     3.529,
+     0.0
+    ],
+    "information_integrator_seat": 36.26,
+    "information_integrator_seat_by_own_type": [
+     31.73,
+     31.73,
+     45.321
+    ]
+   },
+   "available_surplus": 115.945,
+   "best_agreement": "fix_and_delay @50/wk, cap 500, readiness integrator, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.2161db59",
+   "cell": "trade",
+   "clauses_to_change": [
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "8fbbd15a110da5adfe91bb64f8fbba95be9af9e6bc7df5deaa397347c3ba0e0b",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 46.378,
+    "headroom": 96.378,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 205.945,
+   "playbook": "coordination",
+   "public_sha256": "07ef6257111324f5dd72270bdf6eb4b87657639c955f21112362d3036cc687bc",
+   "regime": "sign_now",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8001856
+  },
+  {
+   "admission": {
+    "expected_available": 650.698,
+    "expected_draft_left": 203.608,
+    "expected_loss": {
+     "every_protection_client": 125.672,
+     "every_protection_integrator": 237.708,
+     "haggle_the_price": 203.608,
+     "sign_the_draft": 203.608,
+     "walk": 650.698
+    },
+    "information_client_seat": 6.175,
+    "information_client_seat_by_own_charge": [
+     8.325,
+     2.7,
+     7.5
+    ],
+    "information_integrator_seat": 26.552,
+    "information_integrator_seat_by_own_type": [
+     23.102,
+     30.002
+    ]
+   },
+   "available_surplus": 667.73,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.00ed46a4",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "b6f738bb2f81a56cbc573445e36c19c0851b73b7f3ef0d694ba89eb587bbc1b4",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 484.184,
+    "headroom": 310.424,
+    "rule": 173.76
+   },
+   "left_on_the_table_by_the_draft": 34.19,
+   "playbook": "managed",
+   "public_sha256": "e7298df3a675f544617798ff7dc7aa376933ec96493081f78a5bc615f4cf755b",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001940
+  },
+  {
+   "admission": {
+    "expected_available": 163.249,
+    "expected_draft_left": 508.169,
+    "expected_loss": {
+     "every_protection_client": 109.907,
+     "every_protection_integrator": 163.249,
+     "haggle_the_price": 163.249,
+     "sign_the_draft": 508.169,
+     "walk": 163.249
+    },
+    "information_client_seat": 7.881,
+    "information_client_seat_by_own_charge": [
+     19.735,
+     3.908,
+     0.0
+    ],
+    "information_integrator_seat": 53.412,
+    "information_integrator_seat_by_own_type": [
+     50.721,
+     50.721,
+     58.795
+    ]
+   },
+   "available_surplus": 88.183,
+   "best_agreement": "fix, cap 1500, readiness client, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.f991ee31",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "b42850509be21d1306f604e29a8ed7a912c538b3c10efefa0da8fa2b1d3eb56b",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 8.818,
+    "headroom": 58.818,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 167.782,
+   "playbook": "coordination",
+   "public_sha256": "ed3ceffc5b86b0ba1259916c8d757efadac74e5d5a36984dfb940375be8238f5",
+   "regime": "buy_the_burn_in",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8001975
+  },
+  {
+   "admission": {
+    "expected_available": 295.977,
+    "expected_draft_left": 233.229,
+    "expected_loss": {
+     "every_protection_client": 93.953,
+     "every_protection_integrator": 166.447,
+     "haggle_the_price": 158.347,
+     "sign_the_draft": 233.229,
+     "walk": 295.977
+    },
+    "information_client_seat": 3.375,
+    "information_client_seat_by_own_charge": [
+     10.125,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 28.958,
+    "information_integrator_seat_by_own_type": [
+     23.116,
+     34.8
+    ]
+   },
+   "available_surplus": 381.115,
+   "best_agreement": "fix_and_delay @100/wk, cap 500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.71d61e6f",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "0378f01e772c69778de9e91a2edb5a34ffb6d3e54f3364108ad092ed4d7f130c",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 178.669,
+    "headroom": 31.169,
+    "rule": 147.5
+   },
+   "left_on_the_table_by_the_draft": 57.1,
+   "playbook": "managed",
+   "public_sha256": "aaaacd4690368d178ff2c2ca5ea37f263a368dcacf0e4c056c47b3fc77ce3906",
+   "regime": "take_the_cap",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.166667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002046
+  },
+  {
+   "admission": {
+    "expected_available": 395.029,
+    "expected_draft_left": 273.173,
+    "expected_loss": {
+     "every_protection_client": 80.314,
+     "every_protection_integrator": 214.124,
+     "haggle_the_price": 207.104,
+     "sign_the_draft": 273.173,
+     "walk": 395.029
+    },
+    "information_client_seat": 3.282,
+    "information_client_seat_by_own_charge": [
+     9.011,
+     0.835,
+     0.0
+    ],
+    "information_integrator_seat": 28.834,
+    "information_integrator_seat_by_own_type": [
+     21.925,
+     35.743
+    ]
+   },
+   "available_surplus": 399.735,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.d95a2ca4",
+   "cell": "trade",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "0b802b1e5840679364595ea74227b032caa756c6e5d1a204a268d39d4ab70d66",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 229.815,
+    "headroom": 57.895,
+    "rule": 171.92
+   },
+   "left_on_the_table_by_the_draft": 597.943,
+   "playbook": "managed",
+   "public_sha256": "ddb492eaf4827e6654d9e97412195dd97681ec19da13124e3aab99c9c9aa5eb4",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.333333,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002107
+  },
+  {
+   "admission": {
+    "expected_available": 449.531,
+    "expected_draft_left": 236.687,
+    "expected_loss": {
+     "every_protection_client": 133.0,
+     "every_protection_integrator": 449.531,
+     "haggle_the_price": 236.687,
+     "sign_the_draft": 236.687,
+     "walk": 449.531
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 25.641,
+    "information_integrator_seat_by_own_type": [
+     25.641
+    ]
+   },
+   "available_surplus": 162.04,
+   "best_agreement": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.020dc45e",
+   "cell": "trade",
+   "clauses_to_change": [
+    "deposit",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "aa6a8e2aac7418298c6f43d70b10bb1952cc626bb850f45f24c7754308bc2833",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 97.224,
+    "headroom": 147.224,
+    "rule": -50.0
+   },
+   "left_on_the_table_by_the_draft": 107.73,
+   "playbook": "turnkey",
+   "public_sha256": "579d3cbdd73d2ad17e0c3313fe0e5b758b7d5fe2e8e3bbb63a65cf6c508c9abf",
+   "regime": "sign_now",
+   "requirement": "take_risk_on",
+   "requirement_mass": {
+    "hand_risk_over": 0.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.333333,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002148
+  },
+  {
+   "admission": {
+    "expected_available": 481.607,
+    "expected_draft_left": 266.87,
+    "expected_loss": {
+     "every_protection_client": 85.566,
+     "every_protection_integrator": 245.922,
+     "haggle_the_price": 236.932,
+     "sign_the_draft": 266.87,
+     "walk": 481.607
+    },
+    "information_client_seat": 1.212,
+    "information_client_seat_by_own_charge": [
+     3.636,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 37.816,
+    "information_integrator_seat_by_own_type": [
+     36.904,
+     38.728
+    ]
+   },
+   "available_surplus": 431.146,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.7b31dd67",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "588eef4946201f074041f7c82729e2dde6bbd1cff8b57ed97085708898b0a03b",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 294.917,
+    "headroom": 154.761,
+    "rule": 140.156
+   },
+   "left_on_the_table_by_the_draft": 159.879,
+   "playbook": "managed",
+   "public_sha256": "de3510fa6cb6d6d5e91498f035d95ae90553099eb0d6825b9c325fa002b48487",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002377
+  },
+  {
+   "admission": {
+    "expected_available": 352.622,
+    "expected_draft_left": 530.404,
+    "expected_loss": {
+     "every_protection_client": 145.675,
+     "every_protection_integrator": 352.622,
+     "haggle_the_price": 352.622,
+     "sign_the_draft": 530.404,
+     "walk": 352.622
+    },
+    "information_client_seat": 4.14,
+    "information_client_seat_by_own_charge": [
+     10.973,
+     1.448,
+     0.0
+    ],
+    "information_integrator_seat": 29.723,
+    "information_integrator_seat_by_own_type": [
+     27.942,
+     26.816,
+     34.41
+    ]
+   },
+   "available_surplus": 565.196,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.28921eb0",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "a0e16b78547c4969cf90ed0a07c00d8882ab6042656b1a79481359f2a3854fcf",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 402.157,
+    "headroom": 173.537,
+    "rule": 228.62
+   },
+   "left_on_the_table_by_the_draft": 1040.621,
+   "playbook": "coordination",
+   "public_sha256": "782bbd95121fa73708b2efbe6a0a7ebb8523bcb45e83bab016999093356c080e",
+   "regime": "buy_the_burn_in",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002505
+  },
+  {
+   "admission": {
+    "expected_available": 262.274,
+    "expected_draft_left": 428.742,
+    "expected_loss": {
+     "every_protection_client": 132.553,
+     "every_protection_integrator": 260.941,
+     "haggle_the_price": 260.941,
+     "sign_the_draft": 428.742,
+     "walk": 262.274
+    },
+    "information_client_seat": 5.385,
+    "information_client_seat_by_own_charge": [
+     11.309,
+     4.847,
+     0.0
+    ],
+    "information_integrator_seat": 27.205,
+    "information_integrator_seat_by_own_type": [
+     27.833,
+     27.833,
+     25.948
+    ]
+   },
+   "available_surplus": 380.823,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a10a90d7",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "df665812b1e7a5a80f2952e7b0990a1eafaaf4c2f78154e55a85bd6a656bed2d",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 254.658,
+    "headroom": 90.448,
+    "rule": 164.21
+   },
+   "left_on_the_table_by_the_draft": 884.228,
+   "playbook": "coordination",
+   "public_sha256": "988cbf49e9c01b9cad85714144af86273abf9ae7688e3e23bc7e2b7b25545571",
+   "regime": "keep_the_liability",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.666667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002564
+  },
+  {
+   "admission": {
+    "expected_available": 169.815,
+    "expected_draft_left": 457.457,
+    "expected_loss": {
+     "every_protection_client": 99.705,
+     "every_protection_integrator": 169.815,
+     "haggle_the_price": 169.815,
+     "sign_the_draft": 458.27,
+     "walk": 169.815
+    },
+    "information_client_seat": 9.499,
+    "information_client_seat_by_own_charge": [
+     25.668,
+     2.828,
+     0.0
+    ],
+    "information_integrator_seat": 51.866,
+    "information_integrator_seat_by_own_type": [
+     46.077,
+     46.077,
+     63.445
+    ]
+   },
+   "available_surplus": 127.54,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.ee376a3c",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "323ffe54a38239e03910134d6b0b043c83fe3646175ecf9836f42595544d9097",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 51.016,
+    "headroom": 44.436,
+    "rule": 6.58
+   },
+   "left_on_the_table_by_the_draft": 755.145,
+   "playbook": "coordination",
+   "public_sha256": "395041f230171327089cb4dbb36763fa451687c958884a470438c7d18b531f52",
+   "regime": "buy_the_burn_in",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.555556,
+    "walk": 0.111111
+   },
+   "status": "admitted",
+   "world_seed": 8002644
+  },
+  {
+   "admission": {
+    "expected_available": 187.344,
+    "expected_draft_left": 341.521,
+    "expected_loss": {
+     "every_protection_client": 99.56,
+     "every_protection_integrator": 187.344,
+     "haggle_the_price": 187.344,
+     "sign_the_draft": 344.49,
+     "walk": 187.344
+    },
+    "information_client_seat": 11.421,
+    "information_client_seat_by_own_charge": [
+     30.134,
+     4.128,
+     0.0
+    ],
+    "information_integrator_seat": 32.604,
+    "information_integrator_seat_by_own_type": [
+     23.217,
+     23.228,
+     51.366
+    ]
+   },
+   "available_surplus": 407.025,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.6b2c4e88",
+   "cell": "trade",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "1dafd3c9a7b7b334b62c38d7b9013f68ad5d4bc239d7cf95dd5a896ba3e927c2",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 275.62,
+    "headroom": 104.14,
+    "rule": 171.48
+   },
+   "left_on_the_table_by_the_draft": 710.462,
+   "playbook": "coordination",
+   "public_sha256": "7ce90c60febf532f5b069647dc20f95c23ab354737d878c2d9d572a7182098d0",
+   "regime": "hand_over_readiness",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.444444,
+    "walk": 0.222222
+   },
+   "status": "admitted",
+   "world_seed": 8002805
+  },
+  {
+   "admission": {
+    "expected_available": 195.443,
+    "expected_draft_left": 506.101,
+    "expected_loss": {
+     "every_protection_client": 92.699,
+     "every_protection_integrator": 195.443,
+     "haggle_the_price": 195.443,
+     "sign_the_draft": 519.21,
+     "walk": 195.443
+    },
+    "information_client_seat": 5.883,
+    "information_client_seat_by_own_charge": [
+     13.963,
+     3.686,
+     0.0
+    ],
+    "information_integrator_seat": 60.977,
+    "information_integrator_seat_by_own_type": [
+     42.663,
+     55.367,
+     84.901
+    ]
+   },
+   "available_surplus": 134.02,
+   "best_agreement": "fix_and_delay @100/wk, cap 500, readiness integrator, consequential excluded, deposit 50%, burn-in",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.6830fdec",
+   "cell": "trade",
+   "clauses_to_change": [
+    "burn_in",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "01b17294cd5d094f56cb4d4c8ff0ac7e8fa725a72010b0078487e89050e4efd7",
+   "draft": "none, cap uncapped, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 1.2,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 55.412,
+    "headroom": 42.646,
+    "rule": 12.766
+   },
+   "left_on_the_table_by_the_draft": 342.42,
+   "playbook": "coordination",
+   "public_sha256": "c713850f98cbccc13d1e08a37c8e539c52ccf195e98646b3dc28b309871dfe45",
+   "regime": "buy_the_burn_in",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.444444,
+    "walk": 0.222222
+   },
+   "status": "admitted",
+   "world_seed": 8002808
+  },
+  {
+   "admission": {
+    "expected_available": 391.718,
+    "expected_draft_left": 138.29,
+    "expected_loss": {
+     "every_protection_client": 127.043,
+     "every_protection_integrator": 241.432,
+     "haggle_the_price": 138.29,
+     "sign_the_draft": 138.29,
+     "walk": 391.718
+    },
+    "information_client_seat": 0.0,
+    "information_client_seat_by_own_charge": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 29.843,
+    "information_integrator_seat_by_own_type": [
+     29.843
+    ]
+   },
+   "available_surplus": 364.175,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.64a1d091",
+   "cell": "trade",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "readiness"
+   ],
+   "content_sha256": "761e606fec72eb3c106846c6aca113a9c16dc5930755890ebe3d8a51e26ff19f",
+   "draft": "fix_and_delay @100/wk, cap uncapped, readiness client, consequential excluded, no deposit",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 40.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 204.923,
+    "headroom": 35.073,
+    "rule": 169.85
+   },
+   "left_on_the_table_by_the_draft": 93.86,
+   "playbook": "turnkey",
+   "public_sha256": "f280caa8a208c8fae30be8c1eb2ab3e9b6feb6b08887e8604a59639ac2120919",
+   "regime": "just_enough_damages",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.333333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.333333,
+    "trade": 0.333333,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8002989
+  },
+  {
+   "admission": {
+    "expected_available": 449.613,
+    "expected_draft_left": 226.053,
+    "expected_loss": {
+     "every_protection_client": 157.293,
+     "every_protection_integrator": 234.593,
+     "haggle_the_price": 226.053,
+     "sign_the_draft": 226.053,
+     "walk": 449.613
+    },
+    "information_client_seat": 3.43,
+    "information_client_seat_by_own_charge": [
+     10.29,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 29.233,
+    "information_integrator_seat_by_own_type": [
+     23.287,
+     35.18
+    ]
+   },
+   "available_surplus": 378.96,
+   "best_agreement": "none, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.26c71547",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "warranty"
+   ],
+   "content_sha256": "d3fecfbf0d48faa901631dfd20a9915b6d34c355167e97223f0e4232e25b3ca6",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 215.272,
+    "headroom": 214.632,
+    "rule": 0.64
+   },
+   "left_on_the_table_by_the_draft": 10.08,
+   "playbook": "managed",
+   "public_sha256": "ca830abfaa0ffe2854505d93aa54e13a38009962063a3d4d5e284ba676656961",
+   "regime": "take_the_cap",
+   "requirement": "take_risk_on",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8003284
+  },
+  {
+   "admission": {
+    "expected_available": 597.33,
+    "expected_draft_left": 220.61,
+    "expected_loss": {
+     "every_protection_client": 93.222,
+     "every_protection_integrator": 262.564,
+     "haggle_the_price": 220.61,
+     "sign_the_draft": 220.61,
+     "walk": 597.33
+    },
+    "information_client_seat": 5.89,
+    "information_client_seat_by_own_charge": [
+     9.24,
+     4.05,
+     4.38
+    ],
+    "information_integrator_seat": 26.112,
+    "information_integrator_seat_by_own_type": [
+     22.657,
+     29.567
+    ]
+   },
+   "available_surplus": 678.608,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.684939f4",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "88118733ef5034705fd6b20c2bfedf398d3728c268e6db8a3cc33250fb5e652a",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 425.026,
+    "headroom": 97.818,
+    "rule": 327.208
+   },
+   "left_on_the_table_by_the_draft": 198.118,
+   "playbook": "managed",
+   "public_sha256": "254d836af05e377445df7728cd7bd1e31923d83653d8082fcdaeb57567b8eea8",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8003295
+  },
+  {
+   "admission": {
+    "expected_available": 180.843,
+    "expected_draft_left": 314.092,
+    "expected_loss": {
+     "every_protection_client": 92.331,
+     "every_protection_integrator": 180.843,
+     "haggle_the_price": 180.843,
+     "sign_the_draft": 324.768,
+     "walk": 180.843
+    },
+    "information_client_seat": 3.157,
+    "information_client_seat_by_own_charge": [
+     9.472,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 33.597,
+    "information_integrator_seat_by_own_type": [
+     23.421,
+     43.773
+    ]
+   },
+   "available_surplus": 250.589,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.127fbf4d",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "03e560191c4503242f3ca0622447931691546083f9a05c8b0b73afc62bc5bab4",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.75,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 150.471,
+    "headroom": 57.447,
+    "rule": 93.024
+   },
+   "left_on_the_table_by_the_draft": 302.199,
+   "playbook": "managed",
+   "public_sha256": "a2ee5277c78a93c8f6e1720c7c7c30e7feb30e2852ca38dd31785fc85e366716",
+   "regime": "cheapest_is_not_best",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.166667
+   },
+   "status": "admitted",
+   "world_seed": 8003308
+  },
+  {
+   "admission": {
+    "expected_available": 410.771,
+    "expected_draft_left": 326.714,
+    "expected_loss": {
+     "every_protection_client": 96.153,
+     "every_protection_integrator": 257.09,
+     "haggle_the_price": 249.5,
+     "sign_the_draft": 326.714,
+     "walk": 410.771
+    },
+    "information_client_seat": 0.375,
+    "information_client_seat_by_own_charge": [
+     1.125,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.203,
+    "information_integrator_seat_by_own_type": [
+     27.578,
+     26.828
+    ]
+   },
+   "available_surplus": 438.697,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.7c8653c3",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "6c34105e7bfe6f1b5cd5ecd00c81c3d1e3cece88b17bfa5f2745eb5b619f9942",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 257.088,
+    "headroom": 31.8,
+    "rule": 225.288
+   },
+   "left_on_the_table_by_the_draft": 670.339,
+   "playbook": "managed",
+   "public_sha256": "8e56620a0a04cb14ae4e131d75de38aed182da6cf1fe8f559cade64d462ae612",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 1.0,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8003355
+  },
+  {
+   "admission": {
+    "expected_available": 186.45,
+    "expected_draft_left": 229.333,
+    "expected_loss": {
+     "every_protection_client": 108.618,
+     "every_protection_integrator": 104.183,
+     "haggle_the_price": 107.633,
+     "sign_the_draft": 229.333,
+     "walk": 186.45
+    },
+    "information_client_seat": 3.398,
+    "information_client_seat_by_own_charge": [
+     9.675,
+     0.52,
+     0.0
+    ],
+    "information_integrator_seat": 25.998,
+    "information_integrator_seat_by_own_type": [
+     19.906,
+     32.089
+    ]
+   },
+   "available_surplus": 166.004,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.2d70836a",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "1a2971e8fe547065718b7c75a195e42a4dfe10114b6818e29c5ae53c0a23cd91",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 116.203,
+    "headroom": 33.063,
+    "rule": 83.14
+   },
+   "left_on_the_table_by_the_draft": 516.154,
+   "playbook": "managed",
+   "public_sha256": "35fc95496ff0f30f5337576d7c69ed8c392f62c9edea79c1c803d0fdc0e51f7e",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8003418
+  },
+  {
+   "admission": {
+    "expected_available": 619.747,
+    "expected_draft_left": 349.511,
+    "expected_loss": {
+     "every_protection_client": 80.882,
+     "every_protection_integrator": 356.739,
+     "haggle_the_price": 346.539,
+     "sign_the_draft": 349.511,
+     "walk": 619.747
+    },
+    "information_client_seat": 0.062,
+    "information_client_seat_by_own_charge": [
+     0.188,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 28.682,
+    "information_integrator_seat_by_own_type": [
+     28.744,
+     28.619
+    ]
+   },
+   "available_surplus": 601.175,
+   "best_agreement": "fix_and_delay @100/wk, cap 500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.5fb9fbd9",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "9e92bb18a0b66489b70ed048324f2e40684b9c12fadbf79f0e3c92ac575f0182",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 370.822,
+    "headroom": 93.572,
+    "rule": 277.25
+   },
+   "left_on_the_table_by_the_draft": 141.675,
+   "playbook": "managed",
+   "public_sha256": "93010a1fd43e35a9bb0e0e2b99f332802a96e20174362fe9c6c9b3ec325ddf06",
+   "regime": "take_the_cap",
+   "requirement": "trade",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.0,
+    "trade": 0.166667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8003713
+  },
+  {
+   "admission": {
+    "expected_available": 563.653,
+    "expected_draft_left": 286.28,
+    "expected_loss": {
+     "every_protection_client": 84.422,
+     "every_protection_integrator": 275.787,
+     "haggle_the_price": 268.507,
+     "sign_the_draft": 286.28,
+     "walk": 563.653
+    },
+    "information_client_seat": 3.25,
+    "information_client_seat_by_own_charge": [
+     9.75,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 30.297,
+    "information_integrator_seat_by_own_type": [
+     23.037,
+     37.557
+    ]
+   },
+   "available_surplus": 508.93,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.e960521d",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "ba06f7b6cb4d369fff4c522153e55e76b38e5f522149027c2c3e38a9dc23381b",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 357.144,
+    "headroom": 133.334,
+    "rule": 223.81
+   },
+   "left_on_the_table_by_the_draft": 562.25,
+   "playbook": "managed",
+   "public_sha256": "5befbf16fbe51de45e70feede5641832373a6bcc050ff8e32f03525a24ce5493",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.166667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8003985
+  },
+  {
+   "admission": {
+    "expected_available": 449.23,
+    "expected_draft_left": 218.122,
+    "expected_loss": {
+     "every_protection_client": 123.301,
+     "every_protection_integrator": 191.341,
+     "haggle_the_price": 184.841,
+     "sign_the_draft": 218.122,
+     "walk": 449.23
+    },
+    "information_client_seat": 3.125,
+    "information_client_seat_by_own_charge": [
+     9.375,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.806,
+    "information_integrator_seat_by_own_type": [
+     22.31,
+     33.302
+    ]
+   },
+   "available_surplus": 535.28,
+   "best_agreement": "none, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.31ef0baa",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "warranty"
+   ],
+   "content_sha256": "8a6aef43d2b15f6a2fc892567cd9349f693c78b0b464be4d7094c8e79f0e0678",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": true,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 324.696,
+    "headroom": 99.196,
+    "rule": 225.5
+   },
+   "left_on_the_table_by_the_draft": 9.75,
+   "playbook": "managed",
+   "public_sha256": "0227e8e0da5c8ffc6daf25e50ed45e3d21fbe7fb1add857eea3054e12c76530a",
+   "regime": "take_the_cap",
+   "requirement": "take_risk_on",
+   "requirement_mass": {
+    "hand_risk_over": 0.666667,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.166667,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8004345
+  },
+  {
+   "admission": {
+    "expected_available": 217.496,
+    "expected_draft_left": 300.375,
+    "expected_loss": {
+     "every_protection_client": 84.866,
+     "every_protection_integrator": 138.045,
+     "haggle_the_price": 141.945,
+     "sign_the_draft": 300.375,
+     "walk": 217.496
+    },
+    "information_client_seat": 3.45,
+    "information_client_seat_by_own_charge": [
+     10.35,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 28.541,
+    "information_integrator_seat_by_own_type": [
+     27.024,
+     30.058
+    ]
+   },
+   "available_surplus": 309.255,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.b240226a",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "8a1f6729af7ae5c7efbee4d724182d23269a6a1ca6d9ccc51ae769d4053613b0",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 166.478,
+    "headroom": 90.338,
+    "rule": 76.14
+   },
+   "left_on_the_table_by_the_draft": 82.6,
+   "playbook": "managed",
+   "public_sha256": "0f22b9aee89cb7c34d16a73a1841a6f18ea01c88930cedd9f74ad83a0d4259ec",
+   "regime": "just_enough_damages",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8004801
+  },
+  {
+   "admission": {
+    "expected_available": 203.066,
+    "expected_draft_left": 322.774,
+    "expected_loss": {
+     "every_protection_client": 77.736,
+     "every_protection_integrator": 120.409,
+     "haggle_the_price": 124.324,
+     "sign_the_draft": 322.774,
+     "walk": 203.066
+    },
+    "information_client_seat": 3.307,
+    "information_client_seat_by_own_charge": [
+     9.922,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.136,
+    "information_integrator_seat_by_own_type": [
+     21.592,
+     32.68
+    ]
+   },
+   "available_surplus": 247.97,
+   "best_agreement": "none, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.e0cc88ce",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "warranty"
+   ],
+   "content_sha256": "8e01d9b1581f2cdb7841db38ae5686b715b28405fde89ae12589b2aae0ebcb34",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 148.376,
+    "headroom": 62.366,
+    "rule": 86.01
+   },
+   "left_on_the_table_by_the_draft": 11.745,
+   "playbook": "managed",
+   "public_sha256": "9a3b29ed5bd337c7722af101acf70ca01afda33218543950bbddca7ac6aefb4b",
+   "regime": "take_the_cap",
+   "requirement": "take_risk_on",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8004874
+  },
+  {
+   "admission": {
+    "expected_available": 532.197,
+    "expected_draft_left": 266.46,
+    "expected_loss": {
+     "every_protection_client": 99.057,
+     "every_protection_integrator": 277.453,
+     "haggle_the_price": 266.46,
+     "sign_the_draft": 266.46,
+     "walk": 532.197
+    },
+    "information_client_seat": 3.255,
+    "information_client_seat_by_own_charge": [
+     9.765,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 32.457,
+    "information_integrator_seat_by_own_type": [
+     28.26,
+     36.653
+    ]
+   },
+   "available_surplus": 529.63,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.4709cb29",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "4b60472c7c88c7deca262bfed2a9d5235c29325b325546827d9a4a915b9381b9",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 373.704,
+    "headroom": 124.784,
+    "rule": 248.92
+   },
+   "left_on_the_table_by_the_draft": 517.11,
+   "playbook": "managed",
+   "public_sha256": "abc709c0427722a8db3c80508d79f0ed4e0273be96cdcb9d163e850ca4a48a39",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8004896
+  },
+  {
+   "admission": {
+    "expected_available": 546.25,
+    "expected_draft_left": 219.837,
+    "expected_loss": {
+     "every_protection_client": 122.237,
+     "every_protection_integrator": 251.255,
+     "haggle_the_price": 219.837,
+     "sign_the_draft": 219.837,
+     "walk": 546.25
+    },
+    "information_client_seat": 3.185,
+    "information_client_seat_by_own_charge": [
+     9.555,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 28.545,
+    "information_integrator_seat_by_own_type": [
+     22.395,
+     34.695
+    ]
+   },
+   "available_surplus": 490.08,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness client, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.bbd3f264",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "warranty"
+   ],
+   "content_sha256": "7d730196df93be27e5c06592d7bf54253892ad313a9614e7ef46e17922d28570",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 293.056,
+    "headroom": 74.596,
+    "rule": 218.46
+   },
+   "left_on_the_table_by_the_draft": 418.445,
+   "playbook": "managed",
+   "public_sha256": "db30586b20c9dad9c4120fed0569d0d16e87a96e6e8d1117f9174490a1989ed4",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8005072
+  },
+  {
+   "admission": {
+    "expected_available": 368.172,
+    "expected_draft_left": 235.823,
+    "expected_loss": {
+     "every_protection_client": 98.773,
+     "every_protection_integrator": 205.632,
+     "haggle_the_price": 199.962,
+     "sign_the_draft": 235.823,
+     "walk": 368.172
+    },
+    "information_client_seat": 3.967,
+    "information_client_seat_by_own_charge": [
+     8.302,
+     3.6,
+     0.0
+    ],
+    "information_integrator_seat": 27.226,
+    "information_integrator_seat_by_own_type": [
+     23.31,
+     31.142
+    ]
+   },
+   "available_surplus": 290.72,
+   "best_agreement": "none, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.b746f54b",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "warranty"
+   ],
+   "content_sha256": "7f1b5a3941953e449ba9f495d46bd48dca20473dd8d3b9b07f4c956bdd22a62f",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 153.504,
+    "headroom": 49.414,
+    "rule": 104.09
+   },
+   "left_on_the_table_by_the_draft": 8.505,
+   "playbook": "managed",
+   "public_sha256": "2a2d3bed78fa2e661ff2922f5e9016165ce19c9fbc2511b35bc88e14675677f8",
+   "regime": "just_enough_damages",
+   "requirement": "take_risk_on",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8005233
+  },
+  {
+   "admission": {
+    "expected_available": 638.865,
+    "expected_draft_left": 246.198,
+    "expected_loss": {
+     "every_protection_client": 92.147,
+     "every_protection_integrator": 285.878,
+     "haggle_the_price": 246.198,
+     "sign_the_draft": 246.198,
+     "walk": 638.865
+    },
+    "information_client_seat": 3.52,
+    "information_client_seat_by_own_charge": [
+     10.56,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 36.122,
+    "information_integrator_seat_by_own_type": [
+     31.727,
+     40.517
+    ]
+   },
+   "available_surplus": 673.87,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.09d5a5a5",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "7daaeb702329ff8e80e7b8af5431ccd6b103893799bc360010ec63dccfe3bdc9",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 421.709,
+    "headroom": 303.549,
+    "rule": 118.16
+   },
+   "left_on_the_table_by_the_draft": 65.15,
+   "playbook": "managed",
+   "public_sha256": "dc8844c97a23470547e63753dbcc10686f4a0e0eb59a3b718d28386d2ac266d6",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8005279
+  },
+  {
+   "admission": {
+    "expected_available": 437.414,
+    "expected_draft_left": 204.234,
+    "expected_loss": {
+     "every_protection_client": 152.782,
+     "every_protection_integrator": 206.384,
+     "haggle_the_price": 198.064,
+     "sign_the_draft": 204.234,
+     "walk": 437.414
+    },
+    "information_client_seat": 3.611,
+    "information_client_seat_by_own_charge": [
+     9.84,
+     0.994,
+     0.0
+    ],
+    "information_integrator_seat": 28.273,
+    "information_integrator_seat_by_own_type": [
+     21.612,
+     34.934
+    ]
+   },
+   "available_surplus": 504.448,
+   "best_agreement": "fix_and_delay @50/wk, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.438035b5",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "damages",
+    "warranty"
+   ],
+   "content_sha256": "a752bbe0277c6e66d44b3357034155a7f6726374aa9a9876a69546f9c5baeef0",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": true,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 0.15,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 277.668,
+    "headroom": 41.978,
+    "rule": 235.69
+   },
+   "left_on_the_table_by_the_draft": 53.487,
+   "playbook": "managed",
+   "public_sha256": "e8da17ea06cbb09d1f750c4523b6f8c448a0f732683a339a20911063d001413a",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8005292
+  },
+  {
+   "admission": {
+    "expected_available": 491.994,
+    "expected_draft_left": 242.449,
+    "expected_loss": {
+     "every_protection_client": 114.256,
+     "every_protection_integrator": 234.379,
+     "haggle_the_price": 227.629,
+     "sign_the_draft": 242.449,
+     "walk": 491.994
+    },
+    "information_client_seat": 3.038,
+    "information_client_seat_by_own_charge": [
+     9.113,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 26.861,
+    "information_integrator_seat_by_own_type": [
+     22.904,
+     30.819
+    ]
+   },
+   "available_surplus": 412.224,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, no deposit",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.f4737ae9",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "deposit",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "23aeecb9c5e24aa3f73957e416299fbe5639c680d0353740a88e97c96de39049",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 200.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 279.779,
+    "headroom": 98.487,
+    "rule": 181.292
+   },
+   "left_on_the_table_by_the_draft": 456.684,
+   "playbook": "managed",
+   "public_sha256": "fe2fc67967ca2afd343edbf9ed463ca476941baf4b1fd9bb180cafba8849faaa",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8005349
+  },
+  {
+   "admission": {
+    "expected_available": 192.65,
+    "expected_draft_left": 236.804,
+    "expected_loss": {
+     "every_protection_client": 135.156,
+     "every_protection_integrator": 112.774,
+     "haggle_the_price": 116.524,
+     "sign_the_draft": 236.804,
+     "walk": 192.65
+    },
+    "information_client_seat": 3.375,
+    "information_client_seat_by_own_charge": [
+     10.125,
+     0.0,
+     0.0
+    ],
+    "information_integrator_seat": 27.276,
+    "information_integrator_seat_by_own_type": [
+     22.137,
+     32.414
+    ]
+   },
+   "available_surplus": 186.66,
+   "best_agreement": "fix_and_delay @200/wk, cap uncapped, readiness integrator, consequential included, deposit 50%",
+   "brief_version": "walkaway_stated_v1",
+   "case_id": "datacenter_agreement_v1.admitted_v2.a37dd691",
+   "cell": "hand_risk_over",
+   "clauses_to_change": [
+    "consequential",
+    "damages",
+    "liability_cap",
+    "readiness",
+    "warranty"
+   ],
+   "content_sha256": "7fcc368bac83af5c5ab453ea9aec2256fe15f532496f659ec24a3a5313360dd6",
+   "draft": "fix, cap 1500, readiness client, consequential excluded, deposit 50%",
+   "draft_beats_no_deal": false,
+   "gives_a_clause_up": false,
+   "hidden_types": {
+    "client_risk_charge": 1.55,
+    "integrator_type": {
+     "risk_charge": 0.3,
+     "test_cost": 120.0
+    }
+   },
+   "integrator_headroom": {
+    "ceiling": 111.996,
+    "headroom": 28.26,
+    "rule": 83.736
+   },
+   "left_on_the_table_by_the_draft": 530.6,
+   "playbook": "managed",
+   "public_sha256": "89d0f881db378f7c642d81b48256608b8a1cf91eaf0bffa6cedcc24321466f4b",
+   "regime": "take_the_cap",
+   "requirement": "hand_risk_over",
+   "requirement_mass": {
+    "hand_risk_over": 0.833333,
+    "move_the_price": 0.0,
+    "take_risk_on": 0.166667,
+    "trade": 0.0,
+    "walk": 0.0
+   },
+   "status": "admitted",
+   "world_seed": 8005435
+  }
+ ]
+}
