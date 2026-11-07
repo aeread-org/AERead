@@ -1,0 +1,77 @@
+{
+ "at": "2026-10-19T16:35:38+00:00",
+ "campaign_id": "housing_lemons_price_v15_gpt6_luna",
+ "request": {
+  "max_tokens": 4096,
+  "messages": [
+   {
+    "content": "You are a tenant. Answer only with the JSON object the schema asks for.",
+    "role": "system"
+   },
+   {
+    "content": "Listing 2 asks $900 a month and was inspected as sound; its cost to the landlord is at least $820. Make one offer: decision offer, the listing id, and a rent.",
+    "role": "user"
+   }
+  ],
+  "model": "openai/gpt-6-luna",
+  "provider": {
+   "allow_fallbacks": false,
+   "only": [
+    "OpenAI"
+   ],
+   "quantizations": [
+    "unknown"
+   ]
+  },
+  "reasoning": {
+   "effort": "low"
+  },
+  "response_format": {
+   "json_schema": {
+    "name": "tenant_move",
+    "schema": {
+     "additionalProperties": false,
+     "properties": {
+      "decision": {
+       "enum": [
+        "offer",
+        "pass"
+       ],
+       "type": "string"
+      },
+      "listing_id": {
+       "type": "integer"
+      },
+      "rent": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "decision",
+      "listing_id",
+      "rent"
+     ],
+     "type": "object"
+    },
+    "strict": true
+   },
+   "type": "json_schema"
+  },
+  "seed": 87001
+ },
+ "route_pin": {
+  "canonical_model": "openai/gpt-6-luna-20260922",
+  "provider": "OpenAI",
+  "quantization": "unknown"
+ },
+ "served_model": "openai/gpt-6-luna",
+ "served_provider": "OpenAI",
+ "status": "answered",
+ "structured_output_ok": true,
+ "usage": {
+  "completion_tokens": 124,
+  "cost_usd": 7.2171e-05,
+  "prompt_tokens": 109,
+  "reasoning_tokens": 100
+ }
+}

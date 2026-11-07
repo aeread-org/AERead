@@ -1,0 +1,2119 @@
+{
+ "plans": {
+  "runplan_090ba21775ab74ee": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "090ba21775ab74eebb0159c59e43e95a04be8252ac934632d322662827d54160"
+  },
+  "runplan_0b1a274f000ccae5": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "0b1a274f000ccae569b7d2131e8d65ae9184e5fd8a9f6e475091b74c96571ede"
+  },
+  "runplan_0f9c6ff44fbd4944": {
+   "bundle": "housing_lemons_price_confirmatory_v14_gemini_fill",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "0f9c6ff44fbd49445ef3033482feb771ebbf5406661f05155f753019a1df0ff0"
+  },
+  "runplan_1e7f9aa632d20386": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "1e7f9aa632d20386fb0601d45709fc9f5225f6b2e1a32ef9e525a4a4574c89a2"
+  },
+  "runplan_3507ab0e226386da": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "3507ab0e226386da735161d8a4f90cf80b3e385b8ab3a331c1b3c6bdb7a08562"
+  },
+  "runplan_3a3ee31b4ef9f701": {
+   "bundle": "housing_lemons_price_confirmatory_v14",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "3a3ee31b4ef9f70189ada0d0587b74d8eea40b52119c9b8d208378cf0d2ea2f2"
+  },
+  "runplan_5dc0096950dc5031": {
+   "bundle": "housing_lemons_price_confirmatory_v14",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "5dc0096950dc5031ba6c1cec61e7ba02e5e25b1084f89a521033a5e8916e41c4"
+  },
+  "runplan_5f09674c256ee069": {
+   "bundle": "housing_lemons_price_confirmatory_v14",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "5f09674c256ee0693808c10d542451350479ca569a25e64ef9817ca745e52611"
+  },
+  "runplan_79d6d5cf22738bc2": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "79d6d5cf22738bc2bd3c90c9123abe6bbc3655bed0a3388bc6f152fa2f939cc1"
+  },
+  "runplan_7ab4945026f92970": {
+   "bundle": "housing_lemons_price_confirmatory_v14",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "7ab4945026f92970c92fe6afee1b1e6f6decf2dda979170b3d4355df897aeef9"
+  },
+  "runplan_86317db0ecdfb8a5": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "86317db0ecdfb8a50d15f651d25cb8129b69033459ede8809886747babca88d5"
+  },
+  "runplan_951bf86c93c3e842": {
+   "bundle": "housing_lemons_price_v15_glm_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "951bf86c93c3e84290dc78c49ae94bbc47a0bfc2920f51053afd7bf4ad655442"
+  },
+  "runplan_993f08ef8cc8caea": {
+   "bundle": "housing_lemons_price_confirmatory_v14",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "993f08ef8cc8caeae4eb207d1a64eccaf5bc58fac0a02466c853d4be2732c08a"
+  },
+  "runplan_9e3e14e740d24b26": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "9e3e14e740d24b261bcdc92d7e53ab2fcda3218ae9bc663ffa19a5eb689b3bd9"
+  },
+  "runplan_ab413d34ee5d4757": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "ab413d34ee5d4757e5906c3bfd12864d2f42feb0f4e056aa797f0e92e1558594"
+  },
+  "runplan_acef38317e2923e2": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "acef38317e2923e265762b7b06742e65c6f7fd572da74a141ece5c5fc078e160"
+  },
+  "runplan_ad1222fd5d096d28": {
+   "bundle": "housing_lemons_price_confirmatory_v14_gemini_fill",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "ad1222fd5d096d28185eaffdb4503fd0acacca9e5bd52b021796aa424ef1255b"
+  },
+  "runplan_afd62d2f151eddd8": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "afd62d2f151eddd8bd8491de7494ab340cb80bd67097c96f8b087d50d365cbea"
+  },
+  "runplan_b17edd8967d4f091": {
+   "bundle": "housing_lemons_price_v15_glm_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "b17edd8967d4f091a250d6b9f10eee81b6e7b0a55eff1e1d4e4bf059cf81bea5"
+  },
+  "runplan_b4914904bb37b459": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "b4914904bb37b4596a58e8b921a879f345b6f0f01e4be683a5c00fd4ecbb95ef"
+  },
+  "runplan_caa6f438e53960f1": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "caa6f438e53960f16921ee0c917b3dbae05097e0777c041e9b902587197d1295"
+  },
+  "runplan_cb484a0c5b94d69d": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "cb484a0c5b94d69d63cd755949383be57b1de0e09f7e447a1fbf1be03971e25b"
+  },
+  "runplan_d0622d668710d76a": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "d0622d668710d76a4b09864f183327fb15389d5d818db777b6076e195d21be73"
+  },
+  "runplan_d0ed679c2164668e": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "d0ed679c2164668e03d9cf74662804256cc5a4a7917d03f8228e8384bea57c63"
+  },
+  "runplan_e583dd04cafe928b": {
+   "bundle": "housing_lemons_price_v15_glm_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "e583dd04cafe928bf35686a3544abaee07952d7b652d069280a63c0f44512288"
+  },
+  "runplan_eabb179d82f43560": {
+   "bundle": "housing_lemons_price_confirmatory_v14",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_exact_assignment_v1",
+     "kind": "reference",
+     "sha256": "bddf244237305d37119b9c6b69c1127d891241f3b88483b317f8e80c9e6b5a38",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_outcome_v1",
+     "kind": "scorer",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_price_sign_anything_v1",
+     "kind": "reference",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "eabb179d82f435600c4ab76c57ec110b882047fe8880209f40cf27192d6866fc"
+  },
+  "runplan_ed0851add8fe04f0": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "ed0851add8fe04f0d4545bc5014f3d9f8d055586babe800eb09948209d6d7c4e"
+  },
+  "runplan_f0b278ae5bde7053": {
+   "bundle": "housing_lemons_price_v15_glm_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "f0b278ae5bde7053c36d31a42b8b89d0b939b5f8d663757ebee72ab4cc4dd5cd"
+  },
+  "runplan_f4bea64eac38b614": {
+   "bundle": "housing_lemons_price_v15_cli_addendum",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "f4bea64eac38b614336af73ac8c49e131d38225504ffc3f1900cc50a02a7973a"
+  },
+  "runplan_f6ff52d20a672cbb": {
+   "bundle": "housing_lemons_price_v15_confirmatory",
+   "plan_implementation_pins": [
+    {
+     "component_id": "aeread.housing_v1",
+     "kind": "family_plugin",
+     "sha256": "8f3d643a99067ea9303639d461dac1b0e3f8a1d7c6249c3982b72706031e4104",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.execution",
+     "kind": "runtime",
+     "sha256": "607a79ce6d91fd4b6259a8cc4e0e59915dbc9fe587ffbd72cd599716465af5b0",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "aeread.shared_runner.housing",
+     "kind": "runtime",
+     "sha256": "402004c03eee37ad240387c448d2ceda0a7086074b2abccfc6ae4a837d574d57",
+     "version": "0.1.0"
+    },
+    {
+     "component_id": "housing_feasible_zero_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_generator_v1",
+     "kind": "generator",
+     "sha256": "d470b7ad49d9752c10cb8182fb6c0b0876cd5c5fc565b217b50b1f9d6a583e63",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_lemons_price_seat0_outcome_v1",
+     "kind": "scorer",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_best_informed_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_ceiling_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_lowball_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "housing_seat0_inspect_then_sign_v1",
+     "kind": "reference",
+     "sha256": "bac45d732854fb0e03db8de6ad54da51f05937f3672d244be768aed8c09ef78a",
+     "version": "1.0.0"
+    },
+    {
+     "component_id": "minimal_chat",
+     "kind": "harness",
+     "sha256": "c3cf38144a935c18d261004a6479f829c53f9c551e0e1338efa3dd39366812ef",
+     "version": "1.0"
+    }
+   ],
+   "run_plan_sha256": "f6ff52d20a672cbbe7748e67823118754661354ea7349793d2260c8079f2ccf0"
+  }
+ },
+ "receipts_read": 5368,
+ "schema_version": "aeread.housing_price_recorded_pins/0.1",
+ "source": "the sealed evaluation receipts of every published plan, one entry per plan"
+}

@@ -199,6 +199,32 @@ the deciding numbers or the one trace that makes it clear, then stop.
 - No closing summary paragraph. This overrides the global closing-summary rule
   for this project.
 
+## Critique every result before presenting it
+
+Owner instruction, 2026-10-21. Before showing the owner any result (a number,
+a claim, a gate verdict, a paper or PR change summary), write it to a file
+exactly as you would present it and run a second reader on it:
+
+```
+~/.claude/tools/gemini_critique.sh DRAFT.md EVIDENCE_FILE [EVIDENCE_FILE ...]
+```
+
+It sends the draft and the evidence to Gemini 3.8 Flash (High) through the
+Antigravity CLI (`agy`), read-only, and returns at most eight tagged points in
+two to four minutes.
+
+- Pass the evidence the result rests on (the table, the JSON, the source
+  passage), not only the prose, so the critic checks numbers. Pass whole
+  files; the script minifies JSON and marks anything it has to truncate.
+- The critic is a second reader, not an authority. Check every point against
+  the data before acting: it has misread truncated evidence as missing data and
+  confused a weighted score with a raw pass rate.
+- Fix what holds. Report the outcome with the result in a line or a small
+  table: how many points, which were accepted and fixed, which were rejected
+  and why.
+- If `agy` is unavailable, say the critique was skipped; never present a
+  result as critiqued when it was not.
+
 ## Why these rules exist
 
 Recorded so the rules are not mistaken for taste. Each line is an incident on

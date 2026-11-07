@@ -1,0 +1,17 @@
+{
+ "alpha": 0.05,
+ "attrition": 0.05,
+ "cap": 260,
+ "detectable_at_cap": 12.97,
+ "effect": 50.0,
+ "mean_difference_pilot": 27.26,
+ "pair": "gemini38_flash - gpt6_luna",
+ "pilot_worlds": 20,
+ "power": 0.8,
+ "sd_one_replicate": 72.5,
+ "sizing_module_sha256": "6a3f0794d336b92d6d5566159885d8b1dd03ff284e21d6478b2d8aba22d6a41f",
+ "var_play": 5162.59,
+ "var_world": 94.0,
+ "within_cap": true,
+ "worlds_needed": 20
+}

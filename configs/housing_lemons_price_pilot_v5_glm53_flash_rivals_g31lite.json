@@ -1,0 +1,88 @@
+{
+  "schema_version": "aeread.housing_price_pilot/1",
+  "campaign_id": "housing_lemons_price_pilot_v5_glm53_flash_rivals_g31lite",
+  "claim_status": "development_pilot",
+  "route": {
+    "route_id": "parasail_glm_53_flash",
+    "requested_model": "z-ai/glm-5.3-flash",
+    "canonical_model": "z-ai/glm-5.3-flash-20260826",
+    "provider": "Parasail",
+    "quantization": "fp8",
+    "input_per_million_usd": 0.15,
+    "cached_input_per_million_usd": 0.03,
+    "output_per_million_usd": 0.5
+  },
+  "world_seeds": [
+    100000,
+    100001,
+    100002,
+    100003,
+    100004,
+    100005,
+    100006,
+    100007
+  ],
+  "arms": [
+    "true_cost",
+    "pooled"
+  ],
+  "replicates": 1,
+  "rounds": 3,
+  "tenant_cost_ceiling_usd_per_cell": 0.3,
+  "total_cost_ceiling_usd": 0.6,
+  "max_consecutive_operational_failures": 1,
+  "controls": {
+    "harness": "minimal_chat/1.0",
+    "tools": "disabled",
+    "memory": "disabled",
+    "reasoning_effort": "low",
+    "temperature": 1.0,
+    "top_p": 1.0,
+    "max_output_tokens": 4096,
+    "timeout_seconds": 120.0,
+    "sdk_retries": 0,
+    "max_action_attempts": 4,
+    "retryable_conditions": [
+      "length",
+      "rate_limit",
+      "provider_5xx",
+      "empty_response"
+    ],
+    "tenant_inference_seed_base": 87001,
+    "landlord_model": "housing_scripted_landlord_price_v1",
+    "landlord_margin_usd": 25.0,
+    "execution_order": "world_seed_ascending_then_arm_order"
+  },
+  "analysis": {
+    "independent_unit": "world_seed",
+    "price_endpoint": "signed_rent_minus_ask_conditional_on_signing",
+    "selection_endpoint": "signed_listings_divided_by_eligible_listings_by_quality",
+    "missingness": "report_separately",
+    "model_ranking_allowed": false
+  },
+  "rivals": {
+    "route": {
+      "route_id": "google_gemini_31_flash_lite",
+      "requested_model": "google/gemini-3.1-flash-lite",
+      "canonical_model": "google/gemini-3.1-flash-lite-20260507",
+      "provider": "Google",
+      "quantization": "unknown",
+      "input_per_million_usd": 0.25,
+      "cached_input_per_million_usd": 0.025,
+      "output_per_million_usd": 1.5
+    },
+    "seats": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "focal_seat": 0,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "reasoning_effort": "low",
+    "rate_limit_retries": 5,
+    "backoff_seconds": 3.0
+  }
+}

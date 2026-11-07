@@ -145,6 +145,7 @@ identities, so their citations are redirected, not rewritten.
 ## Research and measurement
 
 - [What we have measured, and whether it can sit beside the paper](research/measured_vs_published.md)
+- [Paper replication note: where each formula and reported procedure is implemented](research/paper_replication_note.md)
 - [Verifier taxonomy](research/verifier_taxonomy.md)
 - [Verifier-to-case mapping](research/verifier_case_mapping.md)
 - [Problem-to-bound case audit](research/problem_bound_case_audit.md)

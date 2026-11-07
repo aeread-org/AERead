@@ -1,0 +1,1616 @@
+{
+ "counts": {
+  "GLM": {
+   "blind_signings": 187,
+   "blind_signings_after_a_sound_counter_this_round": 43,
+   "cells_with_invalid_seat0_actions": 16,
+   "changed_by_a_reply_on_another_listing": 0,
+   "changed_by_a_reply_on_the_signed_listing": 21,
+   "changed_signings": 21,
+   "changed_signings_all_sound": true,
+   "changed_signings_main_pack": 20,
+   "completed_cells": 600,
+   "informative_replies": 385,
+   "invalid_seat0_actions_by_code": {
+    "malformed_commit": 1,
+    "unavailable_listing": 15
+   },
+   "sum_value_change_usd": 6999.93
+  },
+  "Gemini": {
+   "blind_signings": 123,
+   "blind_signings_after_a_sound_counter_this_round": 22,
+   "cells_with_invalid_seat0_actions": 0,
+   "changed_by_a_reply_on_another_listing": 0,
+   "changed_by_a_reply_on_the_signed_listing": 3,
+   "changed_signings": 3,
+   "changed_signings_all_sound": true,
+   "changed_signings_main_pack": 3,
+   "completed_cells": 564,
+   "informative_replies": 214,
+   "invalid_seat0_actions_by_code": {},
+   "sum_value_change_usd": 999.99
+  },
+  "Gemini fill": {
+   "blind_signings": 18,
+   "blind_signings_after_a_sound_counter_this_round": 4,
+   "cells_with_invalid_seat0_actions": 0,
+   "changed_by_a_reply_on_another_listing": 0,
+   "changed_by_a_reply_on_the_signed_listing": 0,
+   "changed_signings": 0,
+   "changed_signings_all_sound": true,
+   "changed_signings_main_pack": 0,
+   "completed_cells": 48,
+   "informative_replies": 17,
+   "invalid_seat0_actions_by_code": {},
+   "sum_value_change_usd": 0.0
+  },
+  "Luna": {
+   "blind_signings": 241,
+   "blind_signings_after_a_sound_counter_this_round": 39,
+   "cells_with_invalid_seat0_actions": 0,
+   "changed_by_a_reply_on_another_listing": 0,
+   "changed_by_a_reply_on_the_signed_listing": 33,
+   "changed_signings": 33,
+   "changed_signings_all_sound": true,
+   "changed_signings_main_pack": 27,
+   "completed_cells": 600,
+   "informative_replies": 337,
+   "invalid_seat0_actions_by_code": {},
+   "sum_value_change_usd": 10999.89
+  }
+ },
+ "declared_verdicts_changed": false,
+ "inputs": {
+  "fill_manifest_sha256": "ce9f504cac6d4208f7d4f2001e769dc30ae77b2a45f817361975024657ba96e0",
+  "trajectory_rows": 1812,
+  "trajectory_table_sha256": "0c4bfbc53866b47767778cce83485bf1d0aa660bfebe6ab03465d7cd4b440d7b",
+  "v14_manifest_sha256": "64ebaba31a2ee52c19fa53505299dbe65b0b92e48de36eb43e0d42219fdc06e5"
+ },
+ "measure": {
+  "declared": "2026-10-13, for identities frozen after it (HL-D-07)",
+  "informative_reply": "leaky arm only, offer below the sound floor, lemon target below the floor: a hold below the floor proves a lemon, a counter at the floor proves sound; an offer at or above the floor and every pooled-arm reply are uninformative",
+  "informed_signing": "true value, as in v1",
+  "measure_id": "housing_price_reply_conditioned_v2",
+  "supersedes": "price_endpoint net_expected_response_odds (v1, the v14 primary measure)",
+  "value_of_a_blind_signing": "value if sound minus lemon_loss times P(lemon | inspections and informative replies up to the decision's round, given the true landlord arm); exactly lemon_count lemons, exchangeable"
+ },
+ "reproduction": {
+  "fill_sensitivity": "reports/sensitivity.json, exact",
+  "published_analysis": "reports/analysis.json, exact",
+  "published_cells": "net_realized and primary of every completed cell, exact"
+ },
+ "schema_version": "aeread.housing_price_reply_conditioned/1",
+ "summary": {
+  "v1": {
+   "models": {
+    "GLM": {
+     "holdout": {
+      "hi": 140.17,
+      "lo": 5.05,
+      "mean": 72.61,
+      "n": 40
+     },
+     "main": {
+      "hi": 162.5,
+      "lo": 110.66,
+      "mean": 136.58,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 100.41,
+      "lo": 51.89,
+      "mean": 76.15,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 390.97,
+      "lo": 285.05,
+      "mean": 338.01,
+      "n": 60
+     }
+    },
+    "Gemini": {
+     "holdout": {
+      "hi": 255.25,
+      "lo": 120.23,
+      "mean": 187.74,
+      "n": 36
+     },
+     "main": {
+      "hi": 233.27,
+      "lo": 188.19,
+      "mean": 210.73,
+      "n": 240
+     },
+     "main_favourite_is_lemon": {
+      "hi": 173.23,
+      "lo": 131.97,
+      "mean": 152.6,
+      "n": 183
+     },
+     "main_favourite_is_sound": {
+      "hi": 437.23,
+      "lo": 357.51,
+      "mean": 397.37,
+      "n": 57
+     }
+    },
+    "Luna": {
+     "holdout": {
+      "hi": 180.17,
+      "lo": 45.66,
+      "mean": 112.91,
+      "n": 40
+     },
+     "main": {
+      "hi": 155.6,
+      "lo": 104.46,
+      "mean": 130.03,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 67.64,
+      "lo": 27.53,
+      "mean": 47.58,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 443.89,
+      "lo": 365.84,
+      "mean": 404.87,
+      "n": 60
+     }
+    }
+   },
+   "pairs": {
+    "GLM-Luna": {
+     "holdout": {
+      "hi": 25.67,
+      "lo": -106.27,
+      "mean": -40.3,
+      "n": 40,
+      "p": 0.22399763147933713
+     },
+     "main": {
+      "at_least_minimum_meaningful": false,
+      "hi": 28.72,
+      "lo": -15.63,
+      "mean": 6.54,
+      "n": 260,
+      "p": 0.5616658898776751,
+      "p_holm": 0.5616658898776751,
+      "separated_after_holm": false
+     }
+    },
+    "Gemini-GLM": {
+     "holdout": {
+      "hi": 168.32,
+      "lo": 44.19,
+      "mean": 106.25,
+      "n": 36,
+      "p": 0.0013787585778889794
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 91.81,
+      "lo": 48.29,
+      "mean": 70.05,
+      "n": 240,
+      "p": 1.1209134622096152e-09,
+      "p_holm": 2.2418269244192304e-09,
+      "separated_after_holm": true
+     }
+    },
+    "Gemini-Luna": {
+     "holdout": {
+      "hi": 97.9,
+      "lo": 11.74,
+      "mean": 54.82,
+      "n": 36,
+      "p": 0.01411467369637847
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 98.62,
+      "lo": 62.23,
+      "mean": 80.42,
+      "n": 240,
+      "p": 5.228963653230378e-16,
+      "p_holm": 1.5686890959691133e-15,
+      "separated_after_holm": true
+     }
+    }
+   }
+  },
+  "v1_with_fill": {
+   "models": {
+    "GLM": {
+     "holdout": {
+      "hi": 140.17,
+      "lo": 5.05,
+      "mean": 72.61,
+      "n": 40
+     },
+     "main": {
+      "hi": 162.5,
+      "lo": 110.66,
+      "mean": 136.58,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 100.41,
+      "lo": 51.89,
+      "mean": 76.15,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 390.97,
+      "lo": 285.05,
+      "mean": 338.01,
+      "n": 60
+     }
+    },
+    "Gemini": {
+     "holdout": {
+      "hi": 239.63,
+      "lo": 115.33,
+      "mean": 177.48,
+      "n": 40
+     },
+     "main": {
+      "hi": 232.6,
+      "lo": 189.15,
+      "mean": 210.87,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 174.13,
+      "lo": 134.1,
+      "mean": 154.11,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 438.47,
+      "lo": 361.68,
+      "mean": 400.08,
+      "n": 60
+     }
+    },
+    "Luna": {
+     "holdout": {
+      "hi": 180.17,
+      "lo": 45.66,
+      "mean": 112.91,
+      "n": 40
+     },
+     "main": {
+      "hi": 155.6,
+      "lo": 104.46,
+      "mean": 130.03,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 67.64,
+      "lo": 27.53,
+      "mean": 47.58,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 443.89,
+      "lo": 365.84,
+      "mean": 404.87,
+      "n": 60
+     }
+    }
+   },
+   "pairs": {
+    "GLM-Luna": {
+     "holdout": {
+      "hi": 25.67,
+      "lo": -106.27,
+      "mean": -40.3,
+      "n": 40,
+      "p": 0.22399763147933713
+     },
+     "main": {
+      "at_least_minimum_meaningful": false,
+      "hi": 28.72,
+      "lo": -15.63,
+      "mean": 6.54,
+      "n": 260,
+      "p": 0.5616658898776751,
+      "p_holm": 0.5616658898776751,
+      "separated_after_holm": false
+     }
+    },
+    "Gemini-GLM": {
+     "holdout": {
+      "hi": 163.6,
+      "lo": 46.14,
+      "mean": 104.87,
+      "n": 40,
+      "p": 0.0008564127679244239
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 95.31,
+      "lo": 53.29,
+      "mean": 74.3,
+      "n": 260,
+      "p": 2.722000252369159e-11,
+      "p_holm": 5.444000504738318e-11,
+      "separated_after_holm": true
+     }
+    },
+    "Gemini-Luna": {
+     "holdout": {
+      "hi": 105.78,
+      "lo": 23.36,
+      "mean": 64.57,
+      "n": 40,
+      "p": 0.00296781970186845
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 98.36,
+      "lo": 63.33,
+      "mean": 80.84,
+      "n": 260,
+      "p": 2.684266543998069e-17,
+      "p_holm": 8.052799631994207e-17,
+      "separated_after_holm": true
+     }
+    }
+   }
+  },
+  "v2": {
+   "models": {
+    "GLM": {
+     "holdout": {
+      "hi": 144.85,
+      "lo": 8.71,
+      "mean": 76.78,
+      "n": 40
+     },
+     "main": {
+      "hi": 175.03,
+      "lo": 123.77,
+      "mean": 149.4,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 115.48,
+      "lo": 66.81,
+      "mean": 91.15,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 395.72,
+      "lo": 291.42,
+      "mean": 343.57,
+      "n": 60
+     }
+    },
+    "Gemini": {
+     "holdout": {
+      "hi": 255.25,
+      "lo": 120.23,
+      "mean": 187.74,
+      "n": 36
+     },
+     "main": {
+      "hi": 235.35,
+      "lo": 190.28,
+      "mean": 212.81,
+      "n": 240
+     },
+     "main_favourite_is_lemon": {
+      "hi": 176.12,
+      "lo": 134.54,
+      "mean": 155.33,
+      "n": 183
+     },
+     "main_favourite_is_sound": {
+      "hi": 437.23,
+      "lo": 357.51,
+      "mean": 397.37,
+      "n": 57
+     }
+    },
+    "Luna": {
+     "holdout": {
+      "hi": 206.01,
+      "lo": 69.81,
+      "mean": 137.91,
+      "n": 40
+     },
+     "main": {
+      "hi": 173.54,
+      "lo": 121.15,
+      "mean": 147.34,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 93.05,
+      "lo": 47.12,
+      "mean": 70.08,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 443.89,
+      "lo": 365.84,
+      "mean": 404.87,
+      "n": 60
+     }
+    }
+   },
+   "pairs": {
+    "GLM-Luna": {
+     "holdout": {
+      "hi": 0.47,
+      "lo": -122.73,
+      "mean": -61.13,
+      "n": 40,
+      "p": 0.05168043024657995
+     },
+     "main": {
+      "at_least_minimum_meaningful": false,
+      "hi": 24.14,
+      "lo": -20.03,
+      "mean": 2.06,
+      "n": 260,
+      "p": 0.8546124982592254,
+      "p_holm": 0.8546124982592254,
+      "separated_after_holm": false
+     }
+    },
+    "Gemini-GLM": {
+     "holdout": {
+      "hi": 162.61,
+      "lo": 40.63,
+      "mean": 101.62,
+      "n": 36,
+      "p": 0.0017804372912176567
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 80.75,
+      "lo": 38.52,
+      "mean": 59.64,
+      "n": 240,
+      "p": 7.022464493236509e-08,
+      "p_holm": 1.4044928986473017e-07,
+      "separated_after_holm": true
+     }
+    },
+    "Gemini-Luna": {
+     "holdout": {
+      "hi": 59.99,
+      "lo": -5.9,
+      "mean": 27.04,
+      "n": 36,
+      "p": 0.10457383073507388
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 83.7,
+      "lo": 49.37,
+      "mean": 66.54,
+      "n": 240,
+      "p": 5.384481747522655e-13,
+      "p_holm": 1.6153445242567964e-12,
+      "separated_after_holm": true
+     }
+    }
+   }
+  },
+  "v2_with_fill": {
+   "models": {
+    "GLM": {
+     "holdout": {
+      "hi": 144.85,
+      "lo": 8.71,
+      "mean": 76.78,
+      "n": 40
+     },
+     "main": {
+      "hi": 175.03,
+      "lo": 123.77,
+      "mean": 149.4,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 115.48,
+      "lo": 66.81,
+      "mean": 91.15,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 395.72,
+      "lo": 291.42,
+      "mean": 343.57,
+      "n": 60
+     }
+    },
+    "Gemini": {
+     "holdout": {
+      "hi": 239.63,
+      "lo": 115.33,
+      "mean": 177.48,
+      "n": 40
+     },
+     "main": {
+      "hi": 234.52,
+      "lo": 191.08,
+      "mean": 212.8,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 176.76,
+      "lo": 136.47,
+      "mean": 156.61,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 438.47,
+      "lo": 361.68,
+      "mean": 400.08,
+      "n": 60
+     }
+    },
+    "Luna": {
+     "holdout": {
+      "hi": 206.01,
+      "lo": 69.81,
+      "mean": 137.91,
+      "n": 40
+     },
+     "main": {
+      "hi": 173.54,
+      "lo": 121.15,
+      "mean": 147.34,
+      "n": 260
+     },
+     "main_favourite_is_lemon": {
+      "hi": 93.05,
+      "lo": 47.12,
+      "mean": 70.08,
+      "n": 200
+     },
+     "main_favourite_is_sound": {
+      "hi": 443.89,
+      "lo": 365.84,
+      "mean": 404.87,
+      "n": 60
+     }
+    }
+   },
+   "pairs": {
+    "GLM-Luna": {
+     "holdout": {
+      "hi": 0.47,
+      "lo": -122.73,
+      "mean": -61.13,
+      "n": 40,
+      "p": 0.05168043024657995
+     },
+     "main": {
+      "at_least_minimum_meaningful": false,
+      "hi": 24.14,
+      "lo": -20.03,
+      "mean": 2.06,
+      "n": 260,
+      "p": 0.8546124982592254,
+      "p_holm": 0.8546124982592254,
+      "separated_after_holm": false
+     }
+    },
+    "Gemini-GLM": {
+     "holdout": {
+      "hi": 158.51,
+      "lo": 42.89,
+      "mean": 100.7,
+      "n": 40,
+      "p": 0.001104007657201647
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 83.82,
+      "lo": 42.98,
+      "mean": 63.4,
+      "n": 260,
+      "p": 3.5839357285731715e-09,
+      "p_holm": 7.167871457146343e-09,
+      "separated_after_holm": true
+     }
+    },
+    "Gemini-Luna": {
+     "holdout": {
+      "hi": 73.32,
+      "lo": 5.82,
+      "mean": 39.57,
+      "n": 40,
+      "p": 0.022737009870905857
+     },
+     "main": {
+      "at_least_minimum_meaningful": true,
+      "hi": 81.88,
+      "lo": 49.03,
+      "mean": 65.46,
+      "n": 260,
+      "p": 1.1139673189340704e-13,
+      "p_holm": 3.3419019568022114e-13,
+      "separated_after_holm": true
+     }
+    }
+   }
+  }
+ },
+ "v2_analysis": {
+  "declared": {
+   "contrasts": "every pair of models and each model minus the reachable reference, paired by world",
+   "independent_unit": "world_seed",
+   "interval": "95% Student-t over worlds",
+   "minimum_meaningful_difference_usd_per_world": 50.0,
+   "missingness": "a failed cell is typed missingness and never rerun; a world missing an arm is dropped from that model's paired contrasts and counted",
+   "model_ranking_allowed": true,
+   "multiplicity": "Holm over the three pairwise model contrasts on the primary measure",
+   "population": "main pack (260 worlds); the 40 holdout worlds are reported separately and never pooled",
+   "primary_measure": "seat0 net at the reply-conditioned odds, mean of the two landlord arms, per world",
+   "references": [
+    "price_reference.inspect_lowball (reachable, offline, same market)",
+    "full-information ceiling (price_reference.ceiling)"
+   ],
+   "secondary_measures": [
+    "seat0 realized net",
+    "signings of a hold below every sound floor",
+    "share of cells ending on an inspected listing"
+   ],
+   "strata": "favourite_is_lemon and favourite_is_sound reported separately beside the pooled main pack"
+  },
+  "models": {
+   "housing_lemons_price_confirmatory_v14_gemini38_flash": {
+    "by_scope": {
+     "holdout": {
+      "cells": 74,
+      "cells_ending_on_an_inspected_listing": 56,
+      "cells_signed": 63,
+      "minus_reference": {
+       "hi": -43.93,
+       "lo": -137.12,
+       "mean": -90.53,
+       "n": 36,
+       "p": 0.0003667095163627187
+      },
+      "primary": {
+       "hi": 255.25,
+       "lo": 120.23,
+       "mean": 187.74,
+       "n": 36,
+       "p": 2.26689108580535e-06
+      },
+      "realized": {
+       "hi": 255.25,
+       "lo": 120.23,
+       "mean": 187.74,
+       "n": 36,
+       "p": 2.26689108580535e-06
+      },
+      "realized_share_of_ceiling": 0.5308,
+      "realized_share_of_reference": 0.6747,
+      "revealed_lemon_holds_signed": 3,
+      "revealed_lemon_holds_walked": 4,
+      "worlds_with_both_arms": 36
+     },
+     "main": {
+      "cells": 490,
+      "cells_ending_on_an_inspected_listing": 341,
+      "cells_signed": 457,
+      "minus_reference": {
+       "hi": -63.26,
+       "lo": -94.56,
+       "mean": -78.91,
+       "n": 240,
+       "p": 1.0876604835008495e-19
+      },
+      "primary": {
+       "hi": 235.35,
+       "lo": 190.28,
+       "mean": 212.81,
+       "n": 240,
+       "p": 2.310367424707968e-48
+      },
+      "realized": {
+       "hi": 235.54,
+       "lo": 185.92,
+       "mean": 210.73,
+       "n": 240,
+       "p": 4.084229256827447e-42
+      },
+      "realized_share_of_ceiling": 0.571,
+      "realized_share_of_reference": 0.7224,
+      "revealed_lemon_holds_signed": 7,
+      "revealed_lemon_holds_walked": 31,
+      "worlds_with_both_arms": 240
+     },
+     "main_favourite_is_lemon": {
+      "cells": 374,
+      "cells_ending_on_an_inspected_listing": 227,
+      "cells_signed": 341,
+      "minus_reference": {
+       "hi": -79.74,
+       "lo": -118.89,
+       "mean": -99.31,
+       "n": 183,
+       "p": 4.579795186404375e-19
+      },
+      "primary": {
+       "hi": 176.12,
+       "lo": 134.54,
+       "mean": 155.33,
+       "n": 183,
+       "p": 6.989247959116398e-33
+      },
+      "realized": {
+       "hi": 177.33,
+       "lo": 127.87,
+       "mean": 152.6,
+       "n": 183,
+       "p": 2.5056093203392215e-25
+      },
+      "realized_share_of_ceiling": 0.4387,
+      "realized_share_of_reference": 0.5993,
+      "revealed_lemon_holds_signed": 7,
+      "revealed_lemon_holds_walked": 31,
+      "worlds_with_both_arms": 183
+     },
+     "main_favourite_is_sound": {
+      "cells": 116,
+      "cells_ending_on_an_inspected_listing": 114,
+      "cells_signed": 116,
+      "minus_reference": {
+       "hi": -8.47,
+       "lo": -18.34,
+       "mean": -13.41,
+       "n": 57,
+       "p": 1.2062796603608012e-06
+      },
+      "primary": {
+       "hi": 437.23,
+       "lo": 357.51,
+       "mean": 397.37,
+       "n": 57,
+       "p": 3.824813980212132e-27
+      },
+      "realized": {
+       "hi": 437.23,
+       "lo": 357.51,
+       "mean": 397.37,
+       "n": 57,
+       "p": 3.824813980212132e-27
+      },
+      "realized_share_of_ceiling": 0.9089,
+      "realized_share_of_reference": 0.9674,
+      "revealed_lemon_holds_signed": 0,
+      "revealed_lemon_holds_walked": 0,
+      "worlds_with_both_arms": 57
+     }
+    },
+    "completed_cells": 564,
+    "cost_usd": 6.403156,
+    "not_attempted": 0,
+    "operational_failures": 36,
+    "planned_cells": 600
+   },
+   "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit": {
+    "by_scope": {
+     "holdout": {
+      "cells": 80,
+      "cells_ending_on_an_inspected_listing": 38,
+      "cells_signed": 66,
+      "minus_reference": {
+       "hi": -145.4,
+       "lo": -260.24,
+       "mean": -202.82,
+       "n": 40,
+       "p": 1.358780692628987e-08
+      },
+      "primary": {
+       "hi": 144.85,
+       "lo": 8.71,
+       "mean": 76.78,
+       "n": 40,
+       "p": 0.02805903774683506
+      },
+      "realized": {
+       "hi": 157.69,
+       "lo": 4.2,
+       "mean": 80.95,
+       "n": 40,
+       "p": 0.039249614289148756
+      },
+      "realized_share_of_ceiling": 0.2292,
+      "realized_share_of_reference": 0.2895,
+      "revealed_lemon_holds_signed": 13,
+      "revealed_lemon_holds_walked": 0,
+      "worlds_with_both_arms": 40
+     },
+     "main": {
+      "cells": 520,
+      "cells_ending_on_an_inspected_listing": 310,
+      "cells_signed": 469,
+      "minus_reference": {
+       "hi": -120.9,
+       "lo": -163.64,
+       "mean": -142.27,
+       "n": 260,
+       "p": 1.847795172427984e-30
+      },
+      "primary": {
+       "hi": 175.03,
+       "lo": 123.77,
+       "mean": 149.4,
+       "n": 260,
+       "p": 6.253208965496944e-25
+      },
+      "realized": {
+       "hi": 162.61,
+       "lo": 102.21,
+       "mean": 132.41,
+       "n": 260,
+       "p": 6.171884707877733e-16
+      },
+      "realized_share_of_ceiling": 0.3578,
+      "realized_share_of_reference": 0.454,
+      "revealed_lemon_holds_signed": 54,
+      "revealed_lemon_holds_walked": 19,
+      "worlds_with_both_arms": 260
+     },
+     "main_favourite_is_lemon": {
+      "cells": 400,
+      "cells_ending_on_an_inspected_listing": 206,
+      "cells_signed": 352,
+      "minus_reference": {
+       "hi": -139.17,
+       "lo": -188.65,
+       "mean": -163.91,
+       "n": 200,
+       "p": 1.4459533946458558e-28
+      },
+      "primary": {
+       "hi": 115.48,
+       "lo": 66.81,
+       "mean": 91.15,
+       "n": 200,
+       "p": 4.065209318812361e-12
+      },
+      "realized": {
+       "hi": 98.84,
+       "lo": 38.45,
+       "mean": 68.65,
+       "n": 200,
+       "p": 1.2396129853119752e-05
+      },
+      "realized_share_of_ceiling": 0.1966,
+      "realized_share_of_reference": 0.2691,
+      "revealed_lemon_holds_signed": 51,
+      "revealed_lemon_holds_walked": 17,
+      "worlds_with_both_arms": 200
+     },
+     "main_favourite_is_sound": {
+      "cells": 120,
+      "cells_ending_on_an_inspected_listing": 104,
+      "cells_signed": 117,
+      "minus_reference": {
+       "hi": -32.42,
+       "lo": -107.86,
+       "mean": -70.14,
+       "n": 60,
+       "p": 0.00044545793846847244
+      },
+      "primary": {
+       "hi": 395.72,
+       "lo": 291.42,
+       "mean": 343.57,
+       "n": 60,
+       "p": 3.0949575794148625e-19
+      },
+      "realized": {
+       "hi": 403.07,
+       "lo": 286.84,
+       "mean": 344.95,
+       "n": 60,
+       "p": 2.770376234519438e-17
+      },
+      "realized_share_of_ceiling": 0.7839,
+      "realized_share_of_reference": 0.8338,
+      "revealed_lemon_holds_signed": 3,
+      "revealed_lemon_holds_walked": 2,
+      "worlds_with_both_arms": 60
+     }
+    },
+    "completed_cells": 600,
+    "cost_usd": 0.412939,
+    "not_attempted": 0,
+    "operational_failures": 0,
+    "planned_cells": 600
+   },
+   "housing_lemons_price_confirmatory_v14_gpt6_luna": {
+    "by_scope": {
+     "holdout": {
+      "cells": 80,
+      "cells_ending_on_an_inspected_listing": 44,
+      "cells_signed": 73,
+      "minus_reference": {
+       "hi": -83.91,
+       "lo": -199.46,
+       "mean": -141.69,
+       "n": 40,
+       "p": 1.4211024870126402e-05
+      },
+      "primary": {
+       "hi": 206.01,
+       "lo": 69.81,
+       "mean": 137.91,
+       "n": 40,
+       "p": 0.00020513482742594137
+      },
+      "realized": {
+       "hi": 227.99,
+       "lo": 47.83,
+       "mean": 137.91,
+       "n": 40,
+       "p": 0.003616573484822172
+      },
+      "realized_share_of_ceiling": 0.3905,
+      "realized_share_of_reference": 0.4933,
+      "revealed_lemon_holds_signed": 12,
+      "revealed_lemon_holds_walked": 1,
+      "worlds_with_both_arms": 40
+     },
+     "main": {
+      "cells": 520,
+      "cells_ending_on_an_inspected_listing": 271,
+      "cells_signed": 483,
+      "minus_reference": {
+       "hi": -124.73,
+       "lo": -163.93,
+       "mean": -144.33,
+       "n": 260,
+       "p": 2.768872087997444e-35
+      },
+      "primary": {
+       "hi": 173.54,
+       "lo": 121.15,
+       "mean": 147.34,
+       "n": 260,
+       "p": 1.34984601742366e-23
+      },
+      "realized": {
+       "hi": 168.48,
+       "lo": 103.13,
+       "mean": 135.8,
+       "n": 260,
+       "p": 1.2473346300078547e-14
+      },
+      "realized_share_of_ceiling": 0.3669,
+      "realized_share_of_reference": 0.4656,
+      "revealed_lemon_holds_signed": 80,
+      "revealed_lemon_holds_walked": 8,
+      "worlds_with_both_arms": 260
+     },
+     "main_favourite_is_lemon": {
+      "cells": 400,
+      "cells_ending_on_an_inspected_listing": 151,
+      "cells_signed": 363,
+      "minus_reference": {
+       "hi": -162.44,
+       "lo": -207.51,
+       "mean": -184.97,
+       "n": 200,
+       "p": 3.75805976124193e-38
+      },
+      "primary": {
+       "hi": 93.05,
+       "lo": 47.12,
+       "mean": 70.08,
+       "n": 200,
+       "p": 8.344041631760204e-09
+      },
+      "realized": {
+       "hi": 88.67,
+       "lo": 21.49,
+       "mean": 55.08,
+       "n": 200,
+       "p": 0.0014302753478874504
+      },
+      "realized_share_of_ceiling": 0.1578,
+      "realized_share_of_reference": 0.216,
+      "revealed_lemon_holds_signed": 80,
+      "revealed_lemon_holds_walked": 7,
+      "worlds_with_both_arms": 200
+     },
+     "main_favourite_is_sound": {
+      "cells": 120,
+      "cells_ending_on_an_inspected_listing": 120,
+      "cells_signed": 120,
+      "minus_reference": {
+       "hi": -2.01,
+       "lo": -15.66,
+       "mean": -8.84,
+       "n": 60,
+       "p": 0.012008699785354043
+      },
+      "primary": {
+       "hi": 443.89,
+       "lo": 365.84,
+       "mean": 404.87,
+       "n": 60,
+       "p": 8.345582559043759e-29
+      },
+      "realized": {
+       "hi": 443.89,
+       "lo": 365.84,
+       "mean": 404.87,
+       "n": 60,
+       "p": 8.345582559043759e-29
+      },
+      "realized_share_of_ceiling": 0.92,
+      "realized_share_of_reference": 0.9786,
+      "revealed_lemon_holds_signed": 0,
+      "revealed_lemon_holds_walked": 1,
+      "worlds_with_both_arms": 60
+     }
+    },
+    "completed_cells": 600,
+    "cost_usd": 0.634448,
+    "not_attempted": 0,
+    "operational_failures": 0,
+    "planned_cells": 600
+   }
+  },
+  "pairs": {
+   "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit - housing_lemons_price_confirmatory_v14_gemini38_flash": {
+    "holdout": {
+     "hi": -40.63,
+     "lo": -162.61,
+     "mean": -101.62,
+     "n": 36,
+     "p": 0.0017804372912176567
+    },
+    "main": {
+     "at_least_minimum_meaningful": true,
+     "hi": -38.52,
+     "lo": -80.75,
+     "mean": -59.64,
+     "n": 240,
+     "p": 7.022464493236509e-08,
+     "p_holm": 1.4044928986473017e-07,
+     "separated_after_holm": true
+    }
+   },
+   "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit - housing_lemons_price_confirmatory_v14_gpt6_luna": {
+    "holdout": {
+     "hi": 0.47,
+     "lo": -122.73,
+     "mean": -61.13,
+     "n": 40,
+     "p": 0.05168043024657995
+    },
+    "main": {
+     "at_least_minimum_meaningful": false,
+     "hi": 24.14,
+     "lo": -20.03,
+     "mean": 2.06,
+     "n": 260,
+     "p": 0.8546124982592254,
+     "p_holm": 0.8546124982592254,
+     "separated_after_holm": false
+    }
+   },
+   "housing_lemons_price_confirmatory_v14_gpt6_luna - housing_lemons_price_confirmatory_v14_gemini38_flash": {
+    "holdout": {
+     "hi": 5.9,
+     "lo": -59.99,
+     "mean": -27.04,
+     "n": 36,
+     "p": 0.10457383073507388
+    },
+    "main": {
+     "at_least_minimum_meaningful": true,
+     "hi": -49.37,
+     "lo": -83.7,
+     "mean": -66.54,
+     "n": 240,
+     "p": 5.384481747522655e-13,
+     "p_holm": 1.6153445242567964e-12,
+     "separated_after_holm": true
+    }
+   }
+  }
+ },
+ "v2_analysis_with_fill": {
+  "declared": {
+   "contrasts": "every pair of models and each model minus the reachable reference, paired by world",
+   "independent_unit": "world_seed",
+   "interval": "95% Student-t over worlds",
+   "minimum_meaningful_difference_usd_per_world": 50.0,
+   "missingness": "a failed cell is typed missingness and never rerun; a world missing an arm is dropped from that model's paired contrasts and counted",
+   "model_ranking_allowed": true,
+   "multiplicity": "Holm over the three pairwise model contrasts on the primary measure",
+   "population": "main pack (260 worlds); the 40 holdout worlds are reported separately and never pooled",
+   "primary_measure": "seat0 net at the reply-conditioned odds, mean of the two landlord arms, per world",
+   "references": [
+    "price_reference.inspect_lowball (reachable, offline, same market)",
+    "full-information ceiling (price_reference.ceiling)"
+   ],
+   "secondary_measures": [
+    "seat0 realized net",
+    "signings of a hold below every sound floor",
+    "share of cells ending on an inspected listing"
+   ],
+   "strata": "favourite_is_lemon and favourite_is_sound reported separately beside the pooled main pack"
+  },
+  "models": {
+   "housing_lemons_price_confirmatory_v14_gemini38_flash": {
+    "by_scope": {
+     "holdout": {
+      "cells": 80,
+      "cells_ending_on_an_inspected_listing": 58,
+      "cells_signed": 69,
+      "minus_reference": {
+       "hi": -55.99,
+       "lo": -148.24,
+       "mean": -102.11,
+       "n": 40,
+       "p": 6.403593856466401e-05
+      },
+      "primary": {
+       "hi": 239.63,
+       "lo": 115.33,
+       "mean": 177.48,
+       "n": 40,
+       "p": 1.059351460073916e-06
+      },
+      "realized": {
+       "hi": 246.6,
+       "lo": 125.03,
+       "mean": 185.82,
+       "n": 40,
+       "p": 2.8795115795431634e-07
+      },
+      "realized_share_of_ceiling": 0.5262,
+      "realized_share_of_reference": 0.6646,
+      "revealed_lemon_holds_signed": 3,
+      "revealed_lemon_holds_walked": 5,
+      "worlds_with_both_arms": 40
+     },
+     "main": {
+      "cells": 520,
+      "cells_ending_on_an_inspected_listing": 359,
+      "cells_signed": 484,
+      "minus_reference": {
+       "hi": -63.73,
+       "lo": -94.01,
+       "mean": -78.87,
+       "n": 260,
+       "p": 6.059073245447372e-21
+      },
+      "primary": {
+       "hi": 234.52,
+       "lo": 191.08,
+       "mean": 212.8,
+       "n": 260,
+       "p": 5.15898716348991e-52
+      },
+      "realized": {
+       "hi": 234.61,
+       "lo": 187.14,
+       "mean": 210.87,
+       "n": 260,
+       "p": 9.179455685223246e-46
+      },
+      "realized_share_of_ceiling": 0.5698,
+      "realized_share_of_reference": 0.723,
+      "revealed_lemon_holds_signed": 7,
+      "revealed_lemon_holds_walked": 33,
+      "worlds_with_both_arms": 260
+     },
+     "main_favourite_is_lemon": {
+      "cells": 400,
+      "cells_ending_on_an_inspected_listing": 241,
+      "cells_signed": 364,
+      "minus_reference": {
+       "hi": -79.61,
+       "lo": -117.27,
+       "mean": -98.44,
+       "n": 200,
+       "p": 3.0360242338167357e-20
+      },
+      "primary": {
+       "hi": 176.76,
+       "lo": 136.47,
+       "mean": 156.61,
+       "n": 200,
+       "p": 1.5526708246218856e-35
+      },
+      "realized": {
+       "hi": 177.7,
+       "lo": 130.53,
+       "mean": 154.11,
+       "n": 200,
+       "p": 4.98859112870465e-28
+      },
+      "realized_share_of_ceiling": 0.4414,
+      "realized_share_of_reference": 0.6042,
+      "revealed_lemon_holds_signed": 7,
+      "revealed_lemon_holds_walked": 33,
+      "worlds_with_both_arms": 200
+     },
+     "main_favourite_is_sound": {
+      "cells": 120,
+      "cells_ending_on_an_inspected_listing": 118,
+      "cells_signed": 120,
+      "minus_reference": {
+       "hi": -8.9,
+       "lo": -18.35,
+       "mean": -13.63,
+       "n": 60,
+       "p": 3.130207084449978e-07
+      },
+      "primary": {
+       "hi": 438.47,
+       "lo": 361.68,
+       "mean": 400.08,
+       "n": 60,
+       "p": 6.664241384650477e-29
+      },
+      "realized": {
+       "hi": 438.47,
+       "lo": 361.68,
+       "mean": 400.08,
+       "n": 60,
+       "p": 6.664241384650477e-29
+      },
+      "realized_share_of_ceiling": 0.9091,
+      "realized_share_of_reference": 0.9671,
+      "revealed_lemon_holds_signed": 0,
+      "revealed_lemon_holds_walked": 0,
+      "worlds_with_both_arms": 60
+     }
+    },
+    "completed_cells": 600,
+    "cost_usd": 6.7846,
+    "not_attempted": 0,
+    "operational_failures": 0,
+    "planned_cells": 600
+   },
+   "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit": {
+    "by_scope": {
+     "holdout": {
+      "cells": 80,
+      "cells_ending_on_an_inspected_listing": 38,
+      "cells_signed": 66,
+      "minus_reference": {
+       "hi": -145.4,
+       "lo": -260.24,
+       "mean": -202.82,
+       "n": 40,
+       "p": 1.358780692628987e-08
+      },
+      "primary": {
+       "hi": 144.85,
+       "lo": 8.71,
+       "mean": 76.78,
+       "n": 40,
+       "p": 0.02805903774683506
+      },
+      "realized": {
+       "hi": 157.69,
+       "lo": 4.2,
+       "mean": 80.95,
+       "n": 40,
+       "p": 0.039249614289148756
+      },
+      "realized_share_of_ceiling": 0.2292,
+      "realized_share_of_reference": 0.2895,
+      "revealed_lemon_holds_signed": 13,
+      "revealed_lemon_holds_walked": 0,
+      "worlds_with_both_arms": 40
+     },
+     "main": {
+      "cells": 520,
+      "cells_ending_on_an_inspected_listing": 310,
+      "cells_signed": 469,
+      "minus_reference": {
+       "hi": -120.9,
+       "lo": -163.64,
+       "mean": -142.27,
+       "n": 260,
+       "p": 1.847795172427984e-30
+      },
+      "primary": {
+       "hi": 175.03,
+       "lo": 123.77,
+       "mean": 149.4,
+       "n": 260,
+       "p": 6.253208965496944e-25
+      },
+      "realized": {
+       "hi": 162.61,
+       "lo": 102.21,
+       "mean": 132.41,
+       "n": 260,
+       "p": 6.171884707877733e-16
+      },
+      "realized_share_of_ceiling": 0.3578,
+      "realized_share_of_reference": 0.454,
+      "revealed_lemon_holds_signed": 54,
+      "revealed_lemon_holds_walked": 19,
+      "worlds_with_both_arms": 260
+     },
+     "main_favourite_is_lemon": {
+      "cells": 400,
+      "cells_ending_on_an_inspected_listing": 206,
+      "cells_signed": 352,
+      "minus_reference": {
+       "hi": -139.17,
+       "lo": -188.65,
+       "mean": -163.91,
+       "n": 200,
+       "p": 1.4459533946458558e-28
+      },
+      "primary": {
+       "hi": 115.48,
+       "lo": 66.81,
+       "mean": 91.15,
+       "n": 200,
+       "p": 4.065209318812361e-12
+      },
+      "realized": {
+       "hi": 98.84,
+       "lo": 38.45,
+       "mean": 68.65,
+       "n": 200,
+       "p": 1.2396129853119752e-05
+      },
+      "realized_share_of_ceiling": 0.1966,
+      "realized_share_of_reference": 0.2691,
+      "revealed_lemon_holds_signed": 51,
+      "revealed_lemon_holds_walked": 17,
+      "worlds_with_both_arms": 200
+     },
+     "main_favourite_is_sound": {
+      "cells": 120,
+      "cells_ending_on_an_inspected_listing": 104,
+      "cells_signed": 117,
+      "minus_reference": {
+       "hi": -32.42,
+       "lo": -107.86,
+       "mean": -70.14,
+       "n": 60,
+       "p": 0.00044545793846847244
+      },
+      "primary": {
+       "hi": 395.72,
+       "lo": 291.42,
+       "mean": 343.57,
+       "n": 60,
+       "p": 3.0949575794148625e-19
+      },
+      "realized": {
+       "hi": 403.07,
+       "lo": 286.84,
+       "mean": 344.95,
+       "n": 60,
+       "p": 2.770376234519438e-17
+      },
+      "realized_share_of_ceiling": 0.7839,
+      "realized_share_of_reference": 0.8338,
+      "revealed_lemon_holds_signed": 3,
+      "revealed_lemon_holds_walked": 2,
+      "worlds_with_both_arms": 60
+     }
+    },
+    "completed_cells": 600,
+    "cost_usd": 0.412939,
+    "not_attempted": 0,
+    "operational_failures": 0,
+    "planned_cells": 600
+   },
+   "housing_lemons_price_confirmatory_v14_gpt6_luna": {
+    "by_scope": {
+     "holdout": {
+      "cells": 80,
+      "cells_ending_on_an_inspected_listing": 44,
+      "cells_signed": 73,
+      "minus_reference": {
+       "hi": -83.91,
+       "lo": -199.46,
+       "mean": -141.69,
+       "n": 40,
+       "p": 1.4211024870126402e-05
+      },
+      "primary": {
+       "hi": 206.01,
+       "lo": 69.81,
+       "mean": 137.91,
+       "n": 40,
+       "p": 0.00020513482742594137
+      },
+      "realized": {
+       "hi": 227.99,
+       "lo": 47.83,
+       "mean": 137.91,
+       "n": 40,
+       "p": 0.003616573484822172
+      },
+      "realized_share_of_ceiling": 0.3905,
+      "realized_share_of_reference": 0.4933,
+      "revealed_lemon_holds_signed": 12,
+      "revealed_lemon_holds_walked": 1,
+      "worlds_with_both_arms": 40
+     },
+     "main": {
+      "cells": 520,
+      "cells_ending_on_an_inspected_listing": 271,
+      "cells_signed": 483,
+      "minus_reference": {
+       "hi": -124.73,
+       "lo": -163.93,
+       "mean": -144.33,
+       "n": 260,
+       "p": 2.768872087997444e-35
+      },
+      "primary": {
+       "hi": 173.54,
+       "lo": 121.15,
+       "mean": 147.34,
+       "n": 260,
+       "p": 1.34984601742366e-23
+      },
+      "realized": {
+       "hi": 168.48,
+       "lo": 103.13,
+       "mean": 135.8,
+       "n": 260,
+       "p": 1.2473346300078547e-14
+      },
+      "realized_share_of_ceiling": 0.3669,
+      "realized_share_of_reference": 0.4656,
+      "revealed_lemon_holds_signed": 80,
+      "revealed_lemon_holds_walked": 8,
+      "worlds_with_both_arms": 260
+     },
+     "main_favourite_is_lemon": {
+      "cells": 400,
+      "cells_ending_on_an_inspected_listing": 151,
+      "cells_signed": 363,
+      "minus_reference": {
+       "hi": -162.44,
+       "lo": -207.51,
+       "mean": -184.97,
+       "n": 200,
+       "p": 3.75805976124193e-38
+      },
+      "primary": {
+       "hi": 93.05,
+       "lo": 47.12,
+       "mean": 70.08,
+       "n": 200,
+       "p": 8.344041631760204e-09
+      },
+      "realized": {
+       "hi": 88.67,
+       "lo": 21.49,
+       "mean": 55.08,
+       "n": 200,
+       "p": 0.0014302753478874504
+      },
+      "realized_share_of_ceiling": 0.1578,
+      "realized_share_of_reference": 0.216,
+      "revealed_lemon_holds_signed": 80,
+      "revealed_lemon_holds_walked": 7,
+      "worlds_with_both_arms": 200
+     },
+     "main_favourite_is_sound": {
+      "cells": 120,
+      "cells_ending_on_an_inspected_listing": 120,
+      "cells_signed": 120,
+      "minus_reference": {
+       "hi": -2.01,
+       "lo": -15.66,
+       "mean": -8.84,
+       "n": 60,
+       "p": 0.012008699785354043
+      },
+      "primary": {
+       "hi": 443.89,
+       "lo": 365.84,
+       "mean": 404.87,
+       "n": 60,
+       "p": 8.345582559043759e-29
+      },
+      "realized": {
+       "hi": 443.89,
+       "lo": 365.84,
+       "mean": 404.87,
+       "n": 60,
+       "p": 8.345582559043759e-29
+      },
+      "realized_share_of_ceiling": 0.92,
+      "realized_share_of_reference": 0.9786,
+      "revealed_lemon_holds_signed": 0,
+      "revealed_lemon_holds_walked": 1,
+      "worlds_with_both_arms": 60
+     }
+    },
+    "completed_cells": 600,
+    "cost_usd": 0.634448,
+    "not_attempted": 0,
+    "operational_failures": 0,
+    "planned_cells": 600
+   }
+  },
+  "pairs": {
+   "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit - housing_lemons_price_confirmatory_v14_gemini38_flash": {
+    "holdout": {
+     "hi": -42.89,
+     "lo": -158.51,
+     "mean": -100.7,
+     "n": 40,
+     "p": 0.001104007657201647
+    },
+    "main": {
+     "at_least_minimum_meaningful": true,
+     "hi": -42.98,
+     "lo": -83.82,
+     "mean": -63.4,
+     "n": 260,
+     "p": 3.5839357285731715e-09,
+     "p_holm": 7.167871457146343e-09,
+     "separated_after_holm": true
+    }
+   },
+   "housing_lemons_price_confirmatory_v14_glm53_flash_nextbit - housing_lemons_price_confirmatory_v14_gpt6_luna": {
+    "holdout": {
+     "hi": 0.47,
+     "lo": -122.73,
+     "mean": -61.13,
+     "n": 40,
+     "p": 0.05168043024657995
+    },
+    "main": {
+     "at_least_minimum_meaningful": false,
+     "hi": 24.14,
+     "lo": -20.03,
+     "mean": 2.06,
+     "n": 260,
+     "p": 0.8546124982592254,
+     "p_holm": 0.8546124982592254,
+     "separated_after_holm": false
+    }
+   },
+   "housing_lemons_price_confirmatory_v14_gpt6_luna - housing_lemons_price_confirmatory_v14_gemini38_flash": {
+    "holdout": {
+     "hi": -5.82,
+     "lo": -73.32,
+     "mean": -39.57,
+     "n": 40,
+     "p": 0.022737009870905857
+    },
+    "main": {
+     "at_least_minimum_meaningful": true,
+     "hi": -49.03,
+     "lo": -81.88,
+     "mean": -65.46,
+     "n": 260,
+     "p": 1.1139673189340704e-13,
+     "p_holm": 3.3419019568022114e-13,
+     "separated_after_holm": true
+    }
+   }
+  }
+ }
+}

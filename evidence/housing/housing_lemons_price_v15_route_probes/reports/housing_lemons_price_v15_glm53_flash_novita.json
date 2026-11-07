@@ -1,0 +1,73 @@
+{
+ "at": "2026-10-19T16:37:23+00:00",
+ "campaign_id": "housing_lemons_price_v15_glm53_flash_novita",
+ "detail": "{\"error\":{\"message\":\"No endpoints found that can handle the requested parameters. To learn more about provider routing, visit: https://openrouter.ai/docs/guides/routing/provider-selection\",\"code\":404,\"metadata\":{\"routing_funnel\":[{\"step\":\"Initial Endpoints\",\"endpoint_count\":34},{\"step\":\"Filter by Regional Surcharge\",\"endpoint_count\":33},{\"step\":\"Filter by Allowed Providers\",\"endpoint_count\":1,\"rea",
+ "http_status": 404,
+ "request": {
+  "max_tokens": 4096,
+  "messages": [
+   {
+    "content": "You are a tenant. Answer only with the JSON object the schema asks for.",
+    "role": "system"
+   },
+   {
+    "content": "Listing 2 asks $900 a month and was inspected as sound; its cost to the landlord is at least $820. Make one offer: decision offer, the listing id, and a rent.",
+    "role": "user"
+   }
+  ],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": {
+   "allow_fallbacks": false,
+   "only": [
+    "Novita"
+   ],
+   "quantizations": [
+    "fp8"
+   ],
+   "require_parameters": true
+  },
+  "reasoning": {
+   "effort": "low"
+  },
+  "response_format": {
+   "json_schema": {
+    "name": "tenant_move",
+    "schema": {
+     "additionalProperties": false,
+     "properties": {
+      "decision": {
+       "enum": [
+        "offer",
+        "pass"
+       ],
+       "type": "string"
+      },
+      "listing_id": {
+       "type": "integer"
+      },
+      "rent": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "decision",
+      "listing_id",
+      "rent"
+     ],
+     "type": "object"
+    },
+    "strict": true
+   },
+   "type": "json_schema"
+  },
+  "seed": 87001,
+  "temperature": 0.0,
+  "top_p": 1.0
+ },
+ "route_pin": {
+  "canonical_model": "z-ai/glm-5.3-flash-20260826",
+  "provider": "Novita",
+  "quantization": "fp8"
+ },
+ "status": "refused"
+}

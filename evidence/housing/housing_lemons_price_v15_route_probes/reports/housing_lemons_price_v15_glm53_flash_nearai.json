@@ -1,0 +1,80 @@
+{
+ "at": "2026-10-19T16:37:15+00:00",
+ "campaign_id": "housing_lemons_price_v15_glm53_flash_nearai",
+ "request": {
+  "max_tokens": 4096,
+  "messages": [
+   {
+    "content": "You are a tenant. Answer only with the JSON object the schema asks for.",
+    "role": "system"
+   },
+   {
+    "content": "Listing 2 asks $900 a month and was inspected as sound; its cost to the landlord is at least $820. Make one offer: decision offer, the listing id, and a rent.",
+    "role": "user"
+   }
+  ],
+  "model": "z-ai/glm-5.3-flash",
+  "provider": {
+   "allow_fallbacks": false,
+   "only": [
+    "Near AI"
+   ],
+   "quantizations": [
+    "fp8"
+   ],
+   "require_parameters": true
+  },
+  "reasoning": {
+   "effort": "low"
+  },
+  "response_format": {
+   "json_schema": {
+    "name": "tenant_move",
+    "schema": {
+     "additionalProperties": false,
+     "properties": {
+      "decision": {
+       "enum": [
+        "offer",
+        "pass"
+       ],
+       "type": "string"
+      },
+      "listing_id": {
+       "type": "integer"
+      },
+      "rent": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "decision",
+      "listing_id",
+      "rent"
+     ],
+     "type": "object"
+    },
+    "strict": true
+   },
+   "type": "json_schema"
+  },
+  "seed": 87001,
+  "temperature": 0.0,
+  "top_p": 1.0
+ },
+ "route_pin": {
+  "canonical_model": "z-ai/glm-5.3-flash-20260826",
+  "provider": "Near AI",
+  "quantization": "fp8"
+ },
+ "served_model": "z-ai/glm-5.3-flash",
+ "served_provider": "Near AI",
+ "status": "answered",
+ "structured_output_ok": true,
+ "usage": {
+  "completion_tokens": 213,
+  "cost_usd": 0.000110979,
+  "prompt_tokens": 70,
+  "reasoning_tokens": 198
+ }
+}
